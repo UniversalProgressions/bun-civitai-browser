@@ -42,3 +42,4 @@ package-lock.json
 **/*.bun
 /src/modules/db/generated
 /public/**/*
+/db.sqlite3

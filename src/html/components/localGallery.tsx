@@ -1,12 +1,13 @@
 import {
   Affix,
-  AutoComplete,
+  Button,
   Card,
   Col,
   Descriptions,
   type DescriptionsProps,
   Flex,
   FloatButton,
+  Image,
   Input,
   List,
   Modal,
@@ -26,67 +27,17 @@ import clipboard from "clipboardy";
 import DOMPurify from "dompurify";
 import { edenTreaty, getFileType } from "../utils";
 import {
-  Model,
   type ModelsRequestOpts,
-  ModelVersion,
 } from "../../modules/civitai/models/models_endpoint";
 import { type ModelTypes } from "../../modules/civitai/models/baseModels/misc";
 import { type ModelWithAllRelations } from "../../modules/civitai/service/crud/modelId";
 import ModalPanel from "./modalPanel";
-import { extractFilenameFromUrl } from "#modules/civitai/service/utils";
+import {
+  extractFilenameFromUrl,
+  removeFileExtension,
+} from "#modules/civitai/service/utils";
 
 // https://ant.design/components/select#select-demo-select-users
-function FloatingButtons() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalContent, setModalContent] = useState(<></>);
-
-  function SearchPanel(
-    searchOpt: ModelsRequestOpts,
-    setSearchOpt: React.Dispatch<React.SetStateAction<ModelsRequestOpts>>,
-  ) {
-    const options: SelectProps["options"] = [];
-    const onSearch = (value: string) => {};
-    return (
-      <>
-        <Space direction="vertical">
-          <Search
-            placeholder="input search text"
-            onSearch={onSearch}
-            enterButton
-            value={searchOpt.query}
-          />
-          <Select
-            placeholder="Base model"
-            value={searchOpt.baseModels}
-          >
-          </Select>
-          <Select placeholder="Model Type" value={searchOpt.types}></Select>
-          <Select
-            placeholder="Checkpoint Type"
-            value={searchOpt.checkpointType}
-          >
-          </Select>
-          <Select placeholder="Period" value={searchOpt.period}></Select>
-          <Select placeholder="Sort" value={searchOpt.sort}></Select>
-          <Select placeholder="Tag" value={searchOpt.tag}></Select>
-        </Space>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <FloatButton.Group shape="circle" style={{ insetInlineEnd: 24 }}>
-        <FloatButton icon={<SearchOutlined />} onClick={() => {}} />
-        <FloatButton icon={<SyncOutlined />} />
-        <FloatButton.BackTop visibilityHeight={0} />
-      </FloatButton.Group>
-      <ModalPanel isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen}>
-        {modalContent}
-      </ModalPanel>
-    </>
-  );
-}
 
 function localPagination({
   total,
@@ -149,6 +100,71 @@ function paginationGallery() {
     }
   }
 
+  function FloatingButtons() {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalContent, setModalContent] = useState(<></>);
+
+    function SearchPanel(
+      // searchOpt: ModelsRequestOpts,
+      // setSearchOpt: React.Dispatch<React.SetStateAction<ModelsRequestOpts>>,
+    ) {
+      const options: SelectProps["options"] = [];
+      const onSearch = (value: string) => {};
+      return (
+        <>
+          <Space direction="vertical">
+            <Search
+              placeholder="input search text"
+              onSearch={onSearch}
+              enterButton
+              value={searchOpt.query}
+            />
+            <Select
+              placeholder="Base model"
+              value={searchOpt.baseModels}
+            >
+            </Select>
+            <Select placeholder="Model Type" value={searchOpt.types}></Select>
+            <Select
+              placeholder="Checkpoint Type"
+              value={searchOpt.checkpointType}
+            >
+            </Select>
+            <Select placeholder="Period" value={searchOpt.period}></Select>
+            <Select placeholder="Sort" value={searchOpt.sort}></Select>
+            <Select placeholder="Tag" value={searchOpt.tag}></Select>
+          </Space>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <FloatButton.Group shape="circle" style={{ insetInlineEnd: 24 }}>
+          <FloatButton
+            icon={<SearchOutlined />}
+            onClick={() => {
+              setModalContent(SearchPanel());
+              setIsModalOpen(true);
+            }}
+          />
+          <FloatButton
+            icon={<SyncOutlined />}
+            onClick={async () => {
+              notification.info({ message: "Scaning..." });
+              await edenTreaty.civitai.local.scanModels.head();
+              notification.success({ message: "Finished~" });
+            }}
+          />
+          <FloatButton.BackTop visibilityHeight={0} />
+        </FloatButton.Group>
+        <ModalPanel isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen}>
+          {modalContent}
+        </ModalPanel>
+      </>
+    );
+  }
+
   const [cardModalContent, setCardModalContent] = useState(<></>);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [activeVersionId, setActiveVersionId] = useState(``);
@@ -182,10 +198,32 @@ function paginationGallery() {
             items={data?.modelVersions.map((v) => {
               const leftSide = (
                 <>
-                  <div onClick={() => console.log("yes")}>
+                  <div>
                     {dbModel.previewFile
                       ? (
-                        mediaElement(extractFilenameFromUrl(v.images[0]?.url))
+                        // mediaElement(extractFilenameFromUrl(v.images[0]?.url))
+                        <Image.PreviewGroup
+                          items={v.images.map((i) =>
+                            extractFilenameFromUrl(i.url)
+                          )}
+                          preview={{
+                            imageRender: (o, i) => (mediaElement(i.image.url)),
+                          }}
+                        >
+                          <Image
+                            width={200}
+                            src={`${location.origin}/civitai/local/media/preview?previewFile=${dbModel.previewFile}`}
+                            preview={{
+                              destroyOnHidden: true,
+                              imageRender: (
+                                o,
+                                i,
+                              ) => (mediaElement(
+                                dbModel.previewFile as string,
+                              )),
+                            }}
+                          />
+                        </Image.PreviewGroup>
                       )
                       : <img title="Have no preview" />}
                   </div>
@@ -213,14 +251,57 @@ function paginationGallery() {
                   span: "filled",
                   children: v.publishedAt?.toString() ?? "Null",
                 },
+
                 {
-                  key: 5,
+                  key: 7,
+                  label: `Model Files`,
+                  span: `filled`,
+                  children: v.files.length > 0
+                    ? (
+                      <>
+                        <List
+                          dataSource={v.files}
+                          renderItem={(file) => (
+                            <List.Item>
+                              <Row>
+                                <Col span={18}>{file.name}</Col>
+                                <Col span={6}>
+                                  <Button
+                                    onClick={async () => {
+                                      // const loraString = `<lora:${
+                                      //   modelVersion.files[index].id
+                                      // }_${
+                                      //   removeFileExtension(
+                                      //     modelVersion.files[index].name,
+                                      //   )
+                                      // }:1>`;
+                                      await clipboard.write(file.name);
+                                      notification.success({
+                                        message:
+                                          `${file.name} copied to clipboard`,
+                                      });
+                                    }}
+                                  >
+                                    Copy Filename
+                                  </Button>
+                                </Col>
+                              </Row>
+                            </List.Item>
+                          )}
+                        />
+                      </>
+                    )
+                    : `have no files`,
+                },
+                {
+                  key: 8,
                   label: "Tags",
                   span: "filled",
                   children: (
                     <Flex wrap gap="small">
-                      {v.trainedWords.map((tagStr) => (
+                      {v.trainedWords.map((tagStr, index) => (
                         <div
+                          key={index}
                           onClick={async () => {
                             await clipboard.write(tagStr);
                             return notification.success({
@@ -240,7 +321,7 @@ function paginationGallery() {
                   ),
                 },
                 {
-                  key: 6,
+                  key: 9,
                   label: "Model Description",
                   span: "filled",
                   children: data.description
@@ -256,7 +337,7 @@ function paginationGallery() {
                   // data.description,
                 },
                 {
-                  key: 7,
+                  key: 10,
                   label: "Model Version Description",
                   span: "filled",
                   children: v.description

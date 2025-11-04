@@ -20,7 +20,7 @@ function App() {
   if (isPending) return "Loading...";
 
   if (error) {
-    return "An error has occurred: Can't communicate with server, may it's not even start yet.";
+    return "An error has occurred: Can't communicate with server, may it's not even running yet.";
   }
 
   const onFinish: FormProps<Settings>["onFinish"] = (values) => {

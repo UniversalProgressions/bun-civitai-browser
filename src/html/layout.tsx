@@ -1,5 +1,4 @@
 import { type MenuProps, Tabs, type TabsProps } from "antd";
-import React, { useState } from "react";
 import { SettingFilled } from "@ant-design/icons";
 import SettingsPanel from "./components/settingsPanel";
 import LocalModelsGallery from "./components/localModelsGallery";

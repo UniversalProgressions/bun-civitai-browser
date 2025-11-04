@@ -7,6 +7,7 @@ import {
   type DescriptionsProps,
   Flex,
   FloatButton,
+  Form,
   Image,
   Input,
   List,
@@ -20,18 +21,31 @@ import {
   Space,
   Tabs,
 } from "antd";
-const { Search } = Input;
 import { SearchOutlined, SyncOutlined } from "@ant-design/icons";
 import { atom, useAtom } from "jotai";
-import { useEffect } from "react";
+import { flatMap } from "es-toolkit";
+import { useEffect, useState } from "react";
 import clipboard from "clipboardy";
 import DOMPurify from "dompurify";
 import { edenTreaty, getFileType } from "../utils";
 import { type ModelsRequestOpts } from "../../modules/civitai/models/models_endpoint";
-import { type ModelTypes } from "../../modules/civitai/models/baseModels/misc";
+import {
+  BaseModelsArray,
+  CheckPointTypeArray,
+  ModelsRequestPeriodArray,
+  ModelsRequestSortArray,
+  type ModelTypes,
+  ModelTypesArray,
+} from "../../modules/civitai/models/baseModels/misc";
 import { type ModelWithAllRelations } from "../../modules/civitai/service/crud/modelId";
 import { extractFilenameFromUrl } from "#modules/civitai/service/utils";
+import { DefaultOptionType } from "antd/es/select";
 
+enum ModalWidthEnum {
+  SearchPanel = 600,
+  modelDetailCard = 1000,
+}
+const modalWidthAtom = atom<ModalWidthEnum>(ModalWidthEnum.SearchPanel);
 const isGalleryLoadingAtom = atom(false);
 const modelsAtom = atom<Array<ModelWithAllRelations>>([]);
 const localSearchOptionsAtom = atom<ModelsRequestOpts>({});
@@ -75,35 +89,81 @@ function LocalPagination() {
 function FloatingButtons() {
   const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
   const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
+  const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
   const [modalContent, setModalContent] = useAtom(modalContentAtom);
+  const [temporaryOpt, setTemporaryOpt] = useState<ModelsRequestOpts>({});
+  const [form] = Form.useForm();
 
+  const options: SelectProps["options"] = [];
   function SearchPanel() {
-    const options: SelectProps["options"] = [];
-    const onSearch = (value: string) => {};
     return (
       <>
-        <Space direction="vertical">
-          <Search
-            placeholder="input search text"
-            onSearch={onSearch}
-            enterButton
-            value={searchOpt.query}
-          />
-          <Select
-            placeholder="Base model"
-            value={searchOpt.baseModels}
-          >
-          </Select>
-          <Select placeholder="Model Type" value={searchOpt.types}></Select>
-          <Select
-            placeholder="Checkpoint Type"
-            value={searchOpt.checkpointType}
-          >
-          </Select>
-          <Select placeholder="Period" value={searchOpt.period}></Select>
-          <Select placeholder="Sort" value={searchOpt.sort}></Select>
-          <Select placeholder="Tag" value={searchOpt.tag}></Select>
-        </Space>
+        <Form
+          layout="horizontal"
+          form={form}
+          onFinish={() => console.log("onFinish")}
+        >
+          <Form.Item name="query text" label="query text">
+            <Input placeholder="input search text" // value={temporaryOpt.query}
+              // onChange={(e) => temporaryOpt.query = e.target.value}
+            />
+          </Form.Item>
+          <Form.Item name="Base Model Select" label="Base Model Select">
+            <Select
+              mode="multiple"
+              options={BaseModelsArray.map<DefaultOptionType>((v) => ({
+                label: v,
+                value: v,
+              }))}
+              placeholder="Base model"
+              value={temporaryOpt.baseModels}
+            />
+          </Form.Item>
+          <Form.Item name="Model Type" label="Model Type">
+            <Select
+              mode="multiple"
+              options={ModelTypesArray.map<DefaultOptionType>((v) => ({
+                label: v,
+                value: v,
+              }))}
+              placeholder="Model Type"
+              value={temporaryOpt.types}
+            />
+          </Form.Item>
+          <Form.Item name="Checkpoint Type" label="Checkpoint Type">
+            <Select
+              options={CheckPointTypeArray.map<DefaultOptionType>((v) => ({
+                label: v,
+                value: v,
+              }))}
+              placeholder="Checkpoint Type"
+              value={temporaryOpt.checkpointType}
+            />
+          </Form.Item>
+          <Form.Item name="Period" label="Period">
+            <Select
+              options={ModelsRequestPeriodArray.map<DefaultOptionType>((v) => ({
+                label: v,
+                value: v,
+              }))}
+              placeholder="Period"
+              value={temporaryOpt.period}
+            />
+          </Form.Item>
+          <Form.Item name="Sort" label="Sort">
+            <Select
+              options={ModelsRequestSortArray.map<DefaultOptionType>((v) => ({
+                label: v,
+                value: v,
+              }))}
+              placeholder="Sort"
+              value={temporaryOpt.sort}
+            />
+          </Form.Item>
+          <Form.Item>
+            <Select placeholder="Tag" value={temporaryOpt.tag} />
+          </Form.Item>
+        </Form>
       </>
     );
   }
@@ -113,6 +173,7 @@ function FloatingButtons() {
         <FloatButton
           icon={<SearchOutlined />}
           onClick={() => {
+            setModalWidth(ModalWidthEnum.SearchPanel);
             setModalContent(<SearchPanel />);
             setIsModalOpen(true);
           }}
@@ -132,6 +193,7 @@ function FloatingButtons() {
 }
 
 function LocalModelsGallery() {
+  const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
   const [isGalleryLoading, setIsGalleryLoading] = useAtom(isGalleryLoadingAtom);
   const [modelsAtomValue, setModelsAtom] = useAtom(modelsAtom);
   const [isCardModalOpen, setIsCardModalOpen] = useAtom(isModalOpenAtom);
@@ -159,6 +221,7 @@ function LocalModelsGallery() {
   const [activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom);
 
   async function openModelCard(dbModel: ModelWithAllRelations) {
+    setModalWidth(ModalWidthEnum.modelDetailCard);
     const { data, error, headers, response, status } = await edenTreaty.civitai
       .local.models.modelId.post({
         modelId: dbModel.id,
@@ -413,7 +476,7 @@ function LocalModelsGallery() {
         </Affix>
       </Space>
       <Modal
-        width={1000}
+        width={modalWidth}
         onOk={() => setIsCardModalOpen(false)}
         onCancel={() => setIsCardModalOpen(false)}
         closable={false}

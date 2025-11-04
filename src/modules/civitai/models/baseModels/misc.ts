@@ -66,6 +66,12 @@ export type NsfwLevel = typeof nsfw_level.infer;
 
 export const checkpoint_type = type("'Merge' | 'Trained'");
 export type CheckpointType = typeof checkpoint_type.infer;
+export const CheckPointTypeArray = (() => {
+  const CheckPointTypeUnits = checkpoint_type.json as arkUnites;
+  return map(CheckPointTypeUnits, function (u) {
+    return u.unit;
+  })
+})()
 
 export const base_models = type.enumerated(
   "Aura Flow",

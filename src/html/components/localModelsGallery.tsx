@@ -33,18 +33,19 @@ import { type ModelWithAllRelations } from "../../modules/civitai/service/crud/m
 import { extractFilenameFromUrl } from "#modules/civitai/service/utils";
 
 const isGalleryLoadingAtom = atom(false);
-const modelsAtom = atom<Array<ModelWithAllRelations>>([]); // Placeholder for model data
+const modelsAtom = atom<Array<ModelWithAllRelations>>([]);
 const localSearchOptionsAtom = atom<ModelsRequestOpts>({});
 const totalAtom = atom(0);
 const isModalOpenAtom = atom(false);
 const modalContentAtom = atom(<></>);
 const activeVersionIdAtom = atom<string>(``);
 
-function MediaElement({ fileName }: { fileName: string }) {
+function MediaPreview({ fileName }: { fileName: string }) {
   const fileType = getFileType(fileName);
-  const srcPath = `${location.origin}/civitai/local/media/preview?previewFile=${fileName}`;
+  const srcPath =
+    `${location.origin}/civitai/local/media/preview?previewFile=${fileName}`;
   if (fileType === "video") {
-    return <video src={srcPath} autoPlay loop></video>;
+    return <video src={srcPath} autoPlay loop muted></video>;
   } else if (fileType === "image") {
     return <img src={srcPath} />;
   } else {
@@ -60,8 +61,8 @@ function LocalPagination() {
   };
   return (
     <Pagination
-      pageSize={searchOpt.limit}
-      current={searchOpt.page}
+      pageSize={searchOpt.limit ?? 20}
+      current={searchOpt.page ?? 1}
       total={total}
       onChange={onChange}
       showSizeChanger
@@ -70,25 +71,7 @@ function LocalPagination() {
     />
   );
 }
-async function fetchModels(opts: ModelsRequestOpts) {
-  const [models, setModels] = useAtom(modelsAtom);
-  const [totalCount, setTotalCount] = useAtom(totalAtom);
-  const [loading, setLoading] = useAtom(isGalleryLoadingAtom);
-  try {
-    const { data, error, headers, response, status } =
-      await edenTreaty.civitai.local.models.pagination.post(opts);
-    if (error) {
-      throw error;
-    } else {
-      setModels(data.records);
-      setTotalCount(data.totalCount ?? 0);
-    }
-  } catch (error) {
-    throw error;
-  } finally {
-    setLoading(false);
-  }
-}
+
 function FloatingButtons() {
   const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
   const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
@@ -109,12 +92,14 @@ function FloatingButtons() {
           <Select
             placeholder="Base model"
             value={searchOpt.baseModels}
-          ></Select>
+          >
+          </Select>
           <Select placeholder="Model Type" value={searchOpt.types}></Select>
           <Select
             placeholder="Checkpoint Type"
             value={searchOpt.checkpointType}
-          ></Select>
+          >
+          </Select>
           <Select placeholder="Period" value={searchOpt.period}></Select>
           <Select placeholder="Sort" value={searchOpt.sort}></Select>
           <Select placeholder="Tag" value={searchOpt.tag}></Select>
@@ -146,233 +131,247 @@ function FloatingButtons() {
   );
 }
 
-async function openModelCard(dbModel: ModelWithAllRelations) {
-  const [isCardModalOpen, setIsCardModalOpen] = useAtom(isModalOpenAtom);
-  const [cardModalContent, setCardModalContent] = useAtom(modalContentAtom);
-  const [activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom);
-  const { data, error, headers, response, status } =
-    await edenTreaty.civitai.local.models.modelId.post({
-      modelId: dbModel.id,
-      modelVersionIdNumbers: dbModel.modelVersions.map((v) => v.id),
-      type: dbModel.type.name as ModelTypes,
-    });
-  if (error) {
-    switch (error.status) {
-      case 422:
-        setCardModalContent(<>{JSON.stringify(error.value, null, 2)}</>);
-      default:
-        setCardModalContent(<div>Unknown Exception</div>);
-    }
-  } else {
-    setCardModalContent(
-      <>
-        <Tabs
-          defaultActiveKey="1"
-          tabPosition="top"
-          onChange={(id) => setActiveVersionId(id)}
-          items={data?.modelVersions.map((v) => {
-            const leftSide = (
-              <>
-                <div>
-                  {dbModel.previewFile ? (
-                    // mediaElement(extractFilenameFromUrl(v.images[0]?.url))
-                    <Image.PreviewGroup
-                      items={v.images.map((i) => extractFilenameFromUrl(i.url))}
-                      preview={{
-                        imageRender: (o, i) => (
-                          <MediaElement fileName={i.image.url} />
-                        ),
-                      }}
-                    >
-                      <Image
-                        width={200}
-                        src={`${location.origin}/civitai/local/media/preview?previewFile=${dbModel.previewFile}`}
-                        preview={{
-                          destroyOnHidden: true,
-                          imageRender: (o, i) => (
-                            <MediaElement
-                              fileName={dbModel.previewFile as string}
-                            />
-                          ),
-                        }}
-                      />
-                    </Image.PreviewGroup>
-                  ) : (
-                    <img title="Have no preview" />
-                  )}
-                </div>
-              </>
-            );
-            const descriptionItems: DescriptionsProps["items"] = [
-              {
-                key: v.id,
-                label: "Version ID",
-                children: v.id,
-              },
-              {
-                key: v.baseModel,
-                label: "Base Model",
-                children: v.baseModel,
-              },
-              {
-                key: 3,
-                label: "Model Type",
-                children: data.type,
-              },
-              {
-                key: 4,
-                label: "Publish Date",
-                span: "filled",
-                children: v.publishedAt?.toString() ?? "Null",
-              },
-
-              {
-                key: 7,
-                label: `Model Files`,
-                span: `filled`,
-                children:
-                  v.files.length > 0 ? (
-                    <>
-                      <List
-                        dataSource={v.files}
-                        renderItem={(file) => (
-                          <List.Item>
-                            <Row>
-                              <Col span={18}>{file.name}</Col>
-                              <Col span={6}>
-                                <Button
-                                  onClick={async () => {
-                                    // const loraString = `<lora:${
-                                    //   modelVersion.files[index].id
-                                    // }_${
-                                    //   removeFileExtension(
-                                    //     modelVersion.files[index].name,
-                                    //   )
-                                    // }:1>`;
-                                    await clipboard.write(file.name);
-                                    notification.success({
-                                      message: `${file.name} copied to clipboard`,
-                                    });
-                                  }}
-                                >
-                                  Copy Filename
-                                </Button>
-                              </Col>
-                            </Row>
-                          </List.Item>
-                        )}
-                      />
-                    </>
-                  ) : (
-                    `have no files`
-                  ),
-              },
-              {
-                key: 8,
-                label: "Tags",
-                span: "filled",
-                children: (
-                  <Flex wrap gap="small">
-                    {v.trainedWords.map((tagStr, index) => (
-                      <div
-                        key={index}
-                        onClick={async () => {
-                          await clipboard.write(tagStr);
-                          return notification.success({
-                            message: "Copied to clipboard",
-                          });
-                        }}
-                        className="
-                        bg-blue-500 hover:bg-blue-700 text-white 
-                          font-bold p-1 rounded transition-all 
-                          duration-300 transform hover:scale-105
-                          hover:cursor-pointer"
-                      >
-                        {tagStr}
-                      </div>
-                    ))}
-                  </Flex>
-                ),
-              },
-              {
-                key: 9,
-                label: "Model Description",
-                span: "filled",
-                children: data.description ? (
-                  <div
-                    className="bg-gray-300"
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(data.description),
-                    }}
-                  />
-                ) : undefined,
-                // data.description,
-              },
-              {
-                key: 10,
-                label: "Model Version Description",
-                span: "filled",
-                children: v.description ? (
-                  <div
-                    className="bg-gray-300"
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(v.description),
-                    }}
-                  />
-                ) : undefined,
-                // v.description
-              },
-            ];
-            const rightSide = (
-              <>
-                <Space direction="vertical">
-                  <Descriptions
-                    title="Model Version Details"
-                    layout="vertical"
-                    items={descriptionItems}
-                  ></Descriptions>
-                </Space>
-              </>
-            );
-            return {
-              label: v.name,
-              key: v.id.toString(),
-              children: (
-                <Card>
-                  <div>
-                    <a
-                      className="clickable-title"
-                      target="_blank"
-                      href={`https://civitai.com/models/${dbModel.id}?modelVersionId=${v.id}`}
-                    >
-                      {data.name}
-                    </a>
-                  </div>
-                  <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
-                    <Col sm={8} lg={6}>
-                      {leftSide}
-                    </Col>
-                    <Col sm={16} lg={18}>
-                      {rightSide}
-                    </Col>
-                  </Row>
-                </Card>
-              ),
-            };
-          })}
-        />
-      </>
-    );
-  }
-  setIsCardModalOpen(true);
-}
-
 function LocalModelsGallery() {
   const [isGalleryLoading, setIsGalleryLoading] = useAtom(isGalleryLoadingAtom);
   const [modelsAtomValue, setModelsAtom] = useAtom(modelsAtom);
   const [isCardModalOpen, setIsCardModalOpen] = useAtom(isModalOpenAtom);
   const [cardModalContent, setCardModalContent] = useAtom(modalContentAtom);
   const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
+  const [totalCount, setTotalCount] = useAtom(totalAtom);
+
+  async function fetchModels(opts: ModelsRequestOpts) {
+    try {
+      const { data, error, headers, response, status } = await edenTreaty
+        .civitai.local.models.pagination.post(opts);
+      if (error) {
+        throw error;
+      } else {
+        setModelsAtom(data.records);
+        setTotalCount(data.totalCount ?? 0);
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsGalleryLoading(false);
+    }
+  }
+
+  const [activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom);
+
+  async function openModelCard(dbModel: ModelWithAllRelations) {
+    const { data, error, headers, response, status } = await edenTreaty.civitai
+      .local.models.modelId.post({
+        modelId: dbModel.id,
+        modelVersionIdNumbers: dbModel.modelVersions.map((v) => v.id),
+        type: dbModel.type.name as ModelTypes,
+      });
+    if (error?.status) {
+      switch (error.status) {
+        case 422:
+          setCardModalContent(<>{JSON.stringify(error.value, null, 2)}</>);
+        default:
+          setCardModalContent(<div>Unknown Exception</div>);
+      }
+    } else {
+      setCardModalContent(
+        <>
+          <Tabs
+            defaultActiveKey="1"
+            tabPosition="top"
+            onChange={(id) => setActiveVersionId(id)}
+            items={data?.modelVersions.map((v) => {
+              const leftSide = (
+                <>
+                  <div>
+                    {dbModel.previewFile
+                      ? (
+                        <Image.PreviewGroup
+                          items={v.images.map((i) =>
+                            `${location.origin}/civitai/local/media/preview?previewFile=${
+                              extractFilenameFromUrl(i.url)
+                            }`
+                          )}
+                        >
+                          <Image
+                            width={200}
+                            src={`${location.origin}/civitai/local/media/preview?previewFile=${dbModel.previewFile}`}
+                          />
+                        </Image.PreviewGroup>
+                      )
+                      : <img title="Have no preview" />}
+                  </div>
+                </>
+              );
+              const descriptionItems: DescriptionsProps["items"] = [
+                {
+                  key: v.id,
+                  label: "Version ID",
+                  children: v.id,
+                },
+                {
+                  key: v.baseModel,
+                  label: "Base Model",
+                  children: v.baseModel,
+                },
+                {
+                  key: 3,
+                  label: "Model Type",
+                  children: data.type,
+                },
+                {
+                  key: 4,
+                  label: "Publish Date",
+                  span: "filled",
+                  children: v.publishedAt?.toString() ?? "Null",
+                },
+
+                {
+                  key: 7,
+                  label: `Model Files`,
+                  span: `filled`,
+                  children: v.files.length > 0
+                    ? (
+                      <>
+                        <List
+                          dataSource={v.files}
+                          renderItem={(file) => (
+                            <List.Item>
+                              <Row>
+                                <Col span={18}>{file.name}</Col>
+                                <Col span={6}>
+                                  <Button
+                                    onClick={async () => {
+                                      // const loraString = `<lora:${
+                                      //   modelVersion.files[index].id
+                                      // }_${
+                                      //   removeFileExtension(
+                                      //     modelVersion.files[index].name,
+                                      //   )
+                                      // }:1>`;
+                                      await clipboard.write(file.name);
+                                      notification.success({
+                                        message:
+                                          `${file.name} copied to clipboard`,
+                                      });
+                                    }}
+                                  >
+                                    Copy Filename
+                                  </Button>
+                                </Col>
+                              </Row>
+                            </List.Item>
+                          )}
+                        />
+                      </>
+                    )
+                    : (
+                      `have no files`
+                    ),
+                },
+                {
+                  key: 8,
+                  label: "Tags",
+                  span: "filled",
+                  children: (
+                    <Flex wrap gap="small">
+                      {v.trainedWords.map((tagStr, index) => (
+                        <div
+                          key={index}
+                          onClick={async () => {
+                            await clipboard.write(tagStr);
+                            return notification.success({
+                              message: "Copied to clipboard",
+                            });
+                          }}
+                          className="
+                        bg-blue-500 hover:bg-blue-700 text-white 
+                          font-bold p-1 rounded transition-all 
+                          duration-300 transform hover:scale-105
+                          hover:cursor-pointer"
+                        >
+                          {tagStr}
+                        </div>
+                      ))}
+                    </Flex>
+                  ),
+                },
+                {
+                  key: 9,
+                  label: "Model Description",
+                  span: "filled",
+                  children: data.description
+                    ? (
+                      <div
+                        className="bg-gray-300"
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(data.description),
+                        }}
+                      />
+                    )
+                    : undefined,
+                  // data.description,
+                },
+                {
+                  key: 10,
+                  label: "Model Version Description",
+                  span: "filled",
+                  children: v.description
+                    ? (
+                      <div
+                        className="bg-gray-300"
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(v.description),
+                        }}
+                      />
+                    )
+                    : undefined,
+                  // v.description
+                },
+              ];
+              const rightSide = (
+                <>
+                  <Space direction="vertical">
+                    <Descriptions
+                      title="Model Version Details"
+                      layout="vertical"
+                      items={descriptionItems}
+                    >
+                    </Descriptions>
+                  </Space>
+                </>
+              );
+              return {
+                label: v.name,
+                key: v.id.toString(),
+                children: (
+                  <Card>
+                    <div>
+                      <a
+                        className="clickable-title"
+                        target="_blank"
+                        href={`https://civitai.com/models/${dbModel.id}?modelVersionId=${v.id}`}
+                      >
+                        {data.name}
+                      </a>
+                    </div>
+                    <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+                      <Col sm={8} lg={6}>
+                        {leftSide}
+                      </Col>
+                      <Col sm={16} lg={18}>
+                        {rightSide}
+                      </Col>
+                    </Row>
+                  </Card>
+                ),
+              };
+            })}
+          />
+        </>,
+      );
+    }
+    setIsCardModalOpen(true);
+  }
 
   useEffect(() => {
     fetchModels(searchOpt);
@@ -399,13 +398,9 @@ function LocalModelsGallery() {
               <Card
                 onClick={() => openModelCard(item)}
                 hoverable
-                cover={
-                  item.previewFile ? (
-                    <MediaElement fileName={item.previewFile} />
-                  ) : (
-                    <img title="Have no preview" />
-                  )
-                }
+                cover={item.previewFile
+                  ? <MediaPreview fileName={item.previewFile} />
+                  : <img title="Have no preview" />}
               >
                 <Card.Meta description={item.name} />
               </Card>
@@ -427,7 +422,7 @@ function LocalModelsGallery() {
         centered
         destroyOnHidden={true} // force refetch data by force destory DOM
       >
-        {isCardModalOpen ? <div>loading...</div> : cardModalContent}
+        {isCardModalOpen ? cardModalContent : <div>loading...</div>}
       </Modal>
       <FloatingButtons />
     </>

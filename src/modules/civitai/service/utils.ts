@@ -45,6 +45,7 @@ export function extractFilenameFromUrl(url: string): string {
 
   return filename;
 }
+
 /**
  * remove suffix from a filename（ext name）
  * @param filename complete filename（could contain path info）

@@ -1,8 +1,8 @@
-import { type MenuProps, Modal, Tabs, type TabsProps } from "antd";
+import { type MenuProps, Tabs, type TabsProps } from "antd";
 import React, { useState } from "react";
 import { SettingFilled } from "@ant-design/icons";
 import SettingsPanel from "./components/settingsPanel";
-import LocalGallery from "./components/localGallery";
+import LocalModelsGallery from "./components/localModelsGallery";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -20,12 +20,12 @@ const items: MenuItem[] = [
   },
 ];
 
-function galleryContent() {
+function GalleryContent() {
   const galleries: TabsProps["items"] = [
     {
       label: `Local`,
       key: MenuItemKeys.Local,
-      children: <LocalGallery />,
+      children: <LocalModelsGallery />,
     },
     {
       label: `CivitAI`,
@@ -42,30 +42,12 @@ function galleryContent() {
   return <Tabs defaultActiveKey="1" centered items={galleries} />;
 }
 
-function app() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalContent, setModalContent] = useState(<></>);
-  function showMenuModal({ children }: { children: React.JSX.Element }) {
-    setModalContent(children);
-    setIsModalOpen(true);
-  }
-
-  const [current, setCurrent] = useState("search");
-  const onClick: MenuProps["onClick"] = (e) => {
-    setCurrent(e.key);
-    switch (e.key) {
-      // case MenuItemKeys.Search:
-      //   showMenuModal({ children: <SearchPanel /> });
-      //   break;
-      case MenuItemKeys.Settings:
-        showMenuModal({ children: <SettingsPanel /> });
-        break;
-
-      default:
-        break;
-    }
-  };
-  return <div className="h-dvh">{galleryContent()}</div>;
+function App() {
+  return (
+    <div className="h-dvh">
+      <GalleryContent />
+    </div>
+  );
 }
 
-export default app;
+export default App;

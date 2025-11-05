@@ -1,10 +1,15 @@
 import { Button, Form, type FormProps, Input } from "antd";
 import { useAtom } from "jotai";
 import { useQuery } from "@tanstack/react-query";
-import { settingsImmerAtom } from "../store";
-import { type Settings } from "../../modules/settings/models";
 import { edenTreaty } from "../utils";
+import { atomWithImmer } from "jotai-immer";
+import {
+  _settingsValidator,
+  defaultSettings,
+  type Settings,
+} from "../../modules/settings/models";
 
+const settingsImmerAtom = atomWithImmer(defaultSettings);
 function App() {
   const [settings, setSettings] = useAtom<Settings>(settingsImmerAtom);
   const { isPending, error, data } = useQuery({
@@ -42,10 +47,12 @@ function App() {
       <Form.Item<Settings>
         label="CivitAI API Key"
         name="civitaiToken"
-        rules={[{
-          required: true,
-          message: "Please input your CivitAI API key here!",
-        }]}
+        rules={[
+          {
+            required: true,
+            message: "Please input your CivitAI API key here!",
+          },
+        ]}
       >
         <Input
           value={settings.civitaiToken}
@@ -60,11 +67,13 @@ function App() {
       <Form.Item<Settings>
         label="Models saving location"
         name="basePath"
-        rules={[{
-          required: true,
-          message:
-            "Please input the location of where your models will be saved at.",
-        }]}
+        rules={[
+          {
+            required: true,
+            message:
+              "Please input the location of where your models will be saved at.",
+          },
+        ]}
       >
         <Input
           value={settings.basePath}
@@ -79,11 +88,13 @@ function App() {
       <Form.Item<Settings>
         label="Proxy"
         name="httpProxy"
-        rules={[{
-          required: true,
-          message:
-            "You could set your proxy address for downloading at here. (optional)",
-        }]}
+        rules={[
+          {
+            required: true,
+            message:
+              "You could set your proxy address for downloading at here. (optional)",
+          },
+        ]}
       >
         <Input
           value={settings.httpProxy}

@@ -1,7 +1,7 @@
 import { type MenuProps, Tabs, type TabsProps } from "antd";
 import { SettingFilled } from "@ant-design/icons";
-import SettingsPanel from "./components/settingsPanel";
-import LocalModelsGallery from "./components/localModelsGallery";
+import SettingsPanel from "./pages/settingsPanel";
+import LocalModelsGallery from "./pages/localModelsGallery";
 
 type MenuItem = Required<MenuProps>["items"][number];
 

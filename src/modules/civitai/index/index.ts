@@ -1,10 +1,14 @@
 import ky, { KyResponse } from "ky";
 import { type } from "arktype";
 import { Elysia } from "elysia";
-import { models_request_opts, models_response } from "../models/models_endpoint";
+import {
+  models_request_opts,
+  models_response,
+} from "../models/models_endpoint";
 import { getSettings } from "../../settings/service";
 import { obj2UrlSearchParams } from "../service/utils";
 import localModelRouter from "./local";
+import dbRouter from "./db";
 
 export function getRequester() {
   const settingsInfo = getSettings();
@@ -33,7 +37,10 @@ export class ApiInvokeErrorResponse extends Error {
 }
 
 export class ApiCommunicationError extends Error {
-  constructor(public message: string, public kyResponse: KyResponse) {
+  constructor(
+    public message: string,
+    public kyResponse: KyResponse
+  ) {
     super(message);
     this.name = "ApiCommunicationError";
     this.kyResponse = kyResponse;
@@ -110,4 +117,7 @@ const civitaiApiMirror = new Elysia({ prefix: "/api/v1" })
     }
   );
 
-export default new Elysia({ prefix: "/civitai" }).use(localModelRouter).use(civitaiApiMirror);
+export default new Elysia({ prefix: "/civitai" })
+  .use(localModelRouter)
+  .use(civitaiApiMirror)
+  .use(dbRouter);

@@ -17,13 +17,13 @@ import {
   type PaginationProps,
   Row,
   Select,
-  type SelectProps,
   Space,
   Tabs,
 } from "antd";
 import { SearchOutlined, SyncOutlined } from "@ant-design/icons";
 import { atom, useAtom } from "jotai";
 import { useEffect, useState } from "react";
+import { debounce } from "es-toolkit";
 import clipboard from "clipboardy";
 import DOMPurify from "dompurify";
 import { edenTreaty, getFileType } from "../utils";
@@ -110,20 +110,49 @@ function LocalPagination() {
 }
 
 function SearchPanel() {
-  const [form] = Form.useForm();
-  const [temporaryOpt, setTemporaryOpt] = useState<ModelsRequestOpts>({});
+  const [form] = Form.useForm<ModelsRequestOpts>();
   const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
+  const [tagsOptions, setTagsOptions] = useState<Array<DefaultOptionType>>([]);
+
+  async function asyncSearchTags(keyword: string) {
+    function toOptionsArray(params: Array<string>): Array<DefaultOptionType> {
+      return params.map((tag) => ({
+        label: tag,
+        value: tag,
+      }));
+    }
+    const response = await edenTreaty.civitai.db.tags.get({
+      query: { tagKeyword: keyword },
+    });
+    switch (response.status) {
+      case 200:
+        setTagsOptions(toOptionsArray(response.data!));
+        break;
+      case 422:
+        notification.error({ message: "Invalide HTTP QueryString" });
+        setTagsOptions([]);
+        break;
+      default:
+        notification.error({ message: "Failed to fetch tags" });
+        setTagsOptions([]);
+        break;
+    }
+  }
+  const debouncedSearchTags = debounce(asyncSearchTags, 600);
+
   return (
     <>
       <Form
         layout="horizontal"
         form={form}
-        onFinish={() => console.log("onFinish")}
+        onFinish={(v) => {
+          setSearchOpt((prev) => ({ ...prev, ...v, page: 1 }));
+        }}
       >
         <Form.Item name="query text" label="query text">
           <Input
-            placeholder="input search text" // value={temporaryOpt.query}
-            // onChange={(e) => temporaryOpt.query = e.target.value}
+            placeholder="input search text"
+            onChange={(e) => form.setFieldValue("query", e.target.value)}
           />
         </Form.Item>
         <Form.Item name="Base Model Select" label="Base Model Select">
@@ -134,7 +163,8 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Base model"
-            value={temporaryOpt.baseModels}
+            value={searchOpt.baseModels}
+            onChange={(value) => form.setFieldValue("baseModels", value)}
           />
         </Form.Item>
         <Form.Item name="Model Type" label="Model Type">
@@ -145,7 +175,8 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Model Type"
-            value={temporaryOpt.types}
+            value={searchOpt.types}
+            onChange={(value) => form.setFieldValue("types", value)}
           />
         </Form.Item>
         <Form.Item name="Checkpoint Type" label="Checkpoint Type">
@@ -155,7 +186,8 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Checkpoint Type"
-            value={temporaryOpt.checkpointType}
+            value={searchOpt.checkpointType}
+            onChange={(value) => form.setFieldValue("checkpointType", value)}
           />
         </Form.Item>
         <Form.Item name="Period" label="Period">
@@ -165,7 +197,8 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Period"
-            value={temporaryOpt.period}
+            value={searchOpt.period}
+            onChange={(value) => form.setFieldValue("period", value)}
           />
         </Form.Item>
         <Form.Item name="Sort" label="Sort">
@@ -175,11 +208,20 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Sort"
-            value={temporaryOpt.sort}
+            value={searchOpt.sort}
+            onChange={(value) => form.setFieldValue("sort", value)}
           />
         </Form.Item>
         <Form.Item>
-          <Select placeholder="Tag" value={temporaryOpt.tag} />
+          <Select
+            placeholder="Tag"
+            value={searchOpt.tag}
+            onChange={(value) => {
+              form.setFieldValue("tag", value);
+            }}
+            onSearch={(value) => debouncedSearchTags(value)}
+            options={tagsOptions}
+          />
         </Form.Item>
       </Form>
     </>
@@ -190,8 +232,6 @@ function FloatingButtons() {
   const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
   const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
   const [modalContent, setModalContent] = useAtom(modalContentAtom);
-
-  const options: SelectProps["options"] = [];
 
   return (
     <>

@@ -29,7 +29,7 @@ CREATE TABLE "Model" (
 -- CreateTable
 CREATE TABLE "Tag" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "name" TEXT NOT NULL
+    "name" TEXT NOT NULL COLLATE NOCASE
 );
 
 -- CreateTable

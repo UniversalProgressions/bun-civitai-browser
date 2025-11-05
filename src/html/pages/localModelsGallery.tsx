@@ -28,8 +28,8 @@ import clipboard from "clipboardy";
 import DOMPurify from "dompurify";
 import { edenTreaty, getFileType } from "../utils";
 import {
-  type ModelsRequestOpts,
   Model,
+  type ModelsRequestOpts,
 } from "../../modules/civitai/models/models_endpoint";
 import {
   BaseModelsArray,
@@ -58,7 +58,8 @@ const activeVersionIdAtom = atom<string>(``);
 
 function MediaPreview({ fileName }: { fileName: string }) {
   const fileType = getFileType(fileName);
-  const srcPath = `${location.origin}/civitai/local/media/preview?previewFile=${fileName}`;
+  const srcPath =
+    `${location.origin}/civitai/local/media/preview?previewFile=${fileName}`;
   if (fileType === "video") {
     return <video src={srcPath} autoPlay loop muted></video>;
   } else if (fileType === "image") {
@@ -114,6 +115,7 @@ function SearchPanel() {
   const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
   const [tagsOptions, setTagsOptions] = useState<Array<DefaultOptionType>>([]);
 
+  form.setFieldsValue(searchOpt);
   async function asyncSearchTags(keyword: string) {
     function toOptionsArray(params: Array<string>): Array<DefaultOptionType> {
       return params.map((tag) => ({
@@ -149,13 +151,13 @@ function SearchPanel() {
           setSearchOpt((prev) => ({ ...prev, ...v, page: 1 }));
         }}
       >
-        <Form.Item name="query text" label="query text">
+        <Form.Item name="query" label="query text">
           <Input
             placeholder="input search text"
             onChange={(e) => form.setFieldValue("query", e.target.value)}
           />
         </Form.Item>
-        <Form.Item name="Base Model Select" label="Base Model Select">
+        <Form.Item name="baseModels" label="Base Model Select">
           <Select
             mode="multiple"
             options={BaseModelsArray.map<DefaultOptionType>((v) => ({
@@ -167,7 +169,7 @@ function SearchPanel() {
             onChange={(value) => form.setFieldValue("baseModels", value)}
           />
         </Form.Item>
-        <Form.Item name="Model Type" label="Model Type">
+        <Form.Item name="types" label="Model Type">
           <Select
             mode="multiple"
             options={ModelTypesArray.map<DefaultOptionType>((v) => ({
@@ -179,7 +181,7 @@ function SearchPanel() {
             onChange={(value) => form.setFieldValue("types", value)}
           />
         </Form.Item>
-        <Form.Item name="Checkpoint Type" label="Checkpoint Type">
+        <Form.Item name="checkpointType" label="Checkpoint Type">
           <Select
             options={CheckPointTypeArray.map<DefaultOptionType>((v) => ({
               label: v,
@@ -190,7 +192,7 @@ function SearchPanel() {
             onChange={(value) => form.setFieldValue("checkpointType", value)}
           />
         </Form.Item>
-        <Form.Item name="Period" label="Period">
+        <Form.Item name="period" label="Period">
           <Select
             options={ModelsRequestPeriodArray.map<DefaultOptionType>((v) => ({
               label: v,
@@ -201,7 +203,7 @@ function SearchPanel() {
             onChange={(value) => form.setFieldValue("period", value)}
           />
         </Form.Item>
-        <Form.Item name="Sort" label="Sort">
+        <Form.Item name="sort" label="Sort">
           <Select
             options={ModelsRequestSortArray.map<DefaultOptionType>((v) => ({
               label: v,
@@ -212,9 +214,10 @@ function SearchPanel() {
             onChange={(value) => form.setFieldValue("sort", value)}
           />
         </Form.Item>
-        <Form.Item>
+        <Form.Item name="tag" label="Tags">
           <Select
-            placeholder="Tag"
+            mode="multiple"
+            placeholder="Tags"
             value={searchOpt.tag}
             onChange={(value) => {
               form.setFieldValue("tag", value);
@@ -222,6 +225,20 @@ function SearchPanel() {
             onSearch={(value) => debouncedSearchTags(value)}
             options={tagsOptions}
           />
+        </Form.Item>
+        <Form.Item>
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => {
+                // console.log(form.getFieldsValue());
+                form.submit();
+              }}
+            >
+              Search
+            </Button>
+            <Button onClick={() => form.resetFields()}>Reset</Button>
+          </Space>
         </Form.Item>
       </Form>
     </>
@@ -277,23 +294,25 @@ function ModelCardContent({
           const leftSide = (
             <>
               <div>
-                {dbModel.previewFile ? (
-                  <Image.PreviewGroup
-                    items={v.images.map(
-                      (i) =>
-                        `${location.origin}/civitai/local/media/preview?previewFile=${extractFilenameFromUrl(
-                          i.url
-                        )}`
-                    )}
-                  >
-                    <Image
-                      width={200}
-                      src={`${location.origin}/civitai/local/media/preview?previewFile=${dbModel.previewFile}`}
-                    />
-                  </Image.PreviewGroup>
-                ) : (
-                  <img title="Have no preview" />
-                )}
+                {dbModel.previewFile
+                  ? (
+                    <Image.PreviewGroup
+                      items={v.images.map(
+                        (i) =>
+                          `${location.origin}/civitai/local/media/preview?previewFile=${
+                            extractFilenameFromUrl(
+                              i.url,
+                            )
+                          }`,
+                      )}
+                    >
+                      <Image
+                        width={200}
+                        src={`${location.origin}/civitai/local/media/preview?previewFile=${dbModel.previewFile}`}
+                      />
+                    </Image.PreviewGroup>
+                  )
+                  : <img title="Have no preview" />}
               </div>
             </>
           );
@@ -324,8 +343,8 @@ function ModelCardContent({
               key: 7,
               label: `Model Files`,
               span: `filled`,
-              children:
-                v.files.length > 0 ? (
+              children: v.files.length > 0
+                ? (
                   <>
                     <List
                       dataSource={v.files}
@@ -357,7 +376,8 @@ function ModelCardContent({
                       )}
                     />
                   </>
-                ) : (
+                )
+                : (
                   `have no files`
                 ),
             },
@@ -392,28 +412,32 @@ function ModelCardContent({
               key: 9,
               label: "Model Description",
               span: "filled",
-              children: data.description ? (
-                <div
-                  className="bg-gray-300"
-                  dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(data.description),
-                  }}
-                />
-              ) : undefined,
+              children: data.description
+                ? (
+                  <div
+                    className="bg-gray-300"
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(data.description),
+                    }}
+                  />
+                )
+                : undefined,
               // data.description,
             },
             {
               key: 10,
               label: "Model Version Description",
               span: "filled",
-              children: v.description ? (
-                <div
-                  className="bg-gray-300"
-                  dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(v.description),
-                  }}
-                />
-              ) : undefined,
+              children: v.description
+                ? (
+                  <div
+                    className="bg-gray-300"
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(v.description),
+                    }}
+                  />
+                )
+                : undefined,
               // v.description
             },
           ];
@@ -424,7 +448,8 @@ function ModelCardContent({
                   title="Model Version Details"
                   layout="vertical"
                   items={descriptionItems}
-                ></Descriptions>
+                >
+                </Descriptions>
               </Space>
             </>
           );
@@ -465,8 +490,8 @@ function ModelCard({ item }: { item: ModelWithAllRelations }) {
   const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
   async function openModelCard(dbModel: ModelWithAllRelations) {
     setModalWidth(ModalWidthEnum.modelDetailCard);
-    const { data, error, headers, response, status } =
-      await edenTreaty.civitai.local.models.modelId.post({
+    const { data, error, headers, response, status } = await edenTreaty.civitai
+      .local.models.modelId.post({
         modelId: dbModel.id,
         modelVersionIdNumbers: dbModel.modelVersions.map((v) => v.id),
         type: dbModel.type.name as ModelTypes,
@@ -488,13 +513,9 @@ function ModelCard({ item }: { item: ModelWithAllRelations }) {
       <Card
         onClick={() => openModelCard(item)}
         hoverable
-        cover={
-          item.previewFile ? (
-            <MediaPreview fileName={item.previewFile} />
-          ) : (
-            <img title="Have no preview" />
-          )
-        }
+        cover={item.previewFile
+          ? <MediaPreview fileName={item.previewFile} />
+          : <img title="Have no preview" />}
       >
         <Card.Meta description={item.name} />
       </Card>
@@ -544,8 +565,8 @@ function LocalModelsGallery() {
 
   async function fetchModels(opts: ModelsRequestOpts) {
     try {
-      const { data, error, headers, response, status } =
-        await edenTreaty.civitai.local.models.pagination.post(opts);
+      const { data, error, headers, response, status } = await edenTreaty
+        .civitai.local.models.pagination.post(opts);
       if (error) {
         throw error;
       } else {

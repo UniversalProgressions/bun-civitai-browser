@@ -21,7 +21,7 @@ import {
   Tabs,
 } from "antd";
 import { SearchOutlined, SyncOutlined } from "@ant-design/icons";
-import { atom, useAtom, PrimitiveAtom } from "jotai";
+import { atom, PrimitiveAtom, useAtom } from "jotai";
 import {} from "jotai";
 import { useEffect, useState } from "react";
 import { debounce } from "es-toolkit";
@@ -43,6 +43,7 @@ import {
 import { type ModelWithAllRelations } from "../../modules/civitai/service/crud/modelId";
 import { extractFilenameFromUrl } from "#modules/civitai/service/utils";
 import { DefaultOptionType } from "antd/es/select";
+import ShadowHTML from "../components/shadowHTML";
 
 export enum ModalWidthEnum {
   SearchPanel = 600,
@@ -59,7 +60,8 @@ const activeVersionIdAtom = atom<string>(``);
 
 function MediaPreview({ fileName }: { fileName: string }) {
   const fileType = getFileType(fileName);
-  const srcPath = `${location.origin}/civitai/local/media/preview?previewFile=${fileName}`;
+  const srcPath =
+    `${location.origin}/civitai/local/media/preview?previewFile=${fileName}`;
   if (fileType === "video") {
     return <video src={srcPath} autoPlay loop muted></video>;
   } else if (fileType === "image") {
@@ -125,6 +127,7 @@ export function SearchPanel({
   const [form] = Form.useForm<ModelsRequestOpts>();
   const [searchOpt, setSearchOpt] = useAtom(searchOptsAtom);
   const [tagsOptions, setTagsOptions] = useState<Array<DefaultOptionType>>([]);
+  const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
 
   form.setFieldsValue(searchOpt);
   async function asyncSearchTags(keyword: string) {
@@ -243,6 +246,7 @@ export function SearchPanel({
               type="primary"
               onClick={() => {
                 // console.log(form.getFieldsValue());
+                setIsModalOpen(false);
                 form.submit();
               }}
             >
@@ -269,7 +273,7 @@ function FloatingButtons() {
           onClick={() => {
             setModalWidth(ModalWidthEnum.SearchPanel);
             setModalContent(
-              <SearchPanel searchOptsAtom={localSearchOptionsAtom} />
+              <SearchPanel searchOptsAtom={localSearchOptionsAtom} />,
             );
             setIsModalOpen(true);
           }}
@@ -307,23 +311,25 @@ function ModelCardContent({
           const leftSide = (
             <>
               <div>
-                {dbModel.previewFile ? (
-                  <Image.PreviewGroup
-                    items={v.images.map(
-                      (i) =>
-                        `${location.origin}/civitai/local/media/preview?previewFile=${extractFilenameFromUrl(
-                          i.url
-                        )}`
-                    )}
-                  >
-                    <Image
-                      width={200}
-                      src={`${location.origin}/civitai/local/media/preview?previewFile=${dbModel.previewFile}`}
-                    />
-                  </Image.PreviewGroup>
-                ) : (
-                  <img title="Have no preview" />
-                )}
+                {dbModel.previewFile
+                  ? (
+                    <Image.PreviewGroup
+                      items={v.images.map(
+                        (i) =>
+                          `${location.origin}/civitai/local/media/preview?previewFile=${
+                            extractFilenameFromUrl(
+                              i.url,
+                            )
+                          }`,
+                      )}
+                    >
+                      <Image
+                        width={200}
+                        src={`${location.origin}/civitai/local/media/preview?previewFile=${dbModel.previewFile}`}
+                      />
+                    </Image.PreviewGroup>
+                  )
+                  : <img title="Have no preview" />}
               </div>
             </>
           );
@@ -354,8 +360,8 @@ function ModelCardContent({
               key: 7,
               label: `Model Files`,
               span: `filled`,
-              children:
-                v.files.length > 0 ? (
+              children: v.files.length > 0
+                ? (
                   <>
                     <List
                       dataSource={v.files}
@@ -387,7 +393,8 @@ function ModelCardContent({
                       )}
                     />
                   </>
-                ) : (
+                )
+                : (
                   `have no files`
                 ),
             },
@@ -422,28 +429,34 @@ function ModelCardContent({
               key: 9,
               label: "Model Description",
               span: "filled",
-              children: data.description ? (
-                <div
-                  className="bg-gray-300"
-                  dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(data.description),
-                  }}
-                />
-              ) : undefined,
+              children: data.description
+                ? (
+                  // <div
+                  //   className="bg-gray-300"
+                  //   dangerouslySetInnerHTML={{
+                  //     __html: DOMPurify.sanitize(data.description),
+                  //   }}
+                  // />
+                  <ShadowHTML html={DOMPurify.sanitize(data.description)} />
+                )
+                : undefined,
               // data.description,
             },
             {
               key: 10,
               label: "Model Version Description",
               span: "filled",
-              children: v.description ? (
-                <div
-                  className="bg-gray-300"
-                  dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(v.description),
-                  }}
-                />
-              ) : undefined,
+              children: v.description
+                ? (
+                  // <div
+                  //   className="bg-gray-300"
+                  //   dangerouslySetInnerHTML={{
+                  //     __html: DOMPurify.sanitize(v.description),
+                  //   }}
+                  // />
+                  <ShadowHTML html={DOMPurify.sanitize(v.description)} />
+                )
+                : undefined,
               // v.description
             },
           ];
@@ -454,7 +467,8 @@ function ModelCardContent({
                   title="Model Version Details"
                   layout="vertical"
                   items={descriptionItems}
-                ></Descriptions>
+                >
+                </Descriptions>
               </Space>
             </>
           );
@@ -495,8 +509,8 @@ function ModelCard({ item }: { item: ModelWithAllRelations }) {
   const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
   async function openModelCard(dbModel: ModelWithAllRelations) {
     setModalWidth(ModalWidthEnum.modelDetailCard);
-    const { data, error, headers, response, status } =
-      await edenTreaty.civitai.local.models.modelId.post({
+    const { data, error, headers, response, status } = await edenTreaty.civitai
+      .local.models.modelId.post({
         modelId: dbModel.id,
         modelVersionIdNumbers: dbModel.modelVersions.map((v) => v.id),
         type: dbModel.type.name as ModelTypes,
@@ -518,13 +532,9 @@ function ModelCard({ item }: { item: ModelWithAllRelations }) {
       <Card
         onClick={() => openModelCard(item)}
         hoverable
-        cover={
-          item.previewFile ? (
-            <MediaPreview fileName={item.previewFile} />
-          ) : (
-            <img title="Have no preview" />
-          )
-        }
+        cover={item.previewFile
+          ? <MediaPreview fileName={item.previewFile} />
+          : <img title="Have no preview" />}
       >
         <Card.Meta description={item.name} />
       </Card>
@@ -580,8 +590,8 @@ function LocalModelsGallery() {
   async function fetchModels(opts: ModelsRequestOpts) {
     setIsGalleryLoading(true);
     try {
-      const { data, error, headers, response, status } =
-        await edenTreaty.civitai.local.models.pagination.post(opts);
+      const { data, error, headers, response, status } = await edenTreaty
+        .civitai.local.models.pagination.post(opts);
       if (error) {
         throw error;
       } else {

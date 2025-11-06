@@ -1,0 +1,592 @@
+import {
+  Affix,
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  type DescriptionsProps,
+  Flex,
+  FloatButton,
+  Image,
+  List,
+  message,
+  notification,
+  Pagination,
+  Row,
+  Space,
+  Tabs,
+} from "antd";
+import {
+  PlusCircleTwoTone,
+  SearchOutlined,
+  SyncOutlined,
+} from "@ant-design/icons";
+import clipboard from "clipboardy";
+import DOMPurify from "dompurify";
+import { debounce } from "es-toolkit";
+import { atom, useAtom } from "jotai";
+import { atomWithImmer } from "jotai-immer";
+import { extractFilenameFromUrl } from "#modules/civitai/service/utils";
+import { useEffect, useRef, useState } from "react";
+import { edenTreaty, getFileType } from "../utils";
+import {
+  Model,
+  type ModelsRequestOpts,
+} from "../../modules/civitai/models/models_endpoint";
+import {
+  GalleryModal,
+  ModalWidthEnum,
+  SearchPanel,
+} from "./localModelsGallery";
+
+const defaultPageAndSize = {
+  page: 1,
+  limit: 20,
+};
+
+const modalWidthAtom = atom<ModalWidthEnum>(ModalWidthEnum.SearchPanel);
+const modelsAtom = atomWithImmer<Model[]>([]);
+const modelsOnPageAtom = atom<Model[]>([]);
+const searchOptsAtom = atom<ModelsRequestOpts>({});
+const nextPageUrlAtom = atom<string>(``);
+const nonEffectiveSearchOptsAtom = atom<Partial<ModelsRequestOpts>>(
+  defaultPageAndSize,
+);
+const isGalleryLoadingAtom = atom<boolean>(false);
+const isModalOpenAtom = atom<boolean>(false);
+const activeVersionIdAtom = atom<string>(``);
+const modalContentAtom = atom<React.JSX.Element>(<div></div>);
+
+/**
+ * 使用正则表达式高效替换 URL 参数
+ * @param urlString 原始 URL 字符串
+ * @param paramName 参数名（默认 'original'）
+ * @param paramValue 参数值（默认 'false'）
+ * @returns 修改后的 URL 字符串
+ */
+function replaceUrlParam(
+  urlString: string,
+  paramName: string = "original",
+  paramValue: string = "false",
+): string {
+  // 转义特殊字符用于正则表达式
+  const escapedParamName = paramName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // 匹配 paramName=任意值
+  const regex = new RegExp(`(${escapedParamName}=)[^&/]+`, "gi");
+
+  // 如果找到匹配项，直接替换
+  if (regex.test(urlString)) {
+    return urlString.replace(regex, `$1${paramValue}`);
+  }
+
+  // 如果没有找到，在最后一个 / 前添加参数
+  const lastSlashIndex = urlString.lastIndexOf("/");
+  if (lastSlashIndex !== -1) {
+    const beforeSlash = urlString.substring(0, lastSlashIndex);
+    const afterSlash = urlString.substring(lastSlashIndex);
+    return `${beforeSlash}/${paramName}=${paramValue}${afterSlash}`;
+  }
+
+  return urlString;
+}
+function MediaPreview({ url }: { url: string }) {
+  const fileType = getFileType(extractFilenameFromUrl(url));
+  if (fileType === "video") {
+    return <video src={url} autoPlay loop muted></video>;
+  } else if (fileType === "image") {
+    // use smaller preview image by replace
+    // https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/833e5617-47d4-44d8-82c7-d169dc2908eb/original=true/93876235.jpeg
+    // to
+    // https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/833e5617-47d4-44d8-82c7-d169dc2908eb/original=false
+    return <Image src={replaceUrlParam(url)} />;
+  } else {
+    return <Image alt={`unknown file type: ${extractFilenameFromUrl(url)}`} />;
+  }
+}
+
+function FloatingButtons() {
+  const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
+  const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
+  const [modalContent, setModalContent] = useAtom(modalContentAtom);
+
+  return (
+    <>
+      <FloatButton.Group shape="circle" style={{ insetInlineEnd: 24 }}>
+        {
+          /* <FloatButton
+          icon={<PlusCircleTwoTone />}
+          onClick={() => debounceLoadNextPage()}
+        /> */
+        }
+        <FloatButton
+          icon={<SearchOutlined />}
+          onClick={() => {
+            setModalWidth(ModalWidthEnum.SearchPanel);
+            setModalContent(<SearchPanel searchOptsAtom={searchOptsAtom} />);
+            setIsModalOpen(true);
+          }}
+        />
+        <FloatButton
+          icon={<SyncOutlined />}
+          onClick={async () => {
+            notification.info({ message: "Scaning..." });
+            await edenTreaty.civitai.local.scanModels.head();
+            notification.success({ message: "Finished~" });
+          }}
+        />
+        <FloatButton.BackTop visibilityHeight={0} />
+      </FloatButton.Group>
+    </>
+  );
+}
+
+function CivitaiPagination() {
+  const [nonEffectiveSearchOpts, setNonEffectiveSearchOpts] = useAtom(
+    nonEffectiveSearchOptsAtom,
+  );
+  const [modelsOnPage, setModelsOnPage] = useAtom(modelsOnPageAtom);
+
+  const [models, setModels] = useAtom(modelsAtom);
+  const [nextPageUrl, setNextPageUrl] = useAtom(nextPageUrlAtom);
+
+  async function loadNextPage() {
+    if (nextPageUrl) {
+      message.open({
+        type: "loading",
+        content: "Action in progress..",
+        duration: 0,
+      });
+      // Dismiss manually and asynchronously
+      // setTimeout(messageApi.destroy, 2500);
+      try {
+        const { data, error, headers, response, status } = await edenTreaty
+          .civitai.api.v1.models.nextPage.get({
+            query: { nextPage: nextPageUrl },
+          });
+        if (error) {
+          throw error;
+        } else {
+          setModels((state) => {
+            state.push(...data.items);
+            return state;
+          });
+          if (data.metadata.nextPage) {
+            setNextPageUrl(data.metadata.nextPage);
+          } else {
+            notification.info({ message: "No more items to load." });
+          }
+        }
+      } catch (error) {
+        notification.error({
+          message: "Error fetching models",
+          description: String(error),
+        });
+        throw error;
+      } finally {
+        message.destroy();
+      }
+    }
+  }
+  const debounceLoadNextPage = debounce(loadNextPage, 500);
+  interface PaginationParams {
+    page: number;
+    limit: number;
+    total: number;
+  }
+
+  const hasFetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+    try {
+      debounceLoadNextPage();
+    } catch (error) {
+      notification.error({
+        message: String(error),
+      });
+      console.error(error);
+    }
+  });
+
+  // useEffect(() => debounceLoadNextPage());
+
+  /**
+   * Safe version - Determines if the current page is the last page
+   * Includes more comprehensive edge case handling
+   */
+  function isLastPageSafe({ page, limit, total }: PaginationParams): boolean {
+    // Parameter validation
+    if (!Number.isInteger(page) || page < 1) {
+      throw new Error(
+        "Page number must be an integer greater than or equal to 1",
+      );
+    }
+
+    if (!Number.isInteger(limit) || limit <= 0) {
+      throw new Error("Items per page must be an integer greater than 0");
+    }
+
+    if (!Number.isInteger(total) || total < 0) {
+      throw new Error("Total items must be a non-negative integer");
+    }
+
+    // Handle case when there's no data
+    if (total === 0) {
+      return false;
+    }
+
+    // Calculate total number of pages
+    const totalPages = Math.ceil(total / limit);
+
+    console.log(`total page: ${totalPages}, current page: ${page}`);
+    return page >= totalPages;
+  }
+
+  return (
+    <Pagination
+      current={nonEffectiveSearchOpts.page ?? 1}
+      pageSize={nonEffectiveSearchOpts.limit ?? defaultPageAndSize.limit}
+      total={models.length}
+      onChange={(page, pageSize) => {
+        setNonEffectiveSearchOpts((prev) => ({
+          ...prev,
+          page,
+          limit: pageSize,
+        }));
+        setModelsOnPage(models.slice(
+          // Start
+          (page - 1) * pageSize,
+          // End
+          page * pageSize,
+        ));
+        if (isLastPageSafe({ page, limit: pageSize, total: models.length })) {
+          // If it's the last page, we can fetch the next set of results
+          return debounceLoadNextPage(); // can't call such a function at here...
+        }
+      }}
+      showSizeChanger
+      showQuickJumper
+      showTotal={(total) => `${total} items loaded!`}
+    />
+  );
+}
+
+function ModelCardContent({
+  data,
+}: {
+  data: Model;
+}) {
+  const [activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom);
+
+  return (
+    <>
+      <Tabs
+        defaultActiveKey="1"
+        tabPosition="top"
+        onChange={(id) => setActiveVersionId(id)}
+        items={data?.modelVersions.map((v) => {
+          const leftSide = (
+            <>
+              <div>
+                {v.images[0].url
+                  ? (
+                    <Image.PreviewGroup
+                      items={v.images.map(
+                        (i) => i.url,
+                      )}
+                    >
+                      <Image
+                        width={200}
+                        src={v.images[0].url}
+                        alt="No previews"
+                      />
+                    </Image.PreviewGroup>
+                  )
+                  : <img title="Have no preview" />}
+              </div>
+            </>
+          );
+          const descriptionItems: DescriptionsProps["items"] = [
+            {
+              key: v.id,
+              label: "Version ID",
+              children: v.id,
+            },
+            {
+              key: v.baseModel,
+              label: "Base Model",
+              children: v.baseModel,
+            },
+            {
+              key: 3,
+              label: "Model Type",
+              children: data.type,
+            },
+            {
+              key: 4,
+              label: "Publish Date",
+              span: "filled",
+              children: v.publishedAt?.toString() ?? "Null",
+            },
+
+            {
+              key: 7,
+              label: `Model Files`,
+              span: `filled`,
+              children: v.files.length > 0
+                ? (
+                  <>
+                    <List
+                      dataSource={v.files}
+                      renderItem={(file) => (
+                        <List.Item>
+                          <Row>
+                            <Col span={18}>{file.name}</Col>
+                            <Col span={6}>
+                              <Button
+                                onClick={async () => {
+                                  // const loraString = `<lora:${
+                                  //   modelVersion.files[index].id
+                                  // }_${
+                                  //   removeFileExtension(
+                                  //     modelVersion.files[index].name,
+                                  //   )
+                                  // }:1>`;
+                                  await clipboard.write(file.name);
+                                  notification.success({
+                                    message: `${file.name} copied to clipboard`,
+                                  });
+                                }}
+                              >
+                                Copy Filename
+                              </Button>
+                            </Col>
+                          </Row>
+                        </List.Item>
+                      )}
+                    />
+                  </>
+                )
+                : (
+                  `have no files`
+                ),
+            },
+            {
+              key: 8,
+              label: "Tags",
+              span: "filled",
+              children: (
+                <Flex wrap gap="small">
+                  {v.trainedWords.map((tagStr, index) => (
+                    <div
+                      key={index}
+                      onClick={async () => {
+                        await clipboard.write(tagStr);
+                        return notification.success({
+                          message: "Copied to clipboard",
+                        });
+                      }}
+                      className="
+                        bg-blue-500 hover:bg-blue-700 text-white 
+                          font-bold p-1 rounded transition-all 
+                          duration-300 transform hover:scale-105
+                          hover:cursor-pointer"
+                    >
+                      {tagStr}
+                    </div>
+                  ))}
+                </Flex>
+              ),
+            },
+            {
+              key: 9,
+              label: "Model Description",
+              span: "filled",
+              children: data.description
+                ? (
+                  <div
+                    className="bg-gray-300"
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(data.description),
+                    }}
+                  />
+                )
+                : undefined,
+              // data.description,
+            },
+            {
+              key: 10,
+              label: "Model Version Description",
+              span: "filled",
+              children: v.description
+                ? (
+                  <div
+                    className="bg-gray-300"
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(v.description),
+                    }}
+                  />
+                )
+                : undefined,
+              // v.description
+            },
+          ];
+          const rightSide = (
+            <>
+              <Space direction="vertical">
+                <Descriptions
+                  title="Model Version Details"
+                  layout="vertical"
+                  items={descriptionItems}
+                >
+                </Descriptions>
+              </Space>
+            </>
+          );
+          return {
+            label: v.name,
+            key: v.id.toString(),
+            children: (
+              <Card>
+                <div>
+                  <a
+                    className="clickable-title"
+                    target="_blank"
+                    href={`https://civitai.com/models/${data.id}?modelVersionId=${v.id}`}
+                  >
+                    {data.name}
+                  </a>
+                </div>
+                <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+                  <Col sm={8} lg={6}>
+                    {leftSide}
+                  </Col>
+                  <Col sm={16} lg={18}>
+                    {rightSide}
+                  </Col>
+                </Row>
+              </Card>
+            ),
+          };
+        })}
+      />
+    </>
+  );
+}
+
+function ModelCard({ item }: { item: Model }) {
+  const [modalContent, setModalContent] = useAtom(modalContentAtom);
+  const [isCardModalOpen, setIsCardModalOpen] = useAtom(isModalOpenAtom);
+  const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
+  function openModelCard(item: Model) {
+    setModalWidth(ModalWidthEnum.modelDetailCard);
+    setModalContent(<ModelCardContent data={item} />);
+    setIsCardModalOpen(true);
+  }
+  return (
+    <>
+      <Card
+        onClick={() => openModelCard(item)}
+        hoverable
+        cover={item.modelVersions[0]?.images[0]?.url ?? undefined
+          ? <MediaPreview url={item.modelVersions[0].images[0].url} />
+          : <img title="Have no preview" />}
+      >
+        <Card.Meta description={item.name} />
+      </Card>
+    </>
+  );
+}
+
+function GalleryContent() {
+  const [modalContent] = useAtom(modalContentAtom);
+  const [modelsOnPage, setModelsOnPage] = useAtom(modelsOnPageAtom);
+  return (
+    <>
+      <Space align="center" direction="vertical" style={{ width: "100%" }}>
+        <List
+          grid={{
+            gutter: 16,
+            xs: 1,
+            sm: 2,
+            md: 4,
+            lg: 4,
+            xl: 6,
+            xxl: 8,
+          }}
+          dataSource={modelsOnPage}
+          renderItem={(item) => (
+            <List.Item>
+              <ModelCard item={item} />
+            </List.Item>
+          )}
+        />
+
+        <Affix offsetBottom={5}>
+          <CivitaiPagination />
+        </Affix>
+      </Space>
+      <GalleryModal
+        isModalOpenAtom={isModalOpenAtom}
+        modalContent={modalContent}
+        modalWidthAtom={modalWidthAtom}
+      />
+      <FloatingButtons />
+    </>
+  );
+}
+
+function CivitaiModelsGallery() {
+  const [isGalleryLoading, setIsGalleryLoading] = useAtom(isGalleryLoadingAtom);
+  const [searchOptions, setSearchOptions] = useAtom(searchOptsAtom);
+  const [nonEffectiveSearchOpts, setNonEffectiveSearchOpts] = useAtom(
+    nonEffectiveSearchOptsAtom,
+  );
+  const [modelsOnPage, setModelsOnPage] = useAtom(modelsOnPageAtom);
+  const [models, setModels] = useAtom(modelsAtom);
+  const [nextPageUrl, setNextPageUrl] = useAtom(nextPageUrlAtom);
+  async function fetchModels(searchOptions: ModelsRequestOpts) {
+    setIsGalleryLoading(true);
+    try {
+      const { data, error, headers, response, status } = await edenTreaty
+        .civitai.api.v1.models.post(searchOptions);
+      if (error) {
+        throw error;
+      } else {
+        setModels((state) => {
+          setModelsOnPage(data.items);
+          return data.items;
+        });
+        // setNextPageUrl(data.metadata.nextPage ?? ``);
+        if (data.metadata.nextPage) {
+          setNextPageUrl(data.metadata.nextPage);
+        } else {
+          notification.info({ message: "No more items to load." });
+        }
+      }
+    } catch (error) {
+      notification.error({
+        message: "Fetching models failed.",
+        description: `May you check your network?`,
+      });
+      throw error;
+    } finally {
+      setIsGalleryLoading(false);
+    }
+  }
+  const debounceFetchModels = debounce(fetchModels, 500);
+
+  useEffect(() => {
+    debounceFetchModels({
+      ...searchOptions,
+      ...nonEffectiveSearchOpts,
+      page: 1,
+    });
+  }, [searchOptions]);
+
+  return isGalleryLoading ? <div>Loading...</div> : <GalleryContent />;
+}
+
+export default CivitaiModelsGallery;

@@ -17,7 +17,7 @@ export function getRequester() {
     // @ts-ignore
     proxy: settingsInfo.httpProxy,
     headers: { Authorization: `Bearer ${settingsInfo.civitaiToken}` },
-    timeout: 18000,
+    timeout: 120000,
   });
 }
 
@@ -88,18 +88,18 @@ const civitaiApiMirror = new Elysia({ prefix: "/api/v1" })
         });
     }
   })
-  .get(
+  .post(
     "/models",
-    async ({ query }) => {
+    async ({ body }) => {
       const requester = getRequester();
       const res = await requester.get("https://civitai.com/api/v1/models", {
-        searchParams: obj2UrlSearchParams(query),
+        searchParams: obj2UrlSearchParams(body),
       });
       const result = await modelsResProcess(res);
       return result;
     },
     {
-      query: models_request_opts,
+      body: models_request_opts,
       response: models_response,
     }
   )

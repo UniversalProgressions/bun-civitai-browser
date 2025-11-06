@@ -21,7 +21,8 @@ import {
   Tabs,
 } from "antd";
 import { SearchOutlined, SyncOutlined } from "@ant-design/icons";
-import { atom, useAtom } from "jotai";
+import { atom, useAtom, PrimitiveAtom } from "jotai";
+import {} from "jotai";
 import { useEffect, useState } from "react";
 import { debounce } from "es-toolkit";
 import clipboard from "clipboardy";
@@ -43,7 +44,7 @@ import { type ModelWithAllRelations } from "../../modules/civitai/service/crud/m
 import { extractFilenameFromUrl } from "#modules/civitai/service/utils";
 import { DefaultOptionType } from "antd/es/select";
 
-enum ModalWidthEnum {
+export enum ModalWidthEnum {
   SearchPanel = 600,
   modelDetailCard = 1000,
 }
@@ -58,8 +59,7 @@ const activeVersionIdAtom = atom<string>(``);
 
 function MediaPreview({ fileName }: { fileName: string }) {
   const fileType = getFileType(fileName);
-  const srcPath =
-    `${location.origin}/civitai/local/media/preview?previewFile=${fileName}`;
+  const srcPath = `${location.origin}/civitai/local/media/preview?previewFile=${fileName}`;
   if (fileType === "video") {
     return <video src={srcPath} autoPlay loop muted></video>;
   } else if (fileType === "image") {
@@ -69,23 +69,30 @@ function MediaPreview({ fileName }: { fileName: string }) {
   }
 }
 
-function LocalGalleryModal() {
+export function GalleryModal({
+  modalWidthAtom,
+  isModalOpenAtom,
+  modalContent,
+}: {
+  modalWidthAtom: PrimitiveAtom<ModalWidthEnum>;
+  isModalOpenAtom: PrimitiveAtom<boolean>;
+  modalContent: React.JSX.Element;
+}) {
   const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
-  const [isCardModalOpen, setIsCardModalOpen] = useAtom(isModalOpenAtom);
-  const [cardModalContent, setCardModalContent] = useAtom(modalContentAtom);
+  const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
   return (
     <>
       <Modal
         width={modalWidth}
-        onOk={() => setIsCardModalOpen(false)}
-        onCancel={() => setIsCardModalOpen(false)}
+        onOk={() => setIsModalOpen(false)}
+        onCancel={() => setIsModalOpen(false)}
         closable={false}
-        open={isCardModalOpen}
+        open={isModalOpen}
         footer={null}
         centered
         destroyOnHidden={true} // force refetch data by force destory DOM
       >
-        {isCardModalOpen ? cardModalContent : <div>loading...</div>}
+        {isModalOpen ? modalContent : <div>loading...</div>}
       </Modal>
     </>
   );
@@ -110,9 +117,13 @@ function LocalPagination() {
   );
 }
 
-function SearchPanel() {
+export function SearchPanel({
+  searchOptsAtom,
+}: {
+  searchOptsAtom: PrimitiveAtom<ModelsRequestOpts>;
+}) {
   const [form] = Form.useForm<ModelsRequestOpts>();
-  const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
+  const [searchOpt, setSearchOpt] = useAtom(searchOptsAtom);
   const [tagsOptions, setTagsOptions] = useState<Array<DefaultOptionType>>([]);
 
   form.setFieldsValue(searchOpt);
@@ -257,7 +268,9 @@ function FloatingButtons() {
           icon={<SearchOutlined />}
           onClick={() => {
             setModalWidth(ModalWidthEnum.SearchPanel);
-            setModalContent(<SearchPanel />);
+            setModalContent(
+              <SearchPanel searchOptsAtom={localSearchOptionsAtom} />
+            );
             setIsModalOpen(true);
           }}
         />
@@ -294,25 +307,23 @@ function ModelCardContent({
           const leftSide = (
             <>
               <div>
-                {dbModel.previewFile
-                  ? (
-                    <Image.PreviewGroup
-                      items={v.images.map(
-                        (i) =>
-                          `${location.origin}/civitai/local/media/preview?previewFile=${
-                            extractFilenameFromUrl(
-                              i.url,
-                            )
-                          }`,
-                      )}
-                    >
-                      <Image
-                        width={200}
-                        src={`${location.origin}/civitai/local/media/preview?previewFile=${dbModel.previewFile}`}
-                      />
-                    </Image.PreviewGroup>
-                  )
-                  : <img title="Have no preview" />}
+                {dbModel.previewFile ? (
+                  <Image.PreviewGroup
+                    items={v.images.map(
+                      (i) =>
+                        `${location.origin}/civitai/local/media/preview?previewFile=${extractFilenameFromUrl(
+                          i.url
+                        )}`
+                    )}
+                  >
+                    <Image
+                      width={200}
+                      src={`${location.origin}/civitai/local/media/preview?previewFile=${dbModel.previewFile}`}
+                    />
+                  </Image.PreviewGroup>
+                ) : (
+                  <img title="Have no preview" />
+                )}
               </div>
             </>
           );
@@ -343,8 +354,8 @@ function ModelCardContent({
               key: 7,
               label: `Model Files`,
               span: `filled`,
-              children: v.files.length > 0
-                ? (
+              children:
+                v.files.length > 0 ? (
                   <>
                     <List
                       dataSource={v.files}
@@ -376,8 +387,7 @@ function ModelCardContent({
                       )}
                     />
                   </>
-                )
-                : (
+                ) : (
                   `have no files`
                 ),
             },
@@ -412,32 +422,28 @@ function ModelCardContent({
               key: 9,
               label: "Model Description",
               span: "filled",
-              children: data.description
-                ? (
-                  <div
-                    className="bg-gray-300"
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(data.description),
-                    }}
-                  />
-                )
-                : undefined,
+              children: data.description ? (
+                <div
+                  className="bg-gray-300"
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(data.description),
+                  }}
+                />
+              ) : undefined,
               // data.description,
             },
             {
               key: 10,
               label: "Model Version Description",
               span: "filled",
-              children: v.description
-                ? (
-                  <div
-                    className="bg-gray-300"
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(v.description),
-                    }}
-                  />
-                )
-                : undefined,
+              children: v.description ? (
+                <div
+                  className="bg-gray-300"
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(v.description),
+                  }}
+                />
+              ) : undefined,
               // v.description
             },
           ];
@@ -448,8 +454,7 @@ function ModelCardContent({
                   title="Model Version Details"
                   layout="vertical"
                   items={descriptionItems}
-                >
-                </Descriptions>
+                ></Descriptions>
               </Space>
             </>
           );
@@ -485,13 +490,13 @@ function ModelCardContent({
 }
 
 function ModelCard({ item }: { item: ModelWithAllRelations }) {
-  const [cardModalContent, setCardModalContent] = useAtom(modalContentAtom);
+  const [modalContent, setModalContent] = useAtom(modalContentAtom);
   const [isCardModalOpen, setIsCardModalOpen] = useAtom(isModalOpenAtom);
   const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
   async function openModelCard(dbModel: ModelWithAllRelations) {
     setModalWidth(ModalWidthEnum.modelDetailCard);
-    const { data, error, headers, response, status } = await edenTreaty.civitai
-      .local.models.modelId.post({
+    const { data, error, headers, response, status } =
+      await edenTreaty.civitai.local.models.modelId.post({
         modelId: dbModel.id,
         modelVersionIdNumbers: dbModel.modelVersions.map((v) => v.id),
         type: dbModel.type.name as ModelTypes,
@@ -499,12 +504,12 @@ function ModelCard({ item }: { item: ModelWithAllRelations }) {
     if (error?.status) {
       switch (error.status) {
         case 422:
-          setCardModalContent(<>{JSON.stringify(error.value, null, 2)}</>);
+          setModalContent(<>{JSON.stringify(error.value, null, 2)}</>);
         default:
-          setCardModalContent(<div>Unknown Exception</div>);
+          setModalContent(<div>Unknown Exception</div>);
       }
     } else {
-      setCardModalContent(<ModelCardContent data={data!} dbModel={dbModel} />);
+      setModalContent(<ModelCardContent data={data!} dbModel={dbModel} />);
     }
     setIsCardModalOpen(true);
   }
@@ -513,9 +518,13 @@ function ModelCard({ item }: { item: ModelWithAllRelations }) {
       <Card
         onClick={() => openModelCard(item)}
         hoverable
-        cover={item.previewFile
-          ? <MediaPreview fileName={item.previewFile} />
-          : <img title="Have no preview" />}
+        cover={
+          item.previewFile ? (
+            <MediaPreview fileName={item.previewFile} />
+          ) : (
+            <img title="Have no preview" />
+          )
+        }
       >
         <Card.Meta description={item.name} />
       </Card>
@@ -525,6 +534,7 @@ function ModelCard({ item }: { item: ModelWithAllRelations }) {
 
 function GalleryContent() {
   const [modelsAtomValue, setModelsAtom] = useAtom(modelsAtom);
+  const [modalContent, setModalContent] = useAtom(modalContentAtom);
 
   return (
     <>
@@ -537,7 +547,7 @@ function GalleryContent() {
             md: 4,
             lg: 4,
             xl: 6,
-            xxl: 3,
+            xxl: 8,
           }}
           dataSource={modelsAtomValue}
           renderItem={(item) => (
@@ -551,7 +561,11 @@ function GalleryContent() {
           <LocalPagination />
         </Affix>
       </Space>
-      <LocalGalleryModal />
+      <GalleryModal
+        isModalOpenAtom={isModalOpenAtom}
+        modalContent={modalContent}
+        modalWidthAtom={modalWidthAtom}
+      />
       <FloatingButtons />
     </>
   );
@@ -564,9 +578,10 @@ function LocalModelsGallery() {
   const [totalCount, setTotalCount] = useAtom(totalAtom);
 
   async function fetchModels(opts: ModelsRequestOpts) {
+    setIsGalleryLoading(true);
     try {
-      const { data, error, headers, response, status } = await edenTreaty
-        .civitai.local.models.pagination.post(opts);
+      const { data, error, headers, response, status } =
+        await edenTreaty.civitai.local.models.pagination.post(opts);
       if (error) {
         throw error;
       } else {
@@ -584,7 +599,7 @@ function LocalModelsGallery() {
     fetchModels(searchOpt);
   }, [searchOpt]); // [] 表示组件挂载时只执行一次
 
-  return <>{isGalleryLoading ? <div>Loading...</div> : <GalleryContent />}</>;
+  return isGalleryLoading ? <div>Loading...</div> : <GalleryContent />;
 }
 
 export default LocalModelsGallery;

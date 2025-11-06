@@ -2,6 +2,7 @@ import { type MenuProps, Tabs, type TabsProps } from "antd";
 import { SettingFilled } from "@ant-design/icons";
 import SettingsPanel from "./pages/settingsPanel";
 import LocalModelsGallery from "./pages/localModelsGallery";
+import CivitaiModelsGallery from "./pages/civitaiModelsGallery";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -29,7 +30,7 @@ function GalleryContent() {
     {
       label: `CivitAI`,
       key: MenuItemKeys.CivitAI,
-      children: `CivitAI`,
+      children: <CivitaiModelsGallery />,
     },
     {
       label: `Settings`,

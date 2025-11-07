@@ -8,8 +8,6 @@ import {
 } from "./baseModels/misc";
 import { type } from "arktype";
 
-export const MODELS_ENDPOINT = "https://civitai.com/api/v1/models";
-
 export const modelVersion_file_hashes = type({
   "SHA256?": "string",
   "CRC32?": "string",

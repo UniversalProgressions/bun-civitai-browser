@@ -1,11 +1,14 @@
 import ky, { KyResponse } from "ky";
-import { type } from "arktype";
+import { ArkErrors, type } from "arktype";
 import { Elysia } from "elysia";
 import {
   models_request_opts,
   models_response,
+  model,
+  type Model,
+  ModelsResponse
 } from "../models/models_endpoint";
-import { modelId_model } from "../models/modelId_endpoint";
+import { modelId_model, type ModelId_ModelId, modelId_model_version, type ModelId_ModelVersion } from "../models/modelId_endpoint";
 import { getSettings } from "../../settings/service";
 import { obj2UrlSearchParams } from "../service/utils";
 
@@ -46,7 +49,7 @@ export class ApiCommunicationError extends Error {
   }
 }
 
-async function modelsResProcess(kyRes: KyResponse) {
+async function apiResponseProcess<T>(arkValidator: (data: unknown) => T | ArkErrors, kyRes: KyResponse): Promise<T> {
   if (!kyRes.ok) {
     // network error handle
     // there are some situations that unknowable error happens
@@ -56,7 +59,7 @@ async function modelsResProcess(kyRes: KyResponse) {
     );
   }
   const json = await kyRes.json();
-  const data = models_response(json);
+  const data = arkValidator(json);
   if (data instanceof type.errors) {
     // parse error (caused by wrong request logic) handle
     throw new ApiInvokeErrorResponse(
@@ -94,8 +97,8 @@ const civitaiApiMirror = new Elysia({ prefix: "/api/v1" })
       const res = await requester.get("https://civitai.com/api/v1/models", {
         searchParams: obj2UrlSearchParams(body),
       });
-      const result = await modelsResProcess(res);
-      return result;
+      return await apiResponseProcess<ModelsResponse>(models_response, res);
+
     },
     {
       body: models_request_opts,
@@ -107,42 +110,38 @@ const civitaiApiMirror = new Elysia({ prefix: "/api/v1" })
     async ({ query }) => {
       const requester = getRequester();
       const res = await requester.get(query.nextPage);
-      const result = await modelsResProcess(res);
-      return result;
+      return await apiResponseProcess<ModelsResponse>(models_response, res);
     },
     {
       query: type({ nextPage: "string" }),
       response: models_response,
     }
   )
-  .post(
-    `model-versions/:versionId`,
-    async ({ body }) => {
+  .get(`/models/:modelId`, async ({ params }) => {
+    const requester = getRequester();
+    const res = await requester.get(`https://civitai.com/api/v1/models/${params.modelId}}`)
+    return await apiResponseProcess<ModelId_ModelId>(modelId_model, res);
+  }, { response: modelId_model })
+  .get(
+    `model-versions/:modelVersionId`,
+    async ({ params }) => {
       const requester = getRequester();
       const res = await requester.get(
-        `https://civitai.com/api/v1/model-versions/${body.versionId}`
+        `https://civitai.com/api/v1/model-versions/${params.modelVersionId}`
       );
-      if (res.ok) {
-        const json = await res.json();
-        const data = modelId_model(json);
-        if (data instanceof type.errors) {
-          throw new ApiInvokeErrorResponse(
-            `data validation error.`,
-            JSON.stringify(json),
-            data.summary,
-            res
-          );
-        }
-        return data;
-      }
-      throw new ApiCommunicationError(
-        `civitai api error: ${res.status} ${res.statusText}`,
-        res
-      );
+      return await apiResponseProcess<ModelId_ModelVersion>(modelId_model_version, res);
     },
     {
-      body: type({ versionId: "number.integer" }),
-      response: modelId_model,
+      response: modelId_model_version,
     }
-  );
+  )
+  .get(`/model-versions/by-hash/:hash`, async ({ params }) => {
+    const requester = getRequester();
+    const res = await requester.get(
+      `https://civitai.com/api/v1/model-versions/by-hash/${params.hash}`
+    );
+    return await apiResponseProcess<ModelId_ModelVersion>(modelId_model_version, res);
+  }, {
+    response: modelId_model_version,
+  });
 export default civitaiApiMirror;

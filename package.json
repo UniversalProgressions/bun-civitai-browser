@@ -17,6 +17,7 @@
     "@elysiajs/html": "^1.4.0",
     "@elysiajs/openapi": "^1.4.11",
     "@elysiajs/static": "^1.4.4",
+    "@gopeed/rest": "^1.6.3",
     "@prisma/client": "^6.17.1",
     "@synapsenwerkstatt/prisma-bun-sqlite-adapter": "^1.2.2",
     "@tailwindcss/vite": "^4.1.15",

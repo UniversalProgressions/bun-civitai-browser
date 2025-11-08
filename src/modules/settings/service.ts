@@ -16,6 +16,14 @@ export const settings = new Conf({
       type: "string",
       default: "",
     },
+    gopeedHost: {
+      type: "string",
+      default: ""
+    },
+    gopeedToken: {
+      type: "string",
+      default: ""
+    }
   },
   projectVersion: "1.0.0",
   configName: "settings",

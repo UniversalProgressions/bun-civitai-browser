@@ -5,7 +5,7 @@ export const _settingsValidator = type({
   basePath: "string",
   civitaiToken: "string",
   httpProxy: "string",
-  gopeedHost: "string.url",
+  gopeedHost: "string",
   gopeedToken: "string",
 });
 export type Settings = typeof _settingsValidator.infer;

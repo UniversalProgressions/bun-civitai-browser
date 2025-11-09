@@ -26,7 +26,7 @@ import DOMPurify from "dompurify";
 import { debounce } from "es-toolkit";
 import { atom, useAtom } from "jotai";
 import { atomWithImmer } from "jotai-immer";
-import { extractFilenameFromUrl } from "#modules/civitai/service/utils";
+import { extractFilenameFromUrl } from "#modules/civitai/service/sharedUtils";
 import { useEffect, useRef, useState } from "react";
 import { edenTreaty, getFileType } from "../utils";
 import {

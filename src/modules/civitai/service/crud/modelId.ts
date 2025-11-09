@@ -6,7 +6,7 @@ import type { ModelsRequestOpts, Model } from "../../models/models_endpoint";
 import type { ModelOrderByWithRelationInput, ModelWhereInput } from "../../../../../generated/models";
 import { Model as ModelTypeboxSchema } from "../../../../../generated/typebox/Model";
 import { Static } from "elysia";
-import { extractFilenameFromUrl } from "../utils";
+import { extractFilenameFromUrl } from "../sharedUtils";
 
 export type ModelWithAllRelations = Static<typeof ModelTypeboxSchema>
 

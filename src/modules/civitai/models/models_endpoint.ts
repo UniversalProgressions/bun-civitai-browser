@@ -51,7 +51,7 @@ export const model_version = type({
   name: "string",
   baseModel: "string",
   baseModelType: "string | null",
-  publishedAt: "string.date | null", //ISO 8061
+  publishedAt: "string | null", //ISO 8061
   availability: "'EarlyAccess' | 'Public'",
   nsfwLevel: "number.integer",
   description: "string | null", //html doc strings

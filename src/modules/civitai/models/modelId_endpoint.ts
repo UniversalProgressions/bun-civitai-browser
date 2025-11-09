@@ -1,10 +1,5 @@
 import {
   model_types,
-  allow_commercial_use,
-  models_request_sort,
-  models_request_period,
-  base_models,
-  checkpoint_type,
 } from "./baseModels/misc";
 import { type } from "arktype";
 
@@ -28,7 +23,7 @@ export const modelId_modelVersion_file = type({
     "size?": "string | null", // '"full" | "pruned"',
     "format?": "string", // '"SafeTensor" | "PickleTensor" | "Other" | "Diffusers" | "GGUF"',
   },
-  scannedAt: "string | null", //ISO 8061
+  scannedAt: "string | Date | null", //ISO 8061
   "hashes?": modelVersion_file_hashes,
   downloadUrl: "string.url",
 });
@@ -50,12 +45,12 @@ export const modelId_model_version = type({
   index: "number.integer", // the position in modelId.modelVersions array.
   name: "string",
   baseModel: "string",
-  "baseModelType?": "string | null",
-  publishedAt: "string.date | null", //ISO 8061
+  baseModelType: "string | null", // "baseModelType?": "string | null",
+  "publishedAt?": "string | Date | null", // ISO 8061
   availability: "'EarlyAccess' | 'Public'",
   nsfwLevel: "number.integer",
-  "description?": "string | null", //html doc strings
-  "trainedWords?": "string[]",
+  "description?": "string | null", // html doc strings // "description?": "string | null", //html doc strings
+  trainedWords: "string[]", // "trainedWords?": "string[]",
   stats: {
     downloadCount: "number.integer",
     ratingCount: "number.integer",

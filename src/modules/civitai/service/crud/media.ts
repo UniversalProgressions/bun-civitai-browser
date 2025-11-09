@@ -1,7 +1,7 @@
 import { prisma } from "../../../db/service";
 import type { ModelId_ModelVersionImage } from "../../models/modelId_endpoint";
 import type { ModelVersionImage } from "../../models/models_endpoint";
-import { extractFilenameFromUrl, removeFileExtension } from "../utils";
+import { extractFilenameFromUrl, removeFileExtension } from "../sharedUtils";
 
 export async function createOrConnectImagesByModelIdEndpointInfo(
   modelVersionId: number,

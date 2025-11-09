@@ -41,7 +41,7 @@ import {
   ModelTypesArray,
 } from "../../modules/civitai/models/baseModels/misc";
 import { type ModelWithAllRelations } from "../../modules/civitai/service/crud/modelId";
-import { extractFilenameFromUrl } from "#modules/civitai/service/utils";
+import { extractFilenameFromUrl } from "#modules/civitai/service/sharedUtils";
 import { DefaultOptionType } from "antd/es/select";
 import ShadowHTML from "../components/shadowHTML";
 
@@ -566,17 +566,12 @@ function GalleryContent() {
             </List.Item>
           )}
         />
-
-        <Affix offsetBottom={5}>
-          <LocalPagination />
-        </Affix>
       </Space>
       <GalleryModal
         isModalOpenAtom={isModalOpenAtom}
         modalContent={modalContent}
         modalWidthAtom={modalWidthAtom}
       />
-      <FloatingButtons />
     </>
   );
 }
@@ -609,7 +604,18 @@ function LocalModelsGallery() {
     fetchModels(searchOpt);
   }, [searchOpt]); // [] 表示组件挂载时只执行一次
 
-  return isGalleryLoading ? <div>Loading...</div> : <GalleryContent />;
+  return (
+    <>
+      <Space direction="vertical" align="center">
+        {isGalleryLoading ? <div>Loading...</div> : <GalleryContent />}
+
+        <Affix offsetBottom={5}>
+          <LocalPagination />
+        </Affix>
+        <FloatingButtons />
+      </Space>
+    </>
+  );
 }
 
 export default LocalModelsGallery;

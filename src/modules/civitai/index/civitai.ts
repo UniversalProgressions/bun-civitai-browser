@@ -1,4 +1,4 @@
-import ky, { KyResponse } from "ky";
+import { KyResponse } from "ky";
 import { ArkErrors, type } from "arktype";
 import { Elysia } from "elysia";
 import {
@@ -8,19 +8,8 @@ import {
 } from "../models/models_endpoint";
 import { modelVersion_model_version, type ModelVersion_ModelVersion } from "../models/modelVersion_endpoint";
 import { modelId_model, type ModelId_ModelId } from "../models/modelId_endpoint";
-import { getSettings } from "../../settings/service";
 import { obj2UrlSearchParams } from "../service/sharedUtils";
-
-export function getRequester() {
-  const settingsInfo = getSettings();
-  return ky.extend({
-    // pass proxy info to Bun's fetch('xxx',{proxy:'http://...'}) by ignoring the ky's type error
-    // @ts-ignore
-    proxy: settingsInfo.httpProxy,
-    headers: { Authorization: `Bearer ${settingsInfo.civitaiToken}` },
-    timeout: 120000,
-  });
-}
+import { getRequester } from "../service/utils";
 
 export class DataValidationErrorResponse extends Error {
   constructor(

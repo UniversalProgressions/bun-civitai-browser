@@ -36,10 +36,12 @@
     "jotai-immer": "^0.4.1",
     "ky": "^1.14.0",
     "path-exists": "^5.0.0",
+    "path-scurry": "^2.0.1",
     "react-dom": "^19.2.0",
     "react-image-gallery": "^1.4.0",
     "sanitize-basename": "^2.0.2",
-    "tailwindcss": "^4.1.17"
+    "tailwindcss": "^4.1.17",
+    "write-json-file": "^7.0.0"
   },
   "devDependencies": {
     "@types/conf": "^3.0.3",
@@ -52,6 +54,5 @@
     "vite": "^7.2.2",
     "vite-tsconfig-paths": "^5.1.4",
     "zustand": "^5.0.8"
-  },
-  "module": "src/index.js"
+  }
 }

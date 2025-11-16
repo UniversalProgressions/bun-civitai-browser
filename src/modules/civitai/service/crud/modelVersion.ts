@@ -14,6 +14,7 @@ import {
 import type { ModelTypes } from "../../models/baseModels/misc";
 import { type } from "arktype";
 import { pathExists } from "path-exists";
+import { PathScurry } from "path-scurry";
 
 export async function upsertOneModelVersion(
   modelId: Model,
@@ -151,43 +152,39 @@ export async function scanModelsAndSyncToDb() {
       },
     });
     if (isExistsInDb === null) {
-      const modelVersionJsonPath = getModelVersionApiInfoJsonPath(
+      const modelVersionJson = Bun.file(getModelVersionApiInfoJsonPath(
         getSettings().basePath,
         modelInfo.modelType as ModelTypes,
         modelInfo.modelId,
         modelInfo.versionId
-      );
-      if ((await pathExists(modelVersionJsonPath)) === false) {
+      ));
+      if ((await modelVersionJson.exists()) === false) {
         console.log(
           `modelVersion ${modelInfo.versionId}'s json file doesn't exists, exclude from processing.`
         );
         continue;
       }
-      const modelVersionInfo = model_version(
-        JSON.parse(await readFile(modelVersionJsonPath, { encoding: "utf-8" }))
-      );
+      const modelVersionInfo = model_version(await modelVersionJson.json());
       if (modelVersionInfo instanceof type.errors) {
         // hover out.summary to see validation errors
-        // console.error(modelVersionInfo.summary)
+        console.error(modelVersionInfo.summary)
         throw modelVersionInfo;
       }
-      const modelIdJsonPath = getModelIdApiInfoJsonPath(
+      const modelIdJson = Bun.file(getModelIdApiInfoJsonPath(
         getSettings().basePath,
         modelInfo.modelType as ModelTypes,
         modelInfo.modelId
-      );
-      if ((await pathExists(modelIdJsonPath)) === false) {
+      ));
+      if ((await modelIdJson.exists()) === false) {
         console.log(
           `modelID ${modelInfo.modelId}'s json file doesn't exists, exclude from processing.`
         );
         continue;
       }
-      const modelIdInfo = model(
-        JSON.parse(await readFile(modelIdJsonPath, { encoding: "utf-8" }))
-      );
+      const modelIdInfo = model(await modelIdJson.json());
       if (modelIdInfo instanceof type.errors) {
         // hover out.summary to see validation errors
-        // console.error(modelVersionInfo.summary)
+        console.error(modelIdInfo.summary)
         throw modelIdInfo;
       }
       await upsertOneModelVersion(modelIdInfo, modelVersionInfo);

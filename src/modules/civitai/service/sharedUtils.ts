@@ -1,5 +1,35 @@
-import type { Model, ModelVersion } from "../models/models_endpoint";
 import { find } from "es-toolkit/compat";
+import { type ModelId_ModelId } from "#modules/civitai/models/modelId_endpoint";
+import { type Model, model, ModelVersion } from "#modules/civitai/models/models_endpoint";
+import { type } from "arktype";
+
+export function modelId2Model(data: ModelId_ModelId): Model {
+  data.modelVersions.map((mv) => {
+    // update images[]
+    mv.images.map((i) => {
+      // @ts-ignore
+      i.id = Number.parseInt(
+        removeFileExtension(extractFilenameFromUrl(i.url)),
+      );
+    });
+    mv.files.map((f) => {
+      // Only UTC date format is valid!
+      // @ts-ignore
+      f.scannedAt = (f.scannedAt as Date).toISOString() ?? null;
+    });
+    mv.description = mv.description ?? null;
+    // @ts-ignore
+    mv.publishedAt = (mv.publishedAt as Date).toISOString() ?? null;
+  });
+  const out = model(data);
+  if (out instanceof type.errors) {
+    console.error(`convert ModelId to Model error!`);
+    console.log(out.summary)
+    out.throw();
+    throw out;
+  }
+  return out;
+}
 
 export function findModelVersion(
   modelId: Model,

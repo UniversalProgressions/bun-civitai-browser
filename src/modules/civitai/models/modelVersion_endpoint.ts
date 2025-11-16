@@ -20,7 +20,7 @@ export const modelVersion_file = type({
     "size?": "string | null", // '"full" | "pruned"',
     "format?": "string", // '"SafeTensor" | "PickleTensor" | "Other" | "Diffusers" | "GGUF"',
   },
-  scannedAt: "string | null", //ISO 8061
+  scannedAt: "string.date.iso", //ISO 8061
   "hashes?": modelVersion_file_hashes,
   downloadUrl: "string.url",
 });
@@ -44,7 +44,7 @@ export const modelVersion_model_version = type({
   name: "string",
   baseModel: "string",
   baseModelType: "string | null", // "baseModelType?": "string | null",
-  publishedAt: "string.date | null", // ISO 8061
+  publishedAt: "string.date.iso", // ISO 8061
   // availability: "'EarlyAccess' | 'Public'",
   nsfwLevel: "number.integer",
   description: "string | null", // html doc strings // "description?": "string | null", //html doc strings

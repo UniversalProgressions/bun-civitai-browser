@@ -28,7 +28,7 @@ import { atom, useAtom } from "jotai";
 import { atomWithImmer } from "jotai-immer";
 import { extractFilenameFromUrl } from "#modules/civitai/service/sharedUtils";
 import { useEffect, useRef, useState } from "react";
-import { edenTreaty, getFileType } from "../utils";
+import { edenTreaty, getFileType, replaceUrlParam } from "../utils";
 import {
   Model,
   type ModelsRequestOpts,
@@ -57,39 +57,6 @@ const isModalOpenAtom = atom<boolean>(false);
 const activeVersionIdAtom = atom<string>(``);
 const modalContentAtom = atom<React.JSX.Element>(<div></div>);
 
-/**
- * 使用正则表达式高效替换 URL 参数
- * @param urlString 原始 URL 字符串
- * @param paramName 参数名（默认 'original'）
- * @param paramValue 参数值（默认 'false'）
- * @returns 修改后的 URL 字符串
- */
-function replaceUrlParam(
-  urlString: string,
-  paramName: string = "original",
-  paramValue: string = "false",
-): string {
-  // 转义特殊字符用于正则表达式
-  const escapedParamName = paramName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-  // 匹配 paramName=任意值
-  const regex = new RegExp(`(${escapedParamName}=)[^&/]+`, "gi");
-
-  // 如果找到匹配项，直接替换
-  if (regex.test(urlString)) {
-    return urlString.replace(regex, `$1${paramValue}`);
-  }
-
-  // 如果没有找到，在最后一个 / 前添加参数
-  const lastSlashIndex = urlString.lastIndexOf("/");
-  if (lastSlashIndex !== -1) {
-    const beforeSlash = urlString.substring(0, lastSlashIndex);
-    const afterSlash = urlString.substring(lastSlashIndex);
-    return `${beforeSlash}/${paramName}=${paramValue}${afterSlash}`;
-  }
-
-  return urlString;
-}
 function MediaPreview({ url }: { url: string }) {
   const fileType = getFileType(extractFilenameFromUrl(url));
   if (fileType === "video") {

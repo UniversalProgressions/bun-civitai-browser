@@ -1,6 +1,7 @@
 import { Client } from "@gopeed/rest";
+import { join } from "node:path";
 import { CreateTaskWithRequest, CreateTaskBatch } from "@gopeed/types";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { cron, Patterns } from '@elysiajs/cron'
 import { type } from "arktype";
 import { getSettings } from "#modules/settings/service";
@@ -9,6 +10,9 @@ import { getRequester } from "../service/utils";
 import { KyResponse } from "ky";
 import { ModelIdLayout, getMediaDir } from "#modules/civitai/service/fileLayout";
 import { upsertOneModelVersion } from "#modules/civitai/service/crud/modelVersion";
+import { extractFilenameFromUrl } from "../service/sharedUtils";
+import { writeJsonFile } from 'write-json-file';
+
 export class ExternalServiceError extends Error {
   constructor(
     public message: string,
@@ -68,7 +72,7 @@ class ResolveResourceUrlFailedError extends Error {
     this.kyRes = kyRes
   }
 }
-export default new Elysia({ prefix: `/download` })
+const controller = new Elysia({ prefix: `/download` })
   .error({ UnauthorizedError, ResolveResourceUrlFailedError, ExternalServiceError })
   .onError(({ code, error, status }) => {
     switch (code) {
@@ -107,7 +111,9 @@ export default new Elysia({ prefix: `/download` })
       const mvlayout = milayout.getModelVersionLayout(modelVersionId)
 
       const modelVersion: ModelVersion = model.modelVersions.find((mv) => mv.id === modelVersionId) as ModelVersion;
-      modelVersion.files.map(async (file) => {
+
+      for (let index = 0; index < modelVersion.files.length; index++) {
+        const file = modelVersion.files[index];
         const res = await requester.get(makeModelFileDownloadUrl(file.downloadUrl, settings.civitaiToken), {
           throwHttpErrors: false,
         });
@@ -116,38 +122,59 @@ export default new Elysia({ prefix: `/download` })
             req: { url: res.url },
             opt: { name: mvlayout.getFileName(file.id), path: mvlayout.getFileDirPath() }
           })
+        } else {
+          switch (res.status) {
+            case 401:
+              throw new UnauthorizedError(`Unauthorized to access model file download url: ${file.downloadUrl},\nmay you have to purchase the model on civitai.`, res)
+            // case 408:
+            // Timeout
+            default:
+              throw new ResolveResourceUrlFailedError(`Failed to resolve model file download url: ${file.downloadUrl},\nplease try again later.`, res)
+          }
         }
-        switch (res.status) {
-          case 401:
-            throw new UnauthorizedError(`Unauthorized to access model file download url: ${file.downloadUrl},\nmay you have to purchase the model on civitai.`, res)
-          // case 408:
-          // Timeout
-          default:
-            throw new ResolveResourceUrlFailedError(`Failed to resolve model file download url: ${file.downloadUrl},\nplease try again later.`, res)
-        }
-      })
-      // resolve media file download tasks
-      const mediaTasks: CreateTaskBatch = { opt: { path: getMediaDir(settings.basePath) }, reqs: modelVersion.images.map((img) => ({ url: img.url })) }
+      }
       // Download Start
       // 1. save json data
-      await Bun.file(milayout.getApiInfoJsonPath()).write(JSON.stringify(model, null, 2))
-      await Bun.file(mvlayout.getApiInfoJsonPath()).write(JSON.stringify(modelVersion, null, 2))
+      // await Bun.file(milayout.getApiInfoJsonPath()).write(JSON.stringify(model, null, 2))
+      // await Bun.file(mvlayout.getApiInfoJsonPath()).write(JSON.stringify(modelVersion, null, 2))
+      await writeJsonFile(milayout.getApiInfoJsonPath(), model)
+      await writeJsonFile(mvlayout.getApiInfoJsonPath(), modelVersion)
       // 2. download model files
       const modelfileTasksId: Array<string> = []
-      modelFileDownloadTasks.map(async (task) => {
+
+      for (let index = 0; index < modelFileDownloadTasks.length; index++) {
+        const task = modelFileDownloadTasks[index];
+        if (await Bun.file(join(task.opt!.path!, task.opt!.name!)).exists()) {
+          continue
+        }
         const taskId = await gopeed.createTask(task)
         modelfileTasksId.push(taskId)
-      })
+      }
       // 3. download media files
-      const mediaTasksId = await gopeed.createTaskBatch(mediaTasks)
+      // Do not use Batch download task function, it won't work! To create Gopeed tasks one by one.
+      const mediaTaskIds: string[] = []
+      const mediaDir = getMediaDir(settings.basePath)
+      for (let index = 0; index < modelVersion.images.length; index++) {
+        const media = modelVersion.images[index];
+        if (await Bun.file(join(mediaDir, extractFilenameFromUrl(media.url))).exists()) {
+          continue
+        }
+        mediaTaskIds.push(await gopeed.createTask({
+          req: { url: media.url }, opt: { path: mediaDir }
+        }))
+      }
       // 4. upsert model info to db
       const records = await upsertOneModelVersion(model, modelVersion)
       // 5. return tasks info
+
       return {
-        modelfileTasksId,
-        mediaTasksId
+        modelfileTasksId: modelfileTasksId,
+        mediaTaskIds: mediaTaskIds
       }
     }, {
     body: type({ modelVersionId: "number", model: model }),
-    response: type({ modelfileTasksId: type("string[]"), mediaTasksId: type("string[]") })
+    // response: type({ modelfileTasksId: "string[]", mediaTaskIds: "string[]" })
+    response: t.Object({ modelfileTasksId: t.Array(t.String()), mediaTaskIds: t.Array(t.String()) })
   })
+
+export default controller

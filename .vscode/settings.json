@@ -16,5 +16,8 @@
 
   "editor.tabSize": 2,
   "editor.formatOnSave": true,
-  "Codegeex.RepoIndex": true
+  "Codegeex.RepoIndex": true,
+  "Codegeex.CompletionDelay": 2,
+  "Codegeex.CommitMessage.LanguagePreference": "English",
+  "Codegeex.Comment.LanguagePreference": "English"
 }

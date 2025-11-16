@@ -2,7 +2,7 @@ import Elysia, { file, t } from "elysia";
 import { type } from "arktype";
 import { join } from "node:path";
 import { getSettings } from "../../settings/service";
-import { getMediaDir } from "../service/fileLayout";
+import { getMediaDir, ModelIdLayout } from "../service/fileLayout";
 import { scanModelsAndSyncToDb } from "../service/crud/modelVersion";
 import {
   cursorPaginationQuery,
@@ -16,6 +16,7 @@ import {
   model_version,
   type ModelVersion,
 } from "../models/models_endpoint";
+import { existedModelversions, ExistedModelversions } from "../models/modelId_endpoint";
 import { type ModelTypes, model_types } from "../models/baseModels/misc";
 import { Model as TypeBox_Model } from "../../../../generated/typebox/barrel";
 import {
@@ -292,4 +293,21 @@ export default new Elysia({ prefix: `/local` })
   .head("/scanModels", async () => {
     await scanModelsAndSyncToDb();
     return true;
+  })
+  .post("/checkModelOnDisk", async ({ body }) => {
+    // check existed model versions
+    const settings = getSettings()
+    const mi = new ModelIdLayout(settings.basePath, body);
+    const existedModelversions: ExistedModelversions = []
+    for (const version of body.modelVersions) {
+      const IdsOfFilesOnDisk = await mi.checkVersionFilesOnDisk(version.id)
+      if (IdsOfFilesOnDisk.length === 0) { continue }
+      existedModelversions.push({
+        versionId: version.id,
+        filesOnDisk: IdsOfFilesOnDisk
+      })
+    }
+    return existedModelversions
+  }, {
+    body: model, response: existedModelversions
   });

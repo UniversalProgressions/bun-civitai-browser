@@ -212,4 +212,17 @@ export class ModelIdLayout {
       this.imgDir
     );
   }
+
+  async checkVersionFilesOnDisk(versionId: number): Promise<Array<number>> {
+    const mv = this.getModelVersionLayout(versionId)
+    const existedFiles: Array<number> = []
+    for (let index = 0; index < mv.modelVersion.files.length; index++) {
+      const file = mv.modelVersion.files[index];
+      const element = Bun.file(mv.getFilePath(file.id));
+      if (await element.exists()) {
+        existedFiles.push(file.id)
+      }
+    }
+    return existedFiles
+  }
 }

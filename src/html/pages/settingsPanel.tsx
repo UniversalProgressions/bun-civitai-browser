@@ -106,6 +106,27 @@ function App() {
           }}
         />
       </Form.Item>
+      <Form.Item<Settings>
+        label="GopeedAPI"
+        name="gopeedHost"
+        rules={[
+          {
+            required: true,
+            message: "Please input your GopeedAPI host address here!",
+          },
+        ]}
+      >
+        <Input
+          value={settings.gopeedHost}
+          onChange={(e) => {
+            setSettings((state) => {
+              state.gopeedHost = e.target.value;
+              return state;
+            });
+          }}
+        >
+        </Input>
+      </Form.Item>
       <Form.Item label={null}>
         <Button
           type="primary"

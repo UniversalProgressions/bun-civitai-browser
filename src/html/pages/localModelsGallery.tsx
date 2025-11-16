@@ -71,15 +71,8 @@ function MediaPreview({ fileName }: { fileName: string }) {
   }
 }
 
-export function GalleryModal({
-  modalWidthAtom,
-  isModalOpenAtom,
-  modalContent,
-}: {
-  modalWidthAtom: PrimitiveAtom<ModalWidthEnum>;
-  isModalOpenAtom: PrimitiveAtom<boolean>;
-  modalContent: React.JSX.Element;
-}) {
+export function GalleryModal() {
+  const [modalContent, setModalContent] = useAtom(modalContentAtom);
   const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
   const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
   return (
@@ -119,13 +112,9 @@ function LocalPagination() {
   );
 }
 
-export function SearchPanel({
-  searchOptsAtom,
-}: {
-  searchOptsAtom: PrimitiveAtom<ModelsRequestOpts>;
-}) {
+export function SearchPanel() {
   const [form] = Form.useForm<ModelsRequestOpts>();
-  const [searchOpt, setSearchOpt] = useAtom(searchOptsAtom);
+  const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
   const [tagsOptions, setTagsOptions] = useState<Array<DefaultOptionType>>([]);
   const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
 
@@ -247,7 +236,12 @@ export function SearchPanel({
               onClick={() => {
                 // console.log(form.getFieldsValue());
                 setIsModalOpen(false);
-                form.submit();
+                // form.submit();
+                setSearchOpt((prev) => ({
+                  ...prev,
+                  ...form.getFieldsValue(),
+                  page: 1,
+                }));
               }}
             >
               Search
@@ -273,7 +267,7 @@ function FloatingButtons() {
           onClick={() => {
             setModalWidth(ModalWidthEnum.SearchPanel);
             setModalContent(
-              <SearchPanel searchOptsAtom={localSearchOptionsAtom} />,
+              <SearchPanel />,
             );
             setIsModalOpen(true);
           }}
@@ -325,7 +319,12 @@ function ModelCardContent({
                     >
                       <Image
                         width={200}
-                        src={`${location.origin}/civitai/local/media/preview?previewFile=${dbModel.previewFile}`}
+                        src={v.images[0].url
+                          ? `${location.origin}/civitai/local/media/preview?previewFile=${
+                            extractFilenameFromUrl(v.images[0].url)
+                          }`
+                          : undefined}
+                        alt="Have no previews"
                       />
                     </Image.PreviewGroup>
                   )
@@ -544,7 +543,6 @@ function ModelCard({ item }: { item: ModelWithAllRelations }) {
 
 function GalleryContent() {
   const [modelsAtomValue, setModelsAtom] = useAtom(modelsAtom);
-  const [modalContent, setModalContent] = useAtom(modalContentAtom);
 
   return (
     <>
@@ -567,11 +565,7 @@ function GalleryContent() {
           )}
         />
       </Space>
-      <GalleryModal
-        isModalOpenAtom={isModalOpenAtom}
-        modalContent={modalContent}
-        modalWidthAtom={modalWidthAtom}
-      />
+      <GalleryModal />
     </>
   );
 }

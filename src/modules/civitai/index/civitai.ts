@@ -8,8 +8,10 @@ import {
 } from "../models/models_endpoint";
 import { modelVersion_model_version, type ModelVersion_ModelVersion } from "../models/modelVersion_endpoint";
 import { modelId_model, type ModelId_ModelId } from "../models/modelId_endpoint";
-import { obj2UrlSearchParams } from "../service/sharedUtils";
+import { modelId2Model, obj2UrlSearchParams } from "../service/sharedUtils";
 import { getRequester } from "../service/utils";
+import { ModelIdLayout } from "../service/fileLayout";
+import { getSettings } from "#modules/settings/service";
 
 export class DataValidationErrorResponse extends Error {
   constructor(
@@ -109,7 +111,8 @@ const civitaiApiMirror = new Elysia({ prefix: "/api/v1" })
   .post(`/modelById`, async ({ body }) => {
     const requester = getRequester();
     const res = await requester.get(`https://civitai.com/api/v1/models/${body.modelId}`)
-    return await apiResponseProcess<ModelId_ModelId>(modelId_model, res);
+    const modelIdData = await apiResponseProcess<ModelId_ModelId>(modelId_model, res);
+    return modelIdData
   }, { body: type({ modelId: "number" }), response: modelId_model })
   .post(
     `/modelVersionById/`,

@@ -90,7 +90,7 @@ function FloatingButtons() {
           icon={<SearchOutlined />}
           onClick={() => {
             setModalWidth(ModalWidthEnum.SearchPanel);
-            setModalContent(<SearchPanel searchOptsAtom={searchOptsAtom} />);
+            setModalContent(<SearchPanel />);
             setIsModalOpen(true);
           }}
         />
@@ -495,11 +495,7 @@ function GalleryContent() {
           <CivitaiPagination />
         </Affix>
       </Space>
-      <GalleryModal
-        isModalOpenAtom={isModalOpenAtom}
-        modalContent={modalContent}
-        modalWidthAtom={modalWidthAtom}
-      />
+      <GalleryModal />
       <FloatingButtons />
     </>
   );

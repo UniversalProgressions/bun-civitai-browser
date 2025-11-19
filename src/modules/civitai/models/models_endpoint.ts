@@ -55,7 +55,7 @@ export const model_version = type({
   availability: "'EarlyAccess' | 'Public'",
   nsfwLevel: "number.integer",
   description: "string | null", //html doc strings
-  trainedWords: "string[]",
+  "trainedWords?": "string[]",
   stats: {
     downloadCount: "number.integer",
     ratingCount: "number.integer",

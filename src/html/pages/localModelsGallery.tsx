@@ -402,26 +402,30 @@ function ModelCardContent({
               label: "Tags",
               span: "filled",
               children: (
-                <Flex wrap gap="small">
-                  {v.trainedWords.map((tagStr, index) => (
-                    <div
-                      key={index}
-                      onClick={async () => {
-                        await clipboard.write(tagStr);
-                        return notification.success({
-                          message: "Copied to clipboard",
-                        });
-                      }}
-                      className="
+                v.trainedWords
+                  ? (
+                    <Flex wrap gap="small">
+                      {v.trainedWords.map((tagStr, index) => (
+                        <div
+                          key={index}
+                          onClick={async () => {
+                            await clipboard.write(tagStr);
+                            return notification.success({
+                              message: "Copied to clipboard",
+                            });
+                          }}
+                          className="
                         bg-blue-500 hover:bg-blue-700 text-white 
                           font-bold p-1 rounded transition-all 
                           duration-300 transform hover:scale-105
                           hover:cursor-pointer"
-                    >
-                      {tagStr}
-                    </div>
-                  ))}
-                </Flex>
+                        >
+                          {tagStr}
+                        </div>
+                      ))}
+                    </Flex>
+                  )
+                  : undefined
               ),
             },
             {

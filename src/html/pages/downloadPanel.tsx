@@ -19,14 +19,17 @@ import {
 } from "antd";
 import { useState } from "react";
 import { atom, useAtom } from "jotai";
+import { type } from "arktype";
 import clipboard from "clipboardy";
 import { debounce } from "es-toolkit";
 import DOMPurify from "dompurify";
-import { type Model, model } from "#modules/civitai/models/models_endpoint";
+import { type Model } from "#modules/civitai/models/models_endpoint";
 import {
   ExistedModelversions,
   existedModelversions,
+  modelId_model,
 } from "#modules/civitai/models/modelId_endpoint";
+import { model_types } from "#modules/civitai/models/baseModels/misc";
 import { edenTreaty, replaceUrlParam } from "#client/utils";
 import {
   extractFilenameFromUrl,
@@ -180,26 +183,30 @@ function ModelCardContent({
               label: "Tags",
               span: "filled",
               children: (
-                <Flex wrap gap="small">
-                  {v.trainedWords.map((tagStr, index) => (
-                    <div
-                      key={index}
-                      onClick={async () => {
-                        await clipboard.write(tagStr);
-                        return notification.success({
-                          message: "Copied to clipboard",
-                        });
-                      }}
-                      className="
+                v.trainedWords
+                  ? (
+                    <Flex wrap gap="small">
+                      {v.trainedWords.map((tagStr, index) => (
+                        <div
+                          key={index}
+                          onClick={async () => {
+                            await clipboard.write(tagStr);
+                            return notification.success({
+                              message: "Copied to clipboard",
+                            });
+                          }}
+                          className="
                         bg-blue-500 hover:bg-blue-700 text-white 
                           font-bold p-1 rounded transition-all 
                           duration-300 transform hover:scale-105
                           hover:cursor-pointer"
-                    >
-                      {tagStr}
-                    </div>
-                  ))}
-                </Flex>
+                        >
+                          {tagStr}
+                        </div>
+                      ))}
+                    </Flex>
+                  )
+                  : undefined
               ),
             },
             {
@@ -359,6 +366,13 @@ function InputBar() {
           {
             const mv = await fetchModelVersionById(Number.parseInt(inputValue));
             const mi = await fetchModelId(mv.modelId);
+            // add different model type procedure here
+            switch (mi.type) {
+              case "Controlnet": {
+                console.log(mi);
+                break;
+              }
+            }
             const model = modelId2Model(mi);
             const res = await edenTreaty.civitai.local.checkModelOnDisk.post(
               model,
@@ -418,9 +432,7 @@ function InputBar() {
           defaultValue={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder="Please input corresponding value according to the option on the left."
-          onPressEnter={() => {
-            debounceLoadModelInfo();
-          }}
+          onPressEnter={debounceLoadModelInfo}
         />
       </Space.Compact>
     </>

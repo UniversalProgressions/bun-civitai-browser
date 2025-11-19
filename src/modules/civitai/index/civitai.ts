@@ -53,7 +53,7 @@ async function apiResponseProcess<T>(arkValidator: (data: unknown) => T | ArkErr
   if (data instanceof type.errors) {
     // parse error (caused by wrong request logic) handle
     throw new DataValidationErrorResponse(
-      `civitai api invoke error.`,
+      `Failed to validate civitai responsed data.`,
       JSON.stringify(json),
       data.summary,
       kyRes
@@ -111,8 +111,7 @@ const civitaiApiMirror = new Elysia({ prefix: "/api/v1" })
   .post(`/modelById`, async ({ body }) => {
     const requester = getRequester();
     const res = await requester.get(`https://civitai.com/api/v1/models/${body.modelId}`)
-    const modelIdData = await apiResponseProcess<ModelId_ModelId>(modelId_model, res);
-    return modelIdData
+    return await apiResponseProcess<ModelId_ModelId>(modelId_model, res);
   }, { body: type({ modelId: "number" }), response: modelId_model })
   .post(
     `/modelVersionById/`,

@@ -2,7 +2,6 @@
   "name": "bun-civitai-browser",
   "version": "1.0.50",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev:client": "vite",
     "dev:server": "bun run --watch src/dev.ts ",
     "build:client": "vite build",
@@ -36,9 +35,8 @@
     "jotai-immer": "^0.4.1",
     "ky": "^1.14.0",
     "path-exists": "^5.0.0",
-    "path-scurry": "^2.0.1",
+    "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-image-gallery": "^1.4.0",
     "sanitize-basename": "^2.0.2",
     "tailwindcss": "^4.1.17",
     "write-json-file": "^7.0.0"
@@ -52,7 +50,6 @@
     "prisma": "^6.19.0",
     "prismabox": "^1.1.25",
     "vite": "^7.2.2",
-    "vite-tsconfig-paths": "^5.1.4",
-    "zustand": "^5.0.8"
+    "vite-tsconfig-paths": "^5.1.4"
   }
 }

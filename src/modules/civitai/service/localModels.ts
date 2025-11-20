@@ -3,6 +3,9 @@ import { join } from "node:path";
 import { pathExists } from "path-exists";
 import fg from "fast-glob";
 import { getSettings } from "../../settings/service";
+import { Model } from "../models/models_endpoint";
+import { ModelLayout } from "./fileLayout";
+import { ExistedModelversions } from "../models/modelId_endpoint";
 
 /**
  * 检查文件夹内是否存在至少一个 .safetensors 文件
@@ -46,4 +49,20 @@ export async function scanModels() {
       : `${getSettings().basePath}/**/*.safetensors`;
   const safetensors = await fg.async(expression);
   return safetensors;
+}
+
+export async function checkModelOnDisk(modelData: Model) {
+  // check existed model versions
+  const settings = getSettings()
+  const mi = new ModelLayout(settings.basePath, modelData);
+  const existedModelversions: ExistedModelversions = []
+  for (const version of modelData.modelVersions) {
+    const IdsOfFilesOnDisk = await mi.checkVersionFilesOnDisk(version.id)
+    if (IdsOfFilesOnDisk.length === 0) { continue }
+    existedModelversions.push({
+      versionId: version.id,
+      filesOnDisk: IdsOfFilesOnDisk
+    })
+  }
+  return existedModelversions
 }

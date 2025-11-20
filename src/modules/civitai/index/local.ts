@@ -2,7 +2,7 @@ import Elysia, { file, t } from "elysia";
 import { type } from "arktype";
 import { join } from "node:path";
 import { getSettings } from "../../settings/service";
-import { getMediaDir, ModelIdLayout } from "../service/fileLayout";
+import { getMediaDir, ModelLayout } from "../service/fileLayout";
 import { scanModelsAndSyncToDb } from "../service/crud/modelVersion";
 import {
   cursorPaginationQuery,
@@ -297,7 +297,7 @@ export default new Elysia({ prefix: `/local` })
   .post("/checkModelOnDisk", async ({ body }) => {
     // check existed model versions
     const settings = getSettings()
-    const mi = new ModelIdLayout(settings.basePath, body);
+    const mi = new ModelLayout(settings.basePath, body);
     const existedModelversions: ExistedModelversions = []
     for (const version of body.modelVersions) {
       const IdsOfFilesOnDisk = await mi.checkVersionFilesOnDisk(version.id)

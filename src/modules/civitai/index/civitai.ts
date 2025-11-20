@@ -1,7 +1,8 @@
 import { KyResponse } from "ky";
 import { ArkErrors, type } from "arktype";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import {
+  model,
   models_request_opts,
   models_response,
   ModelsResponse
@@ -10,9 +11,9 @@ import { modelVersion_model_version, type ModelVersion_ModelVersion } from "../m
 import { modelId_model, type ModelId_ModelId } from "../models/modelId_endpoint";
 import { modelId2Model, obj2UrlSearchParams } from "../service/sharedUtils";
 import { getRequester } from "../service/utils";
-import { ModelIdLayout } from "../service/fileLayout";
+import { ModelLayout } from "../service/fileLayout";
 import { getSettings } from "#modules/settings/service";
-
+import { checkModelOnDisk } from "#modules/civitai/service/localModels";
 export class DataValidationErrorResponse extends Error {
   constructor(
     public message: string,
@@ -135,5 +136,40 @@ const civitaiApiMirror = new Elysia({ prefix: "/api/v1" })
     return await apiResponseProcess<ModelVersion_ModelVersion>(modelVersion_model_version, res);
   }, {
     response: modelVersion_model_version,
+  })
+  .post(`/loadModelInfoById`,
+    async ({ body }) => {
+      const requester = getRequester();
+      const res = await requester.get(`https://civitai.com/api/v1/models/${body.modelId}`)
+      const mi = await apiResponseProcess<ModelId_ModelId>(modelId_model, res);
+      const modelData = modelId2Model(mi);
+      const existedModelversions = await checkModelOnDisk(modelData);
+      return {
+        model: modelData,
+        existedModelversions: existedModelversions
+      };
+    },
+    {
+      body: type({ modelId: "number" }),
+      response: type({ model: model, existedModelversions: type({ "versionId": "number", "filesOnDisk": type("number[]") }).array() })
+    }
+  )
+  .post(`/loadModelInfoByVersionId`, async ({ body }) => {
+    const requester = getRequester();
+    const mvRes = await requester.get(
+      `https://civitai.com/api/v1/model-versions/${body.modelVersionId}`
+    );
+    const mv = await apiResponseProcess<ModelVersion_ModelVersion>(modelVersion_model_version, mvRes);
+    const miRes = await requester.get(`https://civitai.com/api/v1/models/${mv.modelId}`)
+    const mi = await apiResponseProcess<ModelId_ModelId>(modelId_model, miRes);
+    const modelData = modelId2Model(mi);
+    const existedModelversions = await checkModelOnDisk(modelData);
+    return {
+      model: modelData,
+      existedModelversions: existedModelversions
+    };
+  }, {
+    body: type({ modelVersionId: "number" }),
+    response: type({ model: model, existedModelversions: type({ "versionId": "number", "filesOnDisk": type("number[]") }).array() })
   });
 export default civitaiApiMirror;

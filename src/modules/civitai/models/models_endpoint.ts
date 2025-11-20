@@ -28,7 +28,7 @@ export const modelVersion_file = type({
     "size?": "string | null", // '"full" | "pruned"',
     "format?": "string", // '"SafeTensor" | "PickleTensor" | "Other" | "Diffusers" | "GGUF"',
   },
-  scannedAt: "string.date.iso", //ISO 8061
+  "scannedAt?": "string.date.iso", //ISO 8061
   "hashes?": modelVersion_file_hashes,
   downloadUrl: "string.url",
 });

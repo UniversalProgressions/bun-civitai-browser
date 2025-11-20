@@ -1,4 +1,4 @@
-import { ModelIdLayout } from "./fileLayout";
+import { ModelLayout } from "./fileLayout";
 import { describe, test, expect } from "bun:test";
 import { join } from "node:path";
 import sanitize from "sanitize-basename";
@@ -15,7 +15,7 @@ export const modelId1 = models_res.items[0];
 
 describe("test layout class", () => {
   const basePath = __dirname;
-  const milayout = new ModelIdLayout(basePath, modelId1 as Model);
+  const milayout = new ModelLayout(basePath, modelId1 as Model);
   const mv = modelId1.modelVersions[0];
   const mvlayout = milayout.getModelVersionLayout(mv.id);
   const mfile = mv.files[0];

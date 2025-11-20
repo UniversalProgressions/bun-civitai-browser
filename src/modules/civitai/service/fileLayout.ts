@@ -166,7 +166,7 @@ export class ModelVersionLayout {
   }
 }
 
-export class ModelIdLayout {
+export class ModelLayout {
   imgDir: string;
   modelIdPath: string;
   constructor(public basePath: string, public modelId: Model) {

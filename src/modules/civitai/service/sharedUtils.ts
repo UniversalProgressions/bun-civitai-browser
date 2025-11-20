@@ -16,11 +16,11 @@ export function modelId2Model(data: ModelId_ModelId): Model {
       mv.files.map((f) => {
         // Only UTC date format is valid!
         // @ts-ignore
-        f.scannedAt = (f.scannedAt as Date).toISOString() ?? null;
+        f.scannedAt = f.scannedAt ? (new Date(f.scannedAt as string)).toISOString() : null;
       });
       mv.description = mv.description ?? null;
       // @ts-ignore
-      mv.publishedAt = (mv.publishedAt as Date).toISOString() ?? null;
+      mv.publishedAt = mv.publishedAt ? (new Date(mv.publishedAt as string)).toISOString() : null;
     });
     const out = model(data);
     if (out instanceof type.errors) {

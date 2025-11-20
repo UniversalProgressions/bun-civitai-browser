@@ -8,7 +8,7 @@ import { getSettings } from "#modules/settings/service";
 import { model, type Model, type ModelVersion } from "#modules/civitai/models/models_endpoint";
 import { getRequester } from "../service/utils";
 import { KyResponse } from "ky";
-import { ModelIdLayout, getMediaDir } from "#modules/civitai/service/fileLayout";
+import { ModelLayout, getMediaDir } from "#modules/civitai/service/fileLayout";
 import { upsertOneModelVersion } from "#modules/civitai/service/crud/modelVersion";
 import { extractFilenameFromUrl } from "../service/sharedUtils";
 import { writeJsonFile } from 'write-json-file';
@@ -107,7 +107,7 @@ const controller = new Elysia({ prefix: `/download` })
       const gopeed = getGopeedClient();
       // resolve model file download tasks
       const modelFileDownloadTasks: Array<CreateTaskWithRequest> = []
-      const milayout = new ModelIdLayout(settings.basePath, model)
+      const milayout = new ModelLayout(settings.basePath, model)
       const mvlayout = milayout.getModelVersionLayout(modelVersionId)
 
       const modelVersion: ModelVersion = model.modelVersions.find((mv) => mv.id === modelVersionId) as ModelVersion;

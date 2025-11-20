@@ -100,6 +100,12 @@ function ModelCardContent({
                   type="primary"
                   block
                   onClick={() => onDownloadClick(data, v.id)}
+                  disabled={existedModelversions.find((obj) =>
+                      obj.versionId === v.id
+                    )?.filesOnDisk.length === v.files.length
+                    ? true
+                    : false}
+                  loading={isDownloadButtonLoading}
                 >
                   Download
                 </Button>
@@ -142,12 +148,12 @@ function ModelCardContent({
                         <List.Item>
                           <Row>
                             <Col span={18}>
-                              {file.name}
                               {existedModelversions.find((obj) =>
                                   obj.versionId === v.id
                                 )?.filesOnDisk.includes(file.id)
                                 ? <Tag color="green">onDisk</Tag>
                                 : undefined}
+                              {file.name}
                             </Col>
                             <Col span={6}>
                               <Button
@@ -313,89 +319,72 @@ function InputBar() {
     existedModelVersionsAtom,
   );
 
-  async function fetchModelVersionById(versionId: number) {
-    const { data, error, headers, response, status } = await edenTreaty.civitai
-      .api.v1.modelVersionById.post({ modelVersionId: versionId });
-    if (error) {
-      switch (error.status) {
-        case 422:
-          setModelContent(
-            <Alert
-              type="error"
-              message={error.value.message}
-              description={error.value.summary}
-            />,
-          );
-          throw error;
-        default:
-          setModelContent(<Alert type="error" message={String(error)} />);
-          throw error;
-      }
-    } else {
-      return data;
-    }
-  }
-
-  async function fetchModelId(modelId: number) {
-    const { data, error, headers, response, status } = await edenTreaty.civitai
-      .api.v1.modelById.post({ modelId: modelId });
-    if (error) {
-      switch (error.status) {
-        case 422:
-          setModelContent(
-            <Alert
-              type="error"
-              message={error.value.message}
-              description={error.value.summary}
-            />,
-          );
-          throw error;
-        default:
-          setModelContent(<Alert type="error" message={String(error)} />);
-          throw error;
-      }
-    } else {
-      return data;
-    }
-  }
   async function loadModelInfo() {
     setLoading(true);
     try {
       switch (selectedOption) {
         case LoadingOptionsEnum.VersionId:
           {
-            const mv = await fetchModelVersionById(Number.parseInt(inputValue));
-            const mi = await fetchModelId(mv.modelId);
-            // add different model type procedure here
-            switch (mi.type) {
-              case "Controlnet": {
-                console.log(mi);
-                break;
+            const { data, error, headers, response, status } = await edenTreaty
+              .civitai.api.v1.loadModelInfoByVersionId.post({
+                modelVersionId: Number.parseInt(inputValue),
+              });
+            if (error) {
+              switch (error.status) {
+                case 422:
+                  setModelContent(
+                    <Alert
+                      type="error"
+                      message={error.value.message}
+                      description={error.value.summary}
+                    />,
+                  );
+                  throw error;
+                default:
+                  setModelContent(
+                    <Alert type="error" message={String(error)} />,
+                  );
+                  throw error;
               }
+            } else {
+              if (data.existedModelversions) {
+                setExistedModelversions(data.existedModelversions);
+              }
+              setModelContent(<ModelCardContent data={data.model} />);
+              setActiveVersionId(data.model.modelVersions[0].id.toString());
             }
-            const model = modelId2Model(mi);
-            const res = await edenTreaty.civitai.local.checkModelOnDisk.post(
-              model,
-            );
-            if (res.data) {
-              setExistedModelversions(res.data);
-            }
-            setModelContent(<ModelCardContent data={model} />);
-            setActiveVersionId(mv.id.toString());
           }
           break;
         case LoadingOptionsEnum.ModelId:
           {
-            const mi = await fetchModelId(Number.parseInt(inputValue));
-            const model = modelId2Model(mi);
-            const res = await edenTreaty.civitai.local.checkModelOnDisk.post(
-              model,
-            );
-            if (res.data) {
-              setExistedModelversions(res.data);
+            const { data, error, headers, response, status } = await edenTreaty
+              .civitai.api.v1.loadModelInfoById.post({
+                modelId: Number.parseInt(inputValue),
+              });
+            if (error) {
+              switch (error.status) {
+                case 422:
+                  setModelContent(
+                    <Alert
+                      type="error"
+                      message={error.value.message}
+                      description={error.value.summary}
+                    />,
+                  );
+                  throw error;
+                default:
+                  setModelContent(
+                    <Alert type="error" message={String(error)} />,
+                  );
+                  throw error;
+              }
+            } else {
+              if (data.existedModelversions) {
+                setExistedModelversions(data.existedModelversions);
+              }
+              setModelContent(<ModelCardContent data={data.model} />);
+              setActiveVersionId(data.model.modelVersions[0].id.toString());
             }
-            setModelContent(<ModelCardContent data={model} />);
-            setActiveVersionId(mi.modelVersions[0].id.toString());
           }
           break;
       }

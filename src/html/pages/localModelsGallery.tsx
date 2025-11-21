@@ -44,6 +44,7 @@ import { type ModelWithAllRelations } from "../../modules/civitai/service/crud/m
 import { extractFilenameFromUrl } from "#modules/civitai/service/sharedUtils";
 import { DefaultOptionType } from "antd/es/select";
 import ShadowHTML from "../components/shadowHTML";
+import { atomWithImmer } from "jotai-immer";
 
 export enum ModalWidthEnum {
   SearchPanel = 600,
@@ -53,6 +54,8 @@ const modalWidthAtom = atom<ModalWidthEnum>(ModalWidthEnum.SearchPanel);
 const isGalleryLoadingAtom = atom(false);
 const modelsAtom = atom<Array<ModelWithAllRelations>>([]);
 const localSearchOptionsAtom = atom<ModelsRequestOpts>({});
+const tempLocalSearchOptsAtom = atomWithImmer<ModelsRequestOpts>({});
+
 const totalAtom = atom(0);
 const isModalOpenAtom = atom(false);
 const modalContentAtom = atom(<></>);
@@ -113,12 +116,15 @@ function LocalPagination() {
 }
 
 function SearchPanel() {
-  const [form] = Form.useForm<ModelsRequestOpts>();
+  const [tempSearchOpt, setTempSearchOpt] = useAtom(tempLocalSearchOptsAtom);
   const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
   const [tagsOptions, setTagsOptions] = useState<Array<DefaultOptionType>>([]);
   const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
 
-  form.setFieldsValue(searchOpt);
+  function resetSearchOpt() {
+    setTempSearchOpt((prev) => (structuredClone(searchOpt)));
+  }
+
   async function asyncSearchTags(keyword: string) {
     function toOptionsArray(params: Array<string>): Array<DefaultOptionType> {
       return params.map((tag) => ({
@@ -144,66 +150,28 @@ function SearchPanel() {
     }
   }
   const debouncedSearchTags = debounce(asyncSearchTags, 600);
-  function onFormChange(
-    key: keyof ModelsRequestOpts,
-    value: string | string[] | boolean | number | undefined,
-  ) {
-    switch (key) {
-      case "limit":
-        form.setFieldValue("limit", value as number);
-        break;
-      case "page":
-        form.setFieldValue("page", value as number);
-      case "query":
-        form.setFieldValue("query", value as string);
-        break;
-      case "tag":
-        form.setFieldValue("tag", value as string[]);
-        break;
-      case "username":
-        form.setFieldValue("username", value as string);
-        break;
-      case "types":
-        form.setFieldValue("types", value as string[]);
-        break;
-      case "sort":
-        form.setFieldValue("sort", value as string);
-        break;
-      case "period":
-        form.setFieldValue("period", value as number);
-        break;
-      case "nsfw":
-        form.setFieldValue("nsfw", value as boolean);
-        break;
-      case "baseModels":
-        form.setFieldValue("baseModels", value as string[]);
-        break;
-      case "checkpointType":
-        form.setFieldValue("checkpointType", value as string);
-        break;
-      default:
-        break;
-    }
-  }
+
   return (
     <>
-      <Form
-        layout="horizontal"
-        form={form}
-        onFinish={(v) => {
-          setSearchOpt((prev) => ({ ...prev, ...v, page: 1 }));
-        }}
-      >
+      <Form layout="horizontal">
         <Form.Item name="query" label="Query Text">
           <Input
             placeholder="input search text"
-            onChange={(e) => onFormChange("query", e.target.value)}
+            onChange={(e) =>
+              setTempSearchOpt((prev) => {
+                prev.query = e.target.value;
+                return prev;
+              })}
           />
         </Form.Item>
         <Form.Item name="username" label="Username">
           <Input
             placeholder="input username"
-            onChange={(e) => onFormChange("username", e.target.value)}
+            onChange={(e) =>
+              setTempSearchOpt((prev) => {
+                prev.username = e.target.value;
+                return prev;
+              })}
           />
         </Form.Item>
         <Form.Item name="baseModels" label="Base Model Select">
@@ -214,8 +182,12 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Base model"
-            value={searchOpt.baseModels}
-            onChange={(value) => onFormChange("baseModels", value)}
+            value={tempSearchOpt.baseModels}
+            onChange={(value) =>
+              setTempSearchOpt((prev) => {
+                prev.baseModels = value;
+                return prev;
+              })}
           />
         </Form.Item>
         <Form.Item name="types" label="Model Type">
@@ -226,8 +198,12 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Model Type"
-            value={searchOpt.types}
-            onChange={(value) => onFormChange("types", value)}
+            value={tempSearchOpt.types}
+            onChange={(value) =>
+              setTempSearchOpt((prev) => {
+                prev.types = value;
+                return prev;
+              })}
           />
         </Form.Item>
         <Form.Item name="checkpointType" label="Checkpoint Type">
@@ -237,8 +213,12 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Checkpoint Type"
-            value={searchOpt.checkpointType}
-            onChange={(value) => onFormChange("checkpointType", value)}
+            value={tempSearchOpt.checkpointType}
+            onChange={(value) =>
+              setTempSearchOpt((prev) => {
+                prev.checkpointType = value;
+                return prev;
+              })}
           />
         </Form.Item>
         <Form.Item name="period" label="Period">
@@ -248,8 +228,12 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Period"
-            value={searchOpt.period}
-            onChange={(value) => onFormChange("period", value)}
+            value={tempSearchOpt.period}
+            onChange={(value) =>
+              setTempSearchOpt((prev) => {
+                prev.period = value;
+                return prev;
+              })}
           />
         </Form.Item>
         <Form.Item name="sort" label="Sort">
@@ -259,16 +243,24 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Sort"
-            value={searchOpt.sort}
-            onChange={(value) => onFormChange("sort", value)}
+            value={tempSearchOpt.sort}
+            onChange={(value) =>
+              setTempSearchOpt((prev) => {
+                prev.sort = value;
+                return prev;
+              })}
           />
         </Form.Item>
         <Form.Item name="tag" label="Tags">
           <Select
             mode="multiple"
             placeholder="Tags"
-            value={searchOpt.tag}
-            onChange={(value) => onFormChange("tag", value)}
+            value={tempSearchOpt.tag}
+            onChange={(value) =>
+              setTempSearchOpt((prev) => {
+                prev.tag = value;
+                return prev;
+              })}
             onSearch={(value) => debouncedSearchTags(value)}
             options={tagsOptions}
           />
@@ -278,19 +270,13 @@ function SearchPanel() {
             <Button
               type="primary"
               onClick={() => {
-                // console.log(form.getFieldsValue());
                 setIsModalOpen(false);
-                // form.submit();
-                setSearchOpt((prev) => ({
-                  ...prev,
-                  ...form.getFieldsValue(),
-                  page: 1,
-                }));
+                setSearchOpt(structuredClone(tempSearchOpt));
               }}
             >
               Search
             </Button>
-            <Button onClick={() => form.resetFields()}>Reset</Button>
+            <Button onClick={resetSearchOpt}>Reset</Button>
           </Space>
         </Form.Item>
       </Form>
@@ -299,6 +285,8 @@ function SearchPanel() {
 }
 
 function FloatingButtons() {
+  const [tempSearchOpt, setTempSearchOpt] = useAtom(tempLocalSearchOptsAtom);
+  const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
   const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
   const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
   const [modalContent, setModalContent] = useAtom(modalContentAtom);
@@ -309,6 +297,8 @@ function FloatingButtons() {
         <FloatButton
           icon={<SearchOutlined />}
           onClick={() => {
+            setTempSearchOpt(structuredClone(searchOpt));
+
             setModalWidth(ModalWidthEnum.SearchPanel);
             setModalContent(
               <SearchPanel />,

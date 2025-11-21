@@ -71,7 +71,7 @@ function MediaPreview({ fileName }: { fileName: string }) {
   }
 }
 
-export function GalleryModal() {
+function GalleryModal() {
   const [modalContent, setModalContent] = useAtom(modalContentAtom);
   const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
   const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
@@ -112,7 +112,7 @@ function LocalPagination() {
   );
 }
 
-export function SearchPanel() {
+function SearchPanel() {
   const [form] = Form.useForm<ModelsRequestOpts>();
   const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
   const [tagsOptions, setTagsOptions] = useState<Array<DefaultOptionType>>([]);
@@ -144,7 +144,47 @@ export function SearchPanel() {
     }
   }
   const debouncedSearchTags = debounce(asyncSearchTags, 600);
-
+  function onFormChange(
+    key: keyof ModelsRequestOpts,
+    value: string | string[] | boolean | number | undefined,
+  ) {
+    switch (key) {
+      case "limit":
+        form.setFieldValue("limit", value as number);
+        break;
+      case "page":
+        form.setFieldValue("page", value as number);
+      case "query":
+        form.setFieldValue("query", value as string);
+        break;
+      case "tag":
+        form.setFieldValue("tag", value as string[]);
+        break;
+      case "username":
+        form.setFieldValue("username", value as string);
+        break;
+      case "types":
+        form.setFieldValue("types", value as string[]);
+        break;
+      case "sort":
+        form.setFieldValue("sort", value as string);
+        break;
+      case "period":
+        form.setFieldValue("period", value as number);
+        break;
+      case "nsfw":
+        form.setFieldValue("nsfw", value as boolean);
+        break;
+      case "baseModels":
+        form.setFieldValue("baseModels", value as string[]);
+        break;
+      case "checkpointType":
+        form.setFieldValue("checkpointType", value as string);
+        break;
+      default:
+        break;
+    }
+  }
   return (
     <>
       <Form
@@ -154,10 +194,16 @@ export function SearchPanel() {
           setSearchOpt((prev) => ({ ...prev, ...v, page: 1 }));
         }}
       >
-        <Form.Item name="query" label="query text">
+        <Form.Item name="query" label="Query Text">
           <Input
             placeholder="input search text"
-            onChange={(e) => form.setFieldValue("query", e.target.value)}
+            onChange={(e) => onFormChange("query", e.target.value)}
+          />
+        </Form.Item>
+        <Form.Item name="username" label="Username">
+          <Input
+            placeholder="input username"
+            onChange={(e) => onFormChange("username", e.target.value)}
           />
         </Form.Item>
         <Form.Item name="baseModels" label="Base Model Select">
@@ -169,7 +215,7 @@ export function SearchPanel() {
             }))}
             placeholder="Base model"
             value={searchOpt.baseModels}
-            onChange={(value) => form.setFieldValue("baseModels", value)}
+            onChange={(value) => onFormChange("baseModels", value)}
           />
         </Form.Item>
         <Form.Item name="types" label="Model Type">
@@ -181,7 +227,7 @@ export function SearchPanel() {
             }))}
             placeholder="Model Type"
             value={searchOpt.types}
-            onChange={(value) => form.setFieldValue("types", value)}
+            onChange={(value) => onFormChange("types", value)}
           />
         </Form.Item>
         <Form.Item name="checkpointType" label="Checkpoint Type">
@@ -192,7 +238,7 @@ export function SearchPanel() {
             }))}
             placeholder="Checkpoint Type"
             value={searchOpt.checkpointType}
-            onChange={(value) => form.setFieldValue("checkpointType", value)}
+            onChange={(value) => onFormChange("checkpointType", value)}
           />
         </Form.Item>
         <Form.Item name="period" label="Period">
@@ -203,7 +249,7 @@ export function SearchPanel() {
             }))}
             placeholder="Period"
             value={searchOpt.period}
-            onChange={(value) => form.setFieldValue("period", value)}
+            onChange={(value) => onFormChange("period", value)}
           />
         </Form.Item>
         <Form.Item name="sort" label="Sort">
@@ -214,7 +260,7 @@ export function SearchPanel() {
             }))}
             placeholder="Sort"
             value={searchOpt.sort}
-            onChange={(value) => form.setFieldValue("sort", value)}
+            onChange={(value) => onFormChange("sort", value)}
           />
         </Form.Item>
         <Form.Item name="tag" label="Tags">
@@ -222,9 +268,7 @@ export function SearchPanel() {
             mode="multiple"
             placeholder="Tags"
             value={searchOpt.tag}
-            onChange={(value) => {
-              form.setFieldValue("tag", value);
-            }}
+            onChange={(value) => onFormChange("tag", value)}
             onSearch={(value) => debouncedSearchTags(value)}
             options={tagsOptions}
           />
@@ -305,7 +349,7 @@ function ModelCardContent({
           const leftSide = (
             <>
               <div>
-                {dbModel.previewFile
+                {v.images[0]?.url
                   ? (
                     <Image.PreviewGroup
                       items={v.images.map(

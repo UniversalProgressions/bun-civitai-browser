@@ -5,7 +5,6 @@ import { html } from "@elysiajs/html";
 import { staticPlugin } from "@elysiajs/static";
 import SettingsRouter from "./modules/settings";
 import CivitAIRouter from "./modules/civitai/index";
-import frontend from "./html/index.html";
 
 const app = new Elysia()
   .use(html())

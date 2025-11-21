@@ -37,6 +37,22 @@ import {
   removeFileExtension,
 } from "#modules/civitai/service/sharedUtils";
 
+enum LoadingOptionsEnum {
+  VersionId = "VersionId",
+  VersionHash = "VersionHash",
+  ModelId = "ModelId",
+  Url = "Url",
+}
+
+const activeVersionIdAtom = atom<string>(``);
+const existedModelVersionsAtom = atom<ExistedModelversions>([]);
+const selectedOptionAtom = atom<LoadingOptionsEnum>(
+  LoadingOptionsEnum.VersionId,
+);
+const inputValueAtom = atom<string>(``);
+const loadingAtom = atom<boolean>(false);
+const modelContentAtom = atom(<></>);
+
 function ModelCardContent({
   data,
 }: {
@@ -81,7 +97,7 @@ function ModelCardContent({
           const leftSide = (
             <>
               <Space align="center" direction="vertical">
-                {v.images[0].url
+                {v.images[0]?.url
                   ? (
                     <Image.PreviewGroup
                       items={v.images.map(
@@ -292,22 +308,6 @@ function ModelCardContent({
     </>
   );
 }
-
-enum LoadingOptionsEnum {
-  VersionId = "VersionId",
-  VersionHash = "VersionHash",
-  ModelId = "ModelId",
-  Url = "Url",
-}
-
-const activeVersionIdAtom = atom<string>(``);
-const existedModelVersionsAtom = atom<ExistedModelversions>([]);
-const selectedOptionAtom = atom<LoadingOptionsEnum>(
-  LoadingOptionsEnum.VersionId,
-);
-const inputValueAtom = atom<string>(``);
-const loadingAtom = atom<boolean>(false);
-const modelContentAtom = atom(<></>);
 
 function InputBar() {
   const [selectedOption, setSelectedOption] = useAtom(selectedOptionAtom); // 当前选中的加载选项

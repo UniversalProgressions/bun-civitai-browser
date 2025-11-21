@@ -7,12 +7,16 @@ import {
   type DescriptionsProps,
   Flex,
   FloatButton,
+  Form,
   Image,
+  Input,
   List,
   message,
+  Modal,
   notification,
   Pagination,
   Row,
+  Select,
   Space,
   Tabs,
 } from "antd";
@@ -21,23 +25,34 @@ import {
   SearchOutlined,
   SyncOutlined,
 } from "@ant-design/icons";
+import { DefaultOptionType } from "antd/es/select";
 import clipboard from "clipboardy";
 import DOMPurify from "dompurify";
 import { debounce } from "es-toolkit";
 import { atom, useAtom } from "jotai";
 import { atomWithImmer } from "jotai-immer";
 import { extractFilenameFromUrl } from "#modules/civitai/service/sharedUtils";
+
+import {
+  BaseModelsArray,
+  CheckPointTypeArray,
+  ModelsRequestPeriodArray,
+  ModelsRequestSortArray,
+  type ModelTypes,
+  ModelTypesArray,
+} from "../../modules/civitai/models/baseModels/misc";
 import { useEffect, useRef, useState } from "react";
 import { edenTreaty, getFileType, replaceUrlParam } from "../utils";
 import {
   Model,
   type ModelsRequestOpts,
 } from "../../modules/civitai/models/models_endpoint";
+import { ModalWidthEnum } from "./localModelsGallery";
 import {
-  GalleryModal,
-  ModalWidthEnum,
-  SearchPanel,
-} from "./localModelsGallery";
+  ExistedModelversions,
+  existedModelversions,
+  modelId_model,
+} from "#modules/civitai/models/modelId_endpoint";
 
 const defaultPageAndSize = {
   page: 1,
@@ -56,6 +71,29 @@ const isGalleryLoadingAtom = atom<boolean>(false);
 const isModalOpenAtom = atom<boolean>(false);
 const activeVersionIdAtom = atom<string>(``);
 const modalContentAtom = atom<React.JSX.Element>(<div></div>);
+const civitaiExistedModelVersionsAtom = atom<ExistedModelversions>([]);
+
+function GalleryModal() {
+  const [modalContent, setModalContent] = useAtom(modalContentAtom);
+  const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
+  const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
+  return (
+    <>
+      <Modal
+        width={modalWidth}
+        onOk={() => setIsModalOpen(false)}
+        onCancel={() => setIsModalOpen(false)}
+        closable={false}
+        open={isModalOpen}
+        footer={null}
+        centered
+        destroyOnHidden={true} // force refetch data by force destory DOM
+      >
+        {isModalOpen ? modalContent : <div>loading...</div>}
+      </Modal>
+    </>
+  );
+}
 
 function MediaPreview({ url }: { url: string }) {
   const fileType = getFileType(extractFilenameFromUrl(url));
@@ -65,11 +103,196 @@ function MediaPreview({ url }: { url: string }) {
     // use smaller preview image by replace
     // https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/833e5617-47d4-44d8-82c7-d169dc2908eb/original=true/93876235.jpeg
     // to
-    // https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/833e5617-47d4-44d8-82c7-d169dc2908eb/original=false
-    return <Image src={replaceUrlParam(url)} />;
+    // https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/833e5617-47d4-44d8-82c7-d169dc2908eb/original=false/93876235.jpeg
+    return <img src={replaceUrlParam(url)} />;
   } else {
-    return <Image alt={`unknown file type: ${extractFilenameFromUrl(url)}`} />;
+    return <img alt={`unknown file type: ${extractFilenameFromUrl(url)}`} />;
   }
+}
+
+function SearchPanel() {
+  const [form] = Form.useForm<ModelsRequestOpts>();
+  const [searchOpt, setSearchOpt] = useAtom(searchOptsAtom);
+  const [tagsOptions, setTagsOptions] = useState<Array<DefaultOptionType>>([]);
+  const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
+
+  form.setFieldsValue(searchOpt);
+  async function asyncSearchTags(keyword: string) {
+    function toOptionsArray(params: Array<string>): Array<DefaultOptionType> {
+      return params.map((tag) => ({
+        label: tag,
+        value: tag,
+      }));
+    }
+    const response = await edenTreaty.civitai.db.tags.get({
+      query: { tagKeyword: keyword },
+    });
+    switch (response.status) {
+      case 200:
+        setTagsOptions(toOptionsArray(response.data!));
+        break;
+      case 422:
+        notification.error({ message: "Invalide HTTP QueryString" });
+        setTagsOptions([]);
+        break;
+      default:
+        notification.error({ message: "Failed to fetch tags" });
+        setTagsOptions([]);
+        break;
+    }
+  }
+  const debouncedSearchTags = debounce(asyncSearchTags, 600);
+
+  function onFormChange(
+    key: keyof ModelsRequestOpts,
+    value: string | string[] | boolean | number | undefined,
+  ) {
+    switch (key) {
+      case "limit":
+        form.setFieldValue("limit", value as number);
+        break;
+      case "page":
+        form.setFieldValue("page", value as number);
+      case "query":
+        form.setFieldValue("query", value as string);
+        break;
+      case "tag":
+        form.setFieldValue("tag", value as string[]);
+        break;
+      case "username":
+        form.setFieldValue("username", value as string);
+        break;
+      case "types":
+        form.setFieldValue("types", value as string[]);
+        break;
+      case "sort":
+        form.setFieldValue("sort", value as string);
+        break;
+      case "period":
+        form.setFieldValue("period", value as number);
+        break;
+      case "nsfw":
+        form.setFieldValue("nsfw", value as boolean);
+        break;
+      case "baseModels":
+        form.setFieldValue("baseModels", value as string[]);
+        break;
+      case "checkpointType":
+        form.setFieldValue("checkpointType", value as string);
+        break;
+      default:
+        break;
+    }
+  }
+  return (
+    <>
+      <Form
+        layout="horizontal"
+        form={form}
+        onFinish={(v) => setSearchOpt((prev) => ({ ...prev, ...v, page: 1 }))}
+      >
+        <Form.Item name="query" label="Query Text">
+          <Input
+            placeholder="input search text"
+            onChange={(e) => onFormChange("query", e.target.value)}
+          />
+        </Form.Item>
+        <Form.Item name="username" label="Username">
+          <Input
+            placeholder="input username"
+            onChange={(e) => onFormChange("username", e.target.value)}
+          />
+        </Form.Item>
+        <Form.Item name="baseModels" label="Base Model Select">
+          <Select
+            mode="multiple"
+            options={BaseModelsArray.map<DefaultOptionType>((v) => ({
+              label: v,
+              value: v,
+            }))}
+            placeholder="Base model"
+            value={searchOpt.baseModels}
+            onChange={(value) => onFormChange("baseModels", value)}
+          />
+        </Form.Item>
+        <Form.Item name="types" label="Model Type">
+          <Select
+            mode="multiple"
+            options={ModelTypesArray.map<DefaultOptionType>((v) => ({
+              label: v,
+              value: v,
+            }))}
+            placeholder="Model Type"
+            value={searchOpt.types}
+            onChange={(value) => onFormChange("types", value)}
+          />
+        </Form.Item>
+        <Form.Item name="checkpointType" label="Checkpoint Type">
+          <Select
+            options={CheckPointTypeArray.map<DefaultOptionType>((v) => ({
+              label: v,
+              value: v,
+            }))}
+            placeholder="Checkpoint Type"
+            value={searchOpt.checkpointType}
+            onChange={(value) => onFormChange("checkpointType", value)}
+          />
+        </Form.Item>
+        <Form.Item name="period" label="Period">
+          <Select
+            options={ModelsRequestPeriodArray.map<DefaultOptionType>((v) => ({
+              label: v,
+              value: v,
+            }))}
+            placeholder="Period"
+            value={searchOpt.period}
+            onChange={(value) => onFormChange("period", value)}
+          />
+        </Form.Item>
+        <Form.Item name="sort" label="Sort">
+          <Select
+            options={ModelsRequestSortArray.map<DefaultOptionType>((v) => ({
+              label: v,
+              value: v,
+            }))}
+            placeholder="Sort"
+            value={searchOpt.sort}
+            onChange={(value) => onFormChange("sort", value)}
+          />
+        </Form.Item>
+        <Form.Item name="tag" label="Tags">
+          <Select
+            mode="multiple"
+            placeholder="Tags"
+            value={searchOpt.tag}
+            onChange={(value) => onFormChange("tag", value)}
+            onSearch={(value) => debouncedSearchTags(value)}
+            options={tagsOptions}
+          />
+        </Form.Item>
+        <Form.Item>
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => {
+                // console.log(form.getFieldsValue());
+                setIsModalOpen(false);
+                // form.submit();
+                setSearchOpt((prev) => ({
+                  ...prev,
+                  ...form.getFieldsValue(),
+                  page: 1,
+                }));
+              }}
+            >
+              Search
+            </Button>
+            <Button onClick={() => form.resetFields()}>Reset</Button>
+          </Space>
+        </Form.Item>
+      </Form>
+    </>
+  );
 }
 
 function FloatingButtons() {
@@ -80,26 +303,12 @@ function FloatingButtons() {
   return (
     <>
       <FloatButton.Group shape="circle" style={{ insetInlineEnd: 24 }}>
-        {
-          /* <FloatButton
-          icon={<PlusCircleTwoTone />}
-          onClick={() => debounceLoadNextPage()}
-        /> */
-        }
         <FloatButton
           icon={<SearchOutlined />}
           onClick={() => {
             setModalWidth(ModalWidthEnum.SearchPanel);
             setModalContent(<SearchPanel />);
             setIsModalOpen(true);
-          }}
-        />
-        <FloatButton
-          icon={<SyncOutlined />}
-          onClick={async () => {
-            notification.info({ message: "Scaning..." });
-            await edenTreaty.civitai.local.scanModels.head();
-            notification.success({ message: "Finished~" });
           }}
         />
         <FloatButton.BackTop visibilityHeight={0} />
@@ -246,6 +455,33 @@ function ModelCardContent({
   data: Model;
 }) {
   const [activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom);
+  const [isDownloadButtonLoading, setIsDownloadButtonLoading] = useState(false);
+  const [existedModelversions, setExistedModelversions] = useAtom(
+    civitaiExistedModelVersionsAtom,
+  );
+
+  async function onDownloadClick(model: Model, versionId: number) {
+    setIsDownloadButtonLoading(true);
+    try {
+      const result = await edenTreaty.civitai.download.modelVersion.post({
+        model,
+        modelVersionId: versionId,
+      });
+      notification.success({
+        message: "Download started",
+      });
+    } catch (error) {
+      notification.error({
+        message: "Download failed",
+        description: error instanceof Error
+          ? error.message
+          : JSON.stringify(error),
+      });
+      console.error(error);
+    } finally {
+      setIsDownloadButtonLoading(false);
+    }
+  }
 
   return (
     <>
@@ -256,23 +492,36 @@ function ModelCardContent({
         items={data?.modelVersions.map((v) => {
           const leftSide = (
             <>
-              <div>
-                {v.images[0].url
+              <Space align="center" direction="vertical">
+                {v.images[0]?.url
                   ? (
                     <Image.PreviewGroup
                       items={v.images.map(
-                        (i) => i.url,
+                        (i) => replaceUrlParam(i.url),
                       )}
                     >
                       <Image
                         width={200}
-                        src={v.images[0].url}
+                        src={replaceUrlParam(v.images[0].url)}
                         alt="No previews"
                       />
                     </Image.PreviewGroup>
                   )
                   : <img title="Have no preview" />}
-              </div>
+                <Button
+                  type="primary"
+                  block
+                  onClick={() => onDownloadClick(data, v.id)}
+                  disabled={existedModelversions.find((obj) =>
+                      obj.versionId === v.id
+                    )?.filesOnDisk.length === v.files.length
+                    ? true
+                    : false}
+                  loading={isDownloadButtonLoading}
+                >
+                  Download
+                </Button>
+              </Space>
             </>
           );
           const descriptionItems: DescriptionsProps["items"] = [
@@ -310,7 +559,14 @@ function ModelCardContent({
                       renderItem={(file) => (
                         <List.Item>
                           <Row>
-                            <Col span={18}>{file.name}</Col>
+                            <Col span={18}>
+                              {existedModelversions.find((obj) =>
+                                  obj.versionId === v.id
+                                )?.filesOnDisk.includes(file.id)
+                                ? <Tag color="green">onDisk</Tag>
+                                : undefined}
+                              {file.name}
+                            </Col>
                             <Col span={6}>
                               <Button
                                 onClick={async () => {
@@ -345,26 +601,30 @@ function ModelCardContent({
               label: "Tags",
               span: "filled",
               children: (
-                <Flex wrap gap="small">
-                  {v.trainedWords.map((tagStr, index) => (
-                    <div
-                      key={index}
-                      onClick={async () => {
-                        await clipboard.write(tagStr);
-                        return notification.success({
-                          message: "Copied to clipboard",
-                        });
-                      }}
-                      className="
+                v.trainedWords
+                  ? (
+                    <Flex wrap gap="small">
+                      {v.trainedWords.map((tagStr, index) => (
+                        <div
+                          key={index}
+                          onClick={async () => {
+                            await clipboard.write(tagStr);
+                            return notification.success({
+                              message: "Copied to clipboard",
+                            });
+                          }}
+                          className="
                         bg-blue-500 hover:bg-blue-700 text-white 
                           font-bold p-1 rounded transition-all 
                           duration-300 transform hover:scale-105
                           hover:cursor-pointer"
-                    >
-                      {tagStr}
-                    </div>
-                  ))}
-                </Flex>
+                        >
+                          {tagStr}
+                        </div>
+                      ))}
+                    </Flex>
+                  )
+                  : undefined
               ),
             },
             {
@@ -417,23 +677,25 @@ function ModelCardContent({
             key: v.id.toString(),
             children: (
               <Card>
-                <div>
-                  <a
-                    className="clickable-title"
-                    target="_blank"
-                    href={`https://civitai.com/models/${data.id}?modelVersionId=${v.id}`}
-                  >
-                    {data.name}
-                  </a>
-                </div>
-                <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
-                  <Col sm={8} lg={6}>
-                    {leftSide}
-                  </Col>
-                  <Col sm={16} lg={18}>
-                    {rightSide}
-                  </Col>
-                </Row>
+                <Space align="center" direction="vertical">
+                  <div>
+                    <a
+                      className="clickable-title"
+                      target="_blank"
+                      href={`https://civitai.com/models/${data.id}?modelVersionId=${v.id}`}
+                    >
+                      {data.name}
+                    </a>
+                  </div>
+                  <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+                    <Col sm={8} lg={6}>
+                      {leftSide}
+                    </Col>
+                    <Col sm={16} lg={18}>
+                      {rightSide}
+                    </Col>
+                  </Row>
+                </Space>
               </Card>
             ),
           };
@@ -457,7 +719,7 @@ function ModelCard({ item }: { item: Model }) {
       <Card
         onClick={() => openModelCard(item)}
         hoverable
-        cover={item.modelVersions[0]?.images[0]?.url ?? undefined
+        cover={item.modelVersions[0]?.images[0]?.url
           ? <MediaPreview url={item.modelVersions[0].images[0].url} />
           : <img title="Have no preview" />}
       >
@@ -468,7 +730,6 @@ function ModelCard({ item }: { item: Model }) {
 }
 
 function GalleryContent() {
-  const [modalContent] = useAtom(modalContentAtom);
   const [modelsOnPage, setModelsOnPage] = useAtom(modelsOnPageAtom);
   return (
     <>

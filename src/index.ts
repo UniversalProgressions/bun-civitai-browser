@@ -11,7 +11,7 @@ const app = new Elysia()
   .use(html())
   .use(cors())
   .use(openapi())
-  .use(staticPlugin({ prefix: "/", assets: "src/html" }))
+  .use(staticPlugin({ prefix: "/", assets: "public" }))
   .use(SettingsRouter)
   .use(CivitAIRouter)
   .listen(3000);

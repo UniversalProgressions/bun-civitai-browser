@@ -72,11 +72,11 @@ function ModelCardContent({
         modelVersionId: versionId,
       });
       notification.success({
-        message: "Download started",
+        title: "Download started",
       });
     } catch (error) {
       notification.error({
-        message: "Download failed",
+        title: "Download failed",
         description: error instanceof Error
           ? error.message
           : JSON.stringify(error),
@@ -96,7 +96,7 @@ function ModelCardContent({
         items={data?.modelVersions.map((v) => {
           const leftSide = (
             <>
-              <Space align="center" direction="vertical">
+              <Space align="center" orientation="vertical">
                 {v.images[0]?.url
                   ? (
                     <Image.PreviewGroup
@@ -183,7 +183,7 @@ function ModelCardContent({
                                   // }:1>`;
                                   await clipboard.write(file.name);
                                   notification.success({
-                                    message: `${file.name} copied to clipboard`,
+                                    title: `${file.name} copied to clipboard`,
                                   });
                                 }}
                               >
@@ -214,7 +214,7 @@ function ModelCardContent({
                           onClick={async () => {
                             await clipboard.write(tagStr);
                             return notification.success({
-                              message: "Copied to clipboard",
+                              title: "Copied to clipboard",
                             });
                           }}
                           className="
@@ -266,7 +266,7 @@ function ModelCardContent({
           ];
           const rightSide = (
             <>
-              <Space direction="vertical">
+              <Space orientation="vertical">
                 <Descriptions
                   title="Model Version Details"
                   layout="vertical"
@@ -281,7 +281,7 @@ function ModelCardContent({
             key: v.id.toString(),
             children: (
               <Card>
-                <Space align="center" direction="vertical">
+                <Space align="center" orientation="vertical">
                   <div>
                     <a
                       className="clickable-title"
@@ -432,7 +432,7 @@ function App() {
   const [loading, setLoading] = useAtom(loadingAtom);
   return (
     <>
-      <Space direction="vertical" align="center" className="w-full">
+      <Space orientation="vertical" align="center" className="w-full">
         <InputBar />
         <div className="p-2">
           {loading ? <div>loading...</div> : modelContent}

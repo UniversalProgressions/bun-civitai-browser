@@ -113,14 +113,10 @@ function MediaPreview({ url }: { url: string }) {
 }
 
 function SearchPanel() {
-  const [tempSearchOpt, setTempSearchOpt] = useAtom(tempSearchOptsAtom);
   const [searchOpt, setSearchOpt] = useAtom(searchOptsAtom);
+  const [form] = Form.useForm<ModelsRequestOpts>();
   const [tagsOptions, setTagsOptions] = useState<Array<DefaultOptionType>>([]);
   const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
-
-  function resetSearchOpt() {
-    setTempSearchOpt((prev) => (structuredClone(searchOpt)));
-  }
 
   async function asyncSearchTags(keyword: string) {
     function toOptionsArray(params: Array<string>): Array<DefaultOptionType> {
@@ -137,38 +133,45 @@ function SearchPanel() {
         setTagsOptions(toOptionsArray(response.data!));
         break;
       case 422:
-        notification.error({ message: "Invalide HTTP QueryString" });
+        notification.error({ title: "Invalide HTTP QueryString" });
         setTagsOptions([]);
         break;
       default:
-        notification.error({ message: "Failed to fetch tags" });
+        notification.error({ title: "Failed to fetch tags" });
         setTagsOptions([]);
         break;
     }
   }
   const debouncedSearchTags = debounce(asyncSearchTags, 600);
-
+  useEffect(() => {
+    form.setFieldsValue(searchOpt);
+  });
   return (
     <>
-      <Form layout="horizontal">
+      <Form
+        layout="horizontal"
+        form={form}
+        onSubmitCapture={() => {
+          setSearchOpt(form.getFieldsValue());
+          setIsModalOpen(false);
+        }}
+      >
         <Form.Item name="query" label="Query Text">
           <Input
             placeholder="input search text"
-            onChange={(e) =>
-              setTempSearchOpt((prev) => {
-                prev.query = e.target.value;
-                return prev;
-              })}
+            value={form.getFieldValue("query")}
+            onChange={(e) => {
+              form.setFieldValue("query", e.target.value);
+            }}
           />
         </Form.Item>
         <Form.Item name="username" label="Username">
           <Input
             placeholder="input username"
-            onChange={(e) =>
-              setTempSearchOpt((prev) => {
-                prev.username = e.target.value;
-                return prev;
-              })}
+            value={form.getFieldValue("username")}
+            onChange={(e) => {
+              form.setFieldValue("username", e.target.value);
+            }}
           />
         </Form.Item>
         <Form.Item name="baseModels" label="Base Model Select">
@@ -179,12 +182,10 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Base model"
-            value={tempSearchOpt.baseModels}
-            onChange={(value) =>
-              setTempSearchOpt((prev) => {
-                prev.baseModels = value;
-                return prev;
-              })}
+            value={searchOpt.baseModels}
+            onChange={(value) => {
+              form.setFieldValue("baseModels", value);
+            }}
           />
         </Form.Item>
         <Form.Item name="types" label="Model Type">
@@ -195,12 +196,10 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Model Type"
-            value={tempSearchOpt.types}
-            onChange={(value) =>
-              setTempSearchOpt((prev) => {
-                prev.types = value;
-                return prev;
-              })}
+            value={form.getFieldValue("types")}
+            onChange={(value) => {
+              form.setFieldValue("types", value);
+            }}
           />
         </Form.Item>
         <Form.Item name="checkpointType" label="Checkpoint Type">
@@ -210,12 +209,10 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Checkpoint Type"
-            value={tempSearchOpt.checkpointType}
-            onChange={(value) =>
-              setTempSearchOpt((prev) => {
-                prev.checkpointType = value;
-                return prev;
-              })}
+            value={form.getFieldValue("checkpointType")}
+            onChange={(value) => {
+              form.setFieldValue("checkpointType", value);
+            }}
           />
         </Form.Item>
         <Form.Item name="period" label="Period">
@@ -225,12 +222,10 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Period"
-            value={tempSearchOpt.period}
-            onChange={(value) =>
-              setTempSearchOpt((prev) => {
-                prev.period = value;
-                return prev;
-              })}
+            value={form.getFieldValue("period")}
+            onChange={(value) => {
+              form.setFieldValue("period", value);
+            }}
           />
         </Form.Item>
         <Form.Item name="sort" label="Sort">
@@ -240,25 +235,24 @@ function SearchPanel() {
               value: v,
             }))}
             placeholder="Sort"
-            value={tempSearchOpt.sort}
-            onChange={(value) =>
-              setTempSearchOpt((prev) => {
-                prev.sort = value;
-                return prev;
-              })}
+            value={form.getFieldValue("sort")}
+            onChange={(value) => {
+              form.setFieldValue("sort", value);
+            }}
           />
         </Form.Item>
         <Form.Item name="tag" label="Tags">
           <Select
             mode="multiple"
             placeholder="Tags"
-            value={tempSearchOpt.tag}
-            onChange={(value) =>
-              setTempSearchOpt((prev) => {
-                prev.tag = value;
-                return prev;
-              })}
-            onSearch={(value) => debouncedSearchTags(value)}
+            value={form.getFieldValue("tag")}
+            onChange={(value) => {
+              form.setFieldValue("tag", value);
+            }}
+            showSearch={{
+              onSearch: (value) => debouncedSearchTags(value),
+              autoClearSearchValue: false,
+            }}
             options={tagsOptions}
           />
         </Form.Item>
@@ -266,14 +260,11 @@ function SearchPanel() {
           <Space>
             <Button
               type="primary"
-              onClick={() => {
-                setIsModalOpen(false);
-                setSearchOpt(structuredClone(tempSearchOpt));
-              }}
+              htmlType="submit"
             >
               Search
             </Button>
-            <Button onClick={resetSearchOpt}>Reset</Button>
+            <Button onClick={() => setSearchOpt({})}>Reset</Button>
           </Space>
         </Form.Item>
       </Form>
@@ -340,12 +331,12 @@ function CivitaiPagination() {
           if (data.metadata.nextPage) {
             setNextPageUrl(data.metadata.nextPage);
           } else {
-            notification.info({ message: "No more items to load." });
+            notification.info({ title: "No more items to load." });
           }
         }
       } catch (error) {
         notification.error({
-          message: "Error fetching models",
+          title: "Error fetching models",
           description: String(error),
         });
         throw error;
@@ -370,7 +361,7 @@ function CivitaiPagination() {
       debounceLoadNextPage();
     } catch (error) {
       notification.error({
-        message: String(error),
+        title: String(error),
       });
       console.error(error);
     }
@@ -458,11 +449,11 @@ function ModelCardContent({
         modelVersionId: versionId,
       });
       notification.success({
-        message: "Download started",
+        title: "Download started",
       });
     } catch (error) {
       notification.error({
-        message: "Download failed",
+        title: "Download failed",
         description: error instanceof Error
           ? error.message
           : JSON.stringify(error),
@@ -477,12 +468,12 @@ function ModelCardContent({
     <>
       <Tabs
         defaultActiveKey="1"
-        tabPosition="top"
+        tabPlacement="top"
         onChange={(id) => setActiveVersionId(id)}
         items={data?.modelVersions.map((v) => {
           const leftSide = (
             <>
-              <Space align="center" direction="vertical">
+              <Space align="center" orientation="vertical">
                 {v.images[0]?.url
                   ? (
                     <Image.PreviewGroup
@@ -569,7 +560,7 @@ function ModelCardContent({
                                   // }:1>`;
                                   await clipboard.write(file.name);
                                   notification.success({
-                                    message: `${file.name} copied to clipboard`,
+                                    title: `${file.name} copied to clipboard`,
                                   });
                                 }}
                               >
@@ -600,7 +591,7 @@ function ModelCardContent({
                           onClick={async () => {
                             await clipboard.write(tagStr);
                             return notification.success({
-                              message: "Copied to clipboard",
+                              title: "Copied to clipboard",
                             });
                           }}
                           className="
@@ -652,7 +643,7 @@ function ModelCardContent({
           ];
           const rightSide = (
             <>
-              <Space direction="vertical">
+              <Space orientation="vertical">
                 <Descriptions
                   title="Model Version Details"
                   layout="vertical"
@@ -667,7 +658,7 @@ function ModelCardContent({
             key: v.id.toString(),
             children: (
               <Card>
-                <Space align="center" direction="vertical">
+                <Space align="center" orientation="vertical">
                   <div>
                     <a
                       className="clickable-title"
@@ -723,7 +714,7 @@ function GalleryContent() {
   const [modelsOnPage, setModelsOnPage] = useAtom(modelsOnPageAtom);
   return (
     <>
-      <Space align="center" direction="vertical" style={{ width: "100%" }}>
+      <Space align="center" orientation="vertical" style={{ width: "100%" }}>
         <List
           grid={{
             gutter: 16,
@@ -777,12 +768,12 @@ function CivitaiModelsGallery() {
         if (data.metadata.nextPage) {
           setNextPageUrl(data.metadata.nextPage);
         } else {
-          notification.info({ message: "No more items to load." });
+          notification.info({ title: "No more items to load." });
         }
       }
     } catch (error) {
       notification.error({
-        message: "Fetching models failed.",
+        title: "Fetching models failed.",
         description: `May you check your network?`,
       });
       throw error;

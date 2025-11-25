@@ -42,11 +42,7 @@ function GalleryContent() {
 }
 
 function App() {
-  return (
-    <div className="h-dvh">
-      <GalleryContent />
-    </div>
-  );
+  return <GalleryContent />;
 }
 
 export default App;

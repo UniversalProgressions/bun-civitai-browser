@@ -35,7 +35,7 @@ const ShadowHTML: React.FC<ShadowHTMLProps> = ({ html, style }) => {
     shadow.appendChild(wrapper);
   }, [html, style]);
 
-  return <div ref={hostRef} className="bg-gray-300" />;
+  return <div ref={hostRef} className="bg-gray-300 w-full wrap-break-word" />;
 };
 
 export default ShadowHTML;

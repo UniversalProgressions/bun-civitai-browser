@@ -23,15 +23,15 @@ import {
 } from "antd";
 import { SearchOutlined, SyncOutlined } from "@ant-design/icons";
 import { atom, PrimitiveAtom, useAtom } from "jotai";
-import {} from "jotai";
-import { useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { debounce } from "es-toolkit";
 import clipboard from "clipboardy";
 import DOMPurify from "dompurify";
 import { edenTreaty, getFileType } from "../utils";
 import {
-  Model,
+  type Model,
   type ModelsRequestOpts,
+  type ModelVersion,
 } from "../../modules/civitai/models/models_endpoint";
 import {
   BaseModelsArray,
@@ -46,23 +46,19 @@ import { extractFilenameFromUrl } from "#modules/civitai/service/sharedUtils";
 import { DefaultOptionType } from "antd/es/select";
 import ShadowHTML from "../components/shadowHTML";
 import { atomWithImmer } from "jotai-immer";
+import React from "react";
 
 export enum ModalWidthEnum {
   SearchPanel = 600,
   modelDetailCard = 1000,
 }
-const modalWidthAtom = atom<ModalWidthEnum>(ModalWidthEnum.SearchPanel);
 const isGalleryLoadingAtom = atom(false);
 const modelsAtom = atom<Array<ModelWithAllRelations>>([]);
 const localSearchOptionsAtom = atom<ModelsRequestOpts>({});
-const tempLocalSearchOptsAtom = atomWithImmer<ModelsRequestOpts>({});
 
 const totalAtom = atom(0);
-const isModalOpenAtom = atom(false);
-const modalContentAtom = atom(<></>);
-const activeVersionIdAtom = atom<string>(``);
 
-function MediaPreview({ fileName }: { fileName: string }) {
+export function MediaPreview({ fileName }: { fileName: string }) {
   const fileType = getFileType(fileName);
   const srcPath =
     `${location.origin}/civitai/local/media/preview?previewFile=${fileName}`;
@@ -75,14 +71,221 @@ function MediaPreview({ fileName }: { fileName: string }) {
   }
 }
 
-function GalleryModal() {
-  const [modalContent, setModalContent] = useAtom(modalContentAtom);
-  const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
-  const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
+export function ModelCardContent({
+  data,
+  ModelCardContentLeftSide,
+}: {
+  data: Model;
+  ModelCardContentLeftSide: (
+    { modelVersion }: { modelVersion: ModelVersion },
+  ) => React.JSX.Element;
+}) {
   return (
     <>
+      <Tabs
+        defaultActiveKey="1"
+        tabPlacement="top"
+        // onChange={(id) => id}
+        items={data?.modelVersions.map((v) => {
+          const leftSide = <ModelCardContentLeftSide modelVersion={v} />;
+          const descriptionItems: DescriptionsProps["items"] = [
+            {
+              key: v.id,
+              label: "Version ID",
+              children: v.id,
+            },
+            {
+              key: v.baseModel,
+              label: "Base Model",
+              children: v.baseModel,
+            },
+            {
+              key: 3,
+              label: "Model Type",
+              children: data.type,
+            },
+            {
+              key: 4,
+              label: "Publish Date",
+              span: "filled",
+              children: v.publishedAt?.toString() ?? "Null",
+            },
+
+            {
+              key: 7,
+              label: `Model Files`,
+              span: `filled`,
+              children: v.files.length > 0
+                ? (
+                  <>
+                    {v.files.map((file) => (
+                      <Row key={file.id}>
+                        <Col span={18}>{file.name}</Col>
+                        <Col span={6}>
+                          <Button
+                            onClick={async () => {
+                              // const loraString = `<lora:${
+                              //   modelVersion.files[index].id
+                              // }_${
+                              //   removeFileExtension(
+                              //     modelVersion.files[index].name,
+                              //   )
+                              // }:1>`;
+                              await clipboard.write(file.name);
+                              notification.success({
+                                title: `${file.name} copied to clipboard`,
+                              });
+                            }}
+                          >
+                            Copy Filename
+                          </Button>
+                        </Col>
+                      </Row>
+                    ))}
+                  </>
+                )
+                : (
+                  `have no files`
+                ),
+            },
+            {
+              key: 8,
+              label: "Tags",
+              span: "filled",
+              children: (
+                v.trainedWords
+                  ? (
+                    <Flex wrap gap="small">
+                      {v.trainedWords.map((tagStr, index) => (
+                        <div
+                          key={index}
+                          onClick={async () => {
+                            await clipboard.write(tagStr);
+                            return notification.success({
+                              title: "Copied to clipboard",
+                            });
+                          }}
+                          className="
+                        bg-blue-500 hover:bg-blue-700 text-white 
+                          font-bold p-1 rounded transition-all 
+                          duration-300 transform hover:scale-105
+                          hover:cursor-pointer"
+                        >
+                          {tagStr}
+                        </div>
+                      ))}
+                    </Flex>
+                  )
+                  : undefined
+              ),
+            },
+            {
+              key: 9,
+              label: "Model Description",
+              span: "filled",
+              children: data.description
+                ? <ShadowHTML html={DOMPurify.sanitize(data.description)} />
+                : undefined,
+            },
+            {
+              key: 10,
+              label: "Model Version Description",
+              span: "filled",
+              children: v.description
+                ? <ShadowHTML html={DOMPurify.sanitize(v.description)} />
+                : undefined,
+            },
+          ];
+          const rightSide = (
+            <>
+              <Space orientation="vertical">
+                <Descriptions
+                  title="Model Version Details"
+                  layout="vertical"
+                  items={descriptionItems}
+                >
+                </Descriptions>
+              </Space>
+            </>
+          );
+          return {
+            label: v.name,
+            key: v.id.toString(),
+            children: (
+              <Card>
+                <div>
+                  <a
+                    className="clickable-title"
+                    target="_blank"
+                    href={`https://civitai.com/models/${data.id}?modelVersionId=${v.id}`}
+                  >
+                    {data.name}
+                  </a>
+                </div>
+                <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+                  <Col sm={8} lg={6}>
+                    {leftSide}
+                  </Col>
+                  <Col sm={16} lg={18}>
+                    {rightSide}
+                  </Col>
+                </Row>
+              </Card>
+            ),
+          };
+        })}
+      />
+    </>
+  );
+}
+
+export function ModelCard(
+  { item, ModelCardContentLeftSide }: {
+    item: ModelWithAllRelations;
+    ModelCardContentLeftSide: (
+      { modelVersion }: { modelVersion: ModelVersion },
+    ) => React.JSX.Element;
+  },
+) {
+  const [modalContent, setModalContent] = useState(<></>);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  async function openModelCard(dbModel: ModelWithAllRelations) {
+    const { data, error, headers, response, status } = await edenTreaty.civitai
+      .local.models.modelId.post({
+        modelId: dbModel.id,
+        modelVersionIdNumbers: dbModel.modelVersions.map((v) => v.id),
+        type: dbModel.type.name as ModelTypes,
+      });
+    if (error?.status) {
+      switch (error.status) {
+        case 422:
+          setModalContent(<>{JSON.stringify(error.value, null, 2)}</>);
+        default:
+          setModalContent(<div>Unknown Exception</div>);
+      }
+    } else {
+      setModalContent(
+        <ModelCardContent
+          data={data!}
+          ModelCardContentLeftSide={ModelCardContentLeftSide}
+        />,
+      );
+    }
+    setIsModalOpen(true);
+  }
+  return (
+    <>
+      <Card
+        onClick={() => openModelCard(item)}
+        hoverable
+        cover={item.previewFile
+          ? <MediaPreview fileName={item.previewFile} />
+          : <img title="Have no preview" />}
+      >
+        <Card.Meta description={item.name} />
+      </Card>
       <Modal
-        width={modalWidth}
+        width={1000}
         onOk={() => setIsModalOpen(false)}
         onCancel={() => setIsModalOpen(false)}
         closable={false}
@@ -97,30 +300,53 @@ function GalleryModal() {
   );
 }
 
-function LocalPagination() {
-  const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
-  const [total, setTotal] = useAtom(totalAtom);
-  const onChange: PaginationProps["onChange"] = (page, pageSize) => {
-    setSearchOpt((prev) => ({ ...prev, page, limit: pageSize }));
-  };
+export function GalleryContent(
+  { models, ModelCardContentLeftSide }: {
+    models: Array<ModelWithAllRelations>;
+    ModelCardContentLeftSide: (
+      { modelVersion }: { modelVersion: ModelVersion },
+    ) => React.JSX.Element;
+  },
+) {
   return (
-    <Pagination
-      pageSize={searchOpt.limit ?? 20}
-      current={searchOpt.page ?? 1}
-      total={total}
-      onChange={onChange}
-      showSizeChanger
-      showQuickJumper
-      showTotal={(total) => `Total ${total} items`}
-    />
+    <>
+      <Masonry
+        className="w-full"
+        columns={{
+          xs: 1,
+          sm: 2,
+          md: 4,
+          lg: 4,
+          xl: 6,
+          xxl: 8,
+        }}
+        gutter={{ xs: 8, sm: 12, md: 16 }}
+        items={models.map((item, index) => ({
+          key: `item-${index}`,
+          data: item,
+          index,
+        }))}
+        itemRender={(item) => (
+          <ModelCard
+            key={item.key}
+            item={item.data}
+            ModelCardContentLeftSide={ModelCardContentLeftSide}
+          />
+        )}
+      />
+    </>
   );
 }
 
-function SearchPanel() {
-  const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
+export function SearchPanel(
+  { setIsModalOpen, searchOptsAtom }: {
+    setIsModalOpen: Dispatch<SetStateAction<boolean>>;
+    searchOptsAtom: PrimitiveAtom<ModelsRequestOpts>;
+  },
+) {
+  const [searchOpt, setSearchOpt] = useAtom(searchOptsAtom);
   const [form] = Form.useForm<ModelsRequestOpts>();
   const [tagsOptions, setTagsOptions] = useState<Array<DefaultOptionType>>([]);
-  const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
 
   async function asyncSearchTags(keyword: string) {
     function toOptionsArray(params: Array<string>): Array<DefaultOptionType> {
@@ -276,12 +502,63 @@ function SearchPanel() {
   );
 }
 
-function FloatingButtons() {
-  // const [tempSearchOpt, setTempSearchOpt] = useAtom(tempLocalSearchOptsAtom);
+function LocalModelCardContentLeftSide(
+  { modelVersion }: { modelVersion: ModelVersion },
+) {
+  return (
+    <>
+      <div>
+        {modelVersion.images[0]?.url
+          ? (
+            <Image.PreviewGroup
+              items={modelVersion.images.map(
+                (i) =>
+                  `${location.origin}/civitai/local/media/preview?previewFile=${
+                    extractFilenameFromUrl(
+                      i.url,
+                    )
+                  }`,
+              )}
+            >
+              <Image
+                width={200}
+                src={modelVersion.images[0].url
+                  ? `${location.origin}/civitai/local/media/preview?previewFile=${
+                    extractFilenameFromUrl(modelVersion.images[0].url)
+                  }`
+                  : undefined}
+                alt="Have no previews"
+              />
+            </Image.PreviewGroup>
+          )
+          : <img title="Have no preview" />}
+      </div>
+    </>
+  );
+}
+
+function LocalPagination() {
   const [searchOpt, setSearchOpt] = useAtom(localSearchOptionsAtom);
-  const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
-  const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
-  const [modalContent, setModalContent] = useAtom(modalContentAtom);
+  const [total, setTotal] = useAtom(totalAtom);
+  const onChange: PaginationProps["onChange"] = (page, pageSize) => {
+    setSearchOpt((prev) => ({ ...prev, page, limit: pageSize }));
+  };
+  return (
+    <Pagination
+      pageSize={searchOpt.limit ?? 20}
+      current={searchOpt.page ?? 1}
+      total={total}
+      onChange={onChange}
+      showSizeChanger
+      showQuickJumper
+      showTotal={(total) => `Total ${total} items`}
+    />
+  );
+}
+
+function LocalFloatingButtons() {
+  const [modalContent, setModalContent] = useState(<></>);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <>
@@ -289,14 +566,11 @@ function FloatingButtons() {
         <FloatButton
           icon={<SearchOutlined />}
           onClick={() => {
-            // setTempSearchOpt((prev) => {
-            //   prev = structuredClone(searchOpt);
-            //   return prev;
-            // });
-
-            setModalWidth(ModalWidthEnum.SearchPanel);
             setModalContent(
-              <SearchPanel />,
+              <SearchPanel
+                setIsModalOpen={setIsModalOpen}
+                searchOptsAtom={localSearchOptionsAtom}
+              />,
             );
             setIsModalOpen(true);
           }}
@@ -311,293 +585,18 @@ function FloatingButtons() {
         />
         <FloatButton.BackTop visibilityHeight={0} />
       </FloatButton.Group>
-    </>
-  );
-}
-
-function ModelCardContent({
-  data,
-  dbModel,
-}: {
-  data: Model;
-  dbModel: ModelWithAllRelations;
-}) {
-  const [activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom);
-
-  return (
-    <>
-      <Tabs
-        defaultActiveKey="1"
-        tabPlacement="top"
-        onChange={(id) => setActiveVersionId(id)}
-        items={data?.modelVersions.map((v) => {
-          const leftSide = (
-            <>
-              <div>
-                {v.images[0]?.url
-                  ? (
-                    <Image.PreviewGroup
-                      items={v.images.map(
-                        (i) =>
-                          `${location.origin}/civitai/local/media/preview?previewFile=${
-                            extractFilenameFromUrl(
-                              i.url,
-                            )
-                          }`,
-                      )}
-                    >
-                      <Image
-                        width={200}
-                        src={v.images[0].url
-                          ? `${location.origin}/civitai/local/media/preview?previewFile=${
-                            extractFilenameFromUrl(v.images[0].url)
-                          }`
-                          : undefined}
-                        alt="Have no previews"
-                      />
-                    </Image.PreviewGroup>
-                  )
-                  : <img title="Have no preview" />}
-              </div>
-            </>
-          );
-          const descriptionItems: DescriptionsProps["items"] = [
-            {
-              key: v.id,
-              label: "Version ID",
-              children: v.id,
-            },
-            {
-              key: v.baseModel,
-              label: "Base Model",
-              children: v.baseModel,
-            },
-            {
-              key: 3,
-              label: "Model Type",
-              children: data.type,
-            },
-            {
-              key: 4,
-              label: "Publish Date",
-              span: "filled",
-              children: v.publishedAt?.toString() ?? "Null",
-            },
-
-            // {
-            //   key: 7,
-            //   label: `Model Files`,
-            //   span: `filled`,
-            //   children: v.files.length > 0
-            //     ? (
-            //       <>
-            //         <List
-            //           dataSource={v.files}
-            //           renderItem={(file) => (
-            //             <List.Item>
-            //               <Row>
-            //                 <Col span={18}>{file.name}</Col>
-            //                 <Col span={6}>
-            //                   <Button
-            //                     onClick={async () => {
-            //                       // const loraString = `<lora:${
-            //                       //   modelVersion.files[index].id
-            //                       // }_${
-            //                       //   removeFileExtension(
-            //                       //     modelVersion.files[index].name,
-            //                       //   )
-            //                       // }:1>`;
-            //                       await clipboard.write(file.name);
-            //                       notification.success({
-            //                         title: `${file.name} copied to clipboard`,
-            //                       });
-            //                     }}
-            //                   >
-            //                     Copy Filename
-            //                   </Button>
-            //                 </Col>
-            //               </Row>
-            //             </List.Item>
-            //           )}
-            //         />
-            //       </>
-            //     )
-            //     : (
-            //       `have no files`
-            //     ),
-            // },
-            {
-              key: 8,
-              label: "Tags",
-              span: "filled",
-              children: (
-                v.trainedWords
-                  ? (
-                    <Flex wrap gap="small">
-                      {v.trainedWords.map((tagStr, index) => (
-                        <div
-                          key={index}
-                          onClick={async () => {
-                            await clipboard.write(tagStr);
-                            return notification.success({
-                              title: "Copied to clipboard",
-                            });
-                          }}
-                          className="
-                        bg-blue-500 hover:bg-blue-700 text-white 
-                          font-bold p-1 rounded transition-all 
-                          duration-300 transform hover:scale-105
-                          hover:cursor-pointer"
-                        >
-                          {tagStr}
-                        </div>
-                      ))}
-                    </Flex>
-                  )
-                  : undefined
-              ),
-            },
-            {
-              key: 9,
-              label: "Model Description",
-              span: "filled",
-              children: data.description
-                ? (
-                  // <div
-                  //   className="bg-gray-300"
-                  //   dangerouslySetInnerHTML={{
-                  //     __html: DOMPurify.sanitize(data.description),
-                  //   }}
-                  // />
-                  <ShadowHTML html={DOMPurify.sanitize(data.description)} />
-                )
-                : undefined,
-              // data.description,
-            },
-            {
-              key: 10,
-              label: "Model Version Description",
-              span: "filled",
-              children: v.description
-                ? (
-                  // <div
-                  //   className="bg-gray-300"
-                  //   dangerouslySetInnerHTML={{
-                  //     __html: DOMPurify.sanitize(v.description),
-                  //   }}
-                  // />
-                  <ShadowHTML html={DOMPurify.sanitize(v.description)} />
-                )
-                : undefined,
-              // v.description
-            },
-          ];
-          const rightSide = (
-            <>
-              <Space orientation="vertical">
-                <Descriptions
-                  title="Model Version Details"
-                  layout="vertical"
-                  items={descriptionItems}
-                >
-                </Descriptions>
-              </Space>
-            </>
-          );
-          return {
-            label: v.name,
-            key: v.id.toString(),
-            children: (
-              <Card>
-                <div>
-                  <a
-                    className="clickable-title"
-                    target="_blank"
-                    href={`https://civitai.com/models/${dbModel.id}?modelVersionId=${v.id}`}
-                  >
-                    {data.name}
-                  </a>
-                </div>
-                <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
-                  <Col sm={8} lg={6}>
-                    {leftSide}
-                  </Col>
-                  <Col sm={16} lg={18}>
-                    {rightSide}
-                  </Col>
-                </Row>
-              </Card>
-            ),
-          };
-        })}
-      />
-    </>
-  );
-}
-
-function ModelCard({ item }: { item: ModelWithAllRelations }) {
-  const [modalContent, setModalContent] = useAtom(modalContentAtom);
-  const [isCardModalOpen, setIsCardModalOpen] = useAtom(isModalOpenAtom);
-  const [modalWidth, setModalWidth] = useAtom(modalWidthAtom);
-  async function openModelCard(dbModel: ModelWithAllRelations) {
-    setModalWidth(ModalWidthEnum.modelDetailCard);
-    const { data, error, headers, response, status } = await edenTreaty.civitai
-      .local.models.modelId.post({
-        modelId: dbModel.id,
-        modelVersionIdNumbers: dbModel.modelVersions.map((v) => v.id),
-        type: dbModel.type.name as ModelTypes,
-      });
-    if (error?.status) {
-      switch (error.status) {
-        case 422:
-          setModalContent(<>{JSON.stringify(error.value, null, 2)}</>);
-        default:
-          setModalContent(<div>Unknown Exception</div>);
-      }
-    } else {
-      setModalContent(<ModelCardContent data={data!} dbModel={dbModel} />);
-    }
-    setIsCardModalOpen(true);
-  }
-  return (
-    <>
-      <Card
-        onClick={() => openModelCard(item)}
-        hoverable
-        cover={item.previewFile
-          ? <MediaPreview fileName={item.previewFile} />
-          : <img title="Have no preview" />}
+      <Modal
+        width={600}
+        onOk={() => setIsModalOpen(false)}
+        onCancel={() => setIsModalOpen(false)}
+        closable={false}
+        open={isModalOpen}
+        footer={null}
+        centered
+        destroyOnHidden={true} // force refetch data by force destory DOM
       >
-        <Card.Meta description={item.name} />
-      </Card>
-    </>
-  );
-}
-
-function GalleryContent() {
-  const [modelsAtomValue, setModelsAtom] = useAtom(modelsAtom);
-
-  return (
-    <>
-      <Masonry
-        className="w-dvw"
-        columns={{
-          xs: 1,
-          sm: 2,
-          md: 4,
-          lg: 4,
-          xl: 6,
-          xxl: 8,
-        }}
-        gutter={{ xs: 8, sm: 12, md: 16 }}
-        items={modelsAtomValue.map((item, index) => ({
-          key: `item-${index}`,
-          data: item,
-          index,
-        }))}
-        itemRender={(item) => <ModelCard key={item.key} item={item.data} />}
-      />
-      <GalleryModal />
+        {isModalOpen ? modalContent : <div>loading...</div>}
+      </Modal>
     </>
   );
 }
@@ -628,17 +627,21 @@ function LocalModelsGallery() {
 
   useEffect(() => {
     fetchModels(searchOpt);
-  }, [searchOpt]); // [] 表示组件挂载时只执行一次
+  }, [searchOpt]);
 
   return (
     <>
-      <Space orientation="vertical" align="center">
-        {isGalleryLoading ? <div>Loading...</div> : <GalleryContent />}
-
+      {isGalleryLoading ? <div>Loading...</div> : (
+        <GalleryContent
+          models={models}
+          ModelCardContentLeftSide={LocalModelCardContentLeftSide}
+        />
+      )}
+      <Space orientation="vertical" align="center" className="w-full">
         <Affix offsetBottom={5}>
           <LocalPagination />
         </Affix>
-        <FloatingButtons />
+        <LocalFloatingButtons />
       </Space>
     </>
   );

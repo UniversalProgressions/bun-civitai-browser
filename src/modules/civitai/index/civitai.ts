@@ -69,12 +69,12 @@ const civitaiApiMirror = new Elysia({ prefix: "/api/v1" })
   .onError(({ code, error, status }) => {
     switch (code) {
       case "ApiCommunicationError":
-        return status(error.kyResponse.status, {
+        return status("Internal Server Error", {
           code: error.kyResponse.status,
           message: error.kyResponse.text(),
         });
       case "DataValidationErrorResponse":
-        return status(error.kyRes.status, {
+        return status("Conflict", {
           code: error.kyRes.status,
           message: error.message,
           resData: error.resData,
@@ -90,7 +90,6 @@ const civitaiApiMirror = new Elysia({ prefix: "/api/v1" })
         searchParams: obj2UrlSearchParams(body),
       });
       return await apiResponseProcess<ModelsResponse>(models_response, res);
-
     },
     {
       body: models_request_opts,

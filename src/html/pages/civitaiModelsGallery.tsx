@@ -11,17 +11,23 @@ import {
   Image,
   Input,
   List,
+  Masonry,
   message,
   Modal,
   notification,
   Pagination,
+  Result,
   Row,
   Select,
   Space,
   Tabs,
   Tag,
+  Typography,
 } from "antd";
+
+const { Paragraph, Text } = Typography;
 import {
+  CloseCircleOutlined,
   PlusCircleTwoTone,
   SearchOutlined,
   SyncOutlined,
@@ -54,6 +60,7 @@ import {
   existedModelversions,
   modelId_model,
 } from "#modules/civitai/models/modelId_endpoint";
+import { useQuery } from "@tanstack/react-query";
 
 const defaultPageAndSize = {
   page: 1,
@@ -715,9 +722,9 @@ function GalleryContent() {
   return (
     <>
       <Space align="center" orientation="vertical" style={{ width: "100%" }}>
-        <List
-          grid={{
-            gutter: 16,
+        <Masonry
+          className="w-dvw"
+          columns={{
             xs: 1,
             sm: 2,
             md: 4,
@@ -725,12 +732,13 @@ function GalleryContent() {
             xl: 6,
             xxl: 8,
           }}
-          dataSource={modelsOnPage}
-          renderItem={(item) => (
-            <List.Item>
-              <ModelCard item={item} />
-            </List.Item>
-          )}
+          gutter={{ xs: 8, sm: 12, md: 16 }}
+          items={modelsOnPage.map((item, index) => ({
+            key: `item-${index}`,
+            data: item,
+            index,
+          }))}
+          itemRender={(item) => <ModelCard key={item.key} item={item.data} />}
         />
 
         <Affix offsetBottom={5}>
@@ -752,14 +760,83 @@ function CivitaiModelsGallery() {
   const [modelsOnPage, setModelsOnPage] = useAtom(modelsOnPageAtom);
   const [models, setModels] = useAtom(modelsAtom);
   const [nextPageUrl, setNextPageUrl] = useAtom(nextPageUrlAtom);
+  const [isError, setIsError] = useState(false);
+  const [errorContent, setErrorContent] = useState(<></>);
   async function fetchModels(searchOptions: ModelsRequestOpts) {
     setIsGalleryLoading(true);
     try {
       const { data, error, headers, response, status } = await edenTreaty
         .civitai.api.v1.models.post(searchOptions);
       if (error) {
+        setIsError(true);
+        // need to write a more reliable error handling logic
+        console.log(`aaaa`);
+        switch (error.status) {
+          case 409:
+            console.error(error.value.arkSummary);
+            notification.error({
+              title: "Data Validation Error",
+              description: error.value.message,
+            });
+            setErrorContent(
+              <Space orientation="vertical" align="center">
+                <Result
+                  status="error"
+                  title={error.value.code}
+                  subTitle={error.value.message}
+                  extra={[
+                    <Button type="primary" key="refresh page">
+                      Refresh Page
+                    </Button>,
+                  ]}
+                >
+                  <div className="desc">
+                    <Paragraph>
+                      <Text
+                        strong
+                        style={{
+                          fontSize: 16,
+                        }}
+                      >
+                        Ark summary:
+                      </Text>
+                    </Paragraph>
+                    <Paragraph>
+                      <CloseCircleOutlined />
+                      {error.value.arkSummary}
+                    </Paragraph>
+                    <Paragraph>
+                      <Text
+                        strong
+                        style={{
+                          fontSize: 16,
+                        }}
+                      >
+                        Raw data
+                      </Text>
+                    </Paragraph>
+                    <Paragraph>
+                      <CloseCircleOutlined />
+                      {error.value.resData}
+                    </Paragraph>
+                  </div>
+                </Result>
+              </Space>,
+            );
+            break;
+          case 422:
+            // waiting to apply
+            break;
+          case 500:
+            // waiting to apply
+            break;
+          default:
+            // waiting to apply
+            break;
+        }
         throw error;
       } else {
+        console.log(data);
         setModels((state) => {
           setModelsOnPage(data.items);
           return data.items;
@@ -791,7 +868,9 @@ function CivitaiModelsGallery() {
     });
   }, [searchOptions]);
 
-  return isGalleryLoading ? <div>Loading...</div> : <GalleryContent />;
+  return isGalleryLoading ? <div>Loading...</div> : (
+    isError ? <GalleryContent /> : errorContent
+  );
 }
 
 export default CivitaiModelsGallery;

@@ -335,14 +335,14 @@ function InputBar() {
                   setModelContent(
                     <Alert
                       type="error"
-                      message={error.value.message}
+                      title={error.value.message}
                       description={error.value.summary}
                     />,
                   );
                   throw error;
                 default:
                   setModelContent(
-                    <Alert type="error" message={String(error)} />,
+                    <Alert type="error" title={String(error)} />,
                   );
                   throw error;
               }
@@ -367,14 +367,14 @@ function InputBar() {
                   setModelContent(
                     <Alert
                       type="error"
-                      message={error.value.message}
+                      title={error.value.message}
                       description={error.value.summary}
                     />,
                   );
                   throw error;
                 default:
                   setModelContent(
-                    <Alert type="error" message={String(error)} />,
+                    <Alert type="error" title={String(error)} />,
                   );
                   throw error;
               }

@@ -11,6 +11,7 @@ import {
   Image,
   Input,
   List,
+  Masonry,
   Modal,
   notification,
   Pagination,
@@ -383,48 +384,48 @@ function ModelCardContent({
               children: v.publishedAt?.toString() ?? "Null",
             },
 
-            {
-              key: 7,
-              label: `Model Files`,
-              span: `filled`,
-              children: v.files.length > 0
-                ? (
-                  <>
-                    <List
-                      dataSource={v.files}
-                      renderItem={(file) => (
-                        <List.Item>
-                          <Row>
-                            <Col span={18}>{file.name}</Col>
-                            <Col span={6}>
-                              <Button
-                                onClick={async () => {
-                                  // const loraString = `<lora:${
-                                  //   modelVersion.files[index].id
-                                  // }_${
-                                  //   removeFileExtension(
-                                  //     modelVersion.files[index].name,
-                                  //   )
-                                  // }:1>`;
-                                  await clipboard.write(file.name);
-                                  notification.success({
-                                    title: `${file.name} copied to clipboard`,
-                                  });
-                                }}
-                              >
-                                Copy Filename
-                              </Button>
-                            </Col>
-                          </Row>
-                        </List.Item>
-                      )}
-                    />
-                  </>
-                )
-                : (
-                  `have no files`
-                ),
-            },
+            // {
+            //   key: 7,
+            //   label: `Model Files`,
+            //   span: `filled`,
+            //   children: v.files.length > 0
+            //     ? (
+            //       <>
+            //         <List
+            //           dataSource={v.files}
+            //           renderItem={(file) => (
+            //             <List.Item>
+            //               <Row>
+            //                 <Col span={18}>{file.name}</Col>
+            //                 <Col span={6}>
+            //                   <Button
+            //                     onClick={async () => {
+            //                       // const loraString = `<lora:${
+            //                       //   modelVersion.files[index].id
+            //                       // }_${
+            //                       //   removeFileExtension(
+            //                       //     modelVersion.files[index].name,
+            //                       //   )
+            //                       // }:1>`;
+            //                       await clipboard.write(file.name);
+            //                       notification.success({
+            //                         title: `${file.name} copied to clipboard`,
+            //                       });
+            //                     }}
+            //                   >
+            //                     Copy Filename
+            //                   </Button>
+            //                 </Col>
+            //               </Row>
+            //             </List.Item>
+            //           )}
+            //         />
+            //       </>
+            //     )
+            //     : (
+            //       `have no files`
+            //     ),
+            // },
             {
               key: 8,
               label: "Tags",
@@ -578,25 +579,24 @@ function GalleryContent() {
 
   return (
     <>
-      <Space align="center" orientation="vertical" className="w-full px-2">
-        <List
-          grid={{
-            gutter: 16,
-            xs: 1,
-            sm: 2,
-            md: 4,
-            lg: 4,
-            xl: 6,
-            xxl: 8,
-          }}
-          dataSource={modelsAtomValue}
-          renderItem={(item) => (
-            <List.Item>
-              <ModelCard item={item} />
-            </List.Item>
-          )}
-        />
-      </Space>
+      <Masonry
+        className="w-dvw"
+        columns={{
+          xs: 1,
+          sm: 2,
+          md: 4,
+          lg: 4,
+          xl: 6,
+          xxl: 8,
+        }}
+        gutter={{ xs: 8, sm: 12, md: 16 }}
+        items={modelsAtomValue.map((item, index) => ({
+          key: `item-${index}`,
+          data: item,
+          index,
+        }))}
+        itemRender={(item) => <ModelCard key={item.key} item={item.data} />}
+      />
       <GalleryModal />
     </>
   );

@@ -58,8 +58,8 @@ export const model_version = type({
   "trainedWords?": "string[]",
   stats: {
     downloadCount: "number.integer",
-    ratingCount: "number.integer",
-    rating: "number",
+    "ratingCount?": "number.integer",
+    "rating?": "number",
     thumbsUpCount: "number.integer",
     thumbsDownCount: "number.integer",
   },
@@ -88,12 +88,12 @@ export const model = type({
   "creator?": creator, // sometimes the user might deleted their account, left this field be null.
   stats: {
     downloadCount: "number.integer",
-    favoriteCount: "number.integer",
+    "favoriteCount?": "number.integer",
     thumbsUpCount: "number.integer",
     thumbsDownCount: "number.integer",
     commentCount: "number.integer",
-    ratingCount: "number.integer",
-    rating: "number",
+    "ratingCount?": "number.integer",
+    "rating?": "number",
     tippedAmountCount: "number.integer",
   },
   tags: "string[]",

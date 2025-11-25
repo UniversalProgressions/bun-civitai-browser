@@ -51,8 +51,8 @@ export const modelVersion_model_version = type({
   "trainedWords?": "string[]", // "trainedWords?": "string[]",
   stats: {
     downloadCount: "number.integer",
-    ratingCount: "number.integer",
-    rating: "number",
+    "ratingCount?": "number.integer",
+    "rating?": "number",
     thumbsUpCount: "number.integer",
     // thumbsDownCount: "number.integer",
   },

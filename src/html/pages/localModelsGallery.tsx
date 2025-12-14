@@ -48,6 +48,7 @@ import {
 import { DefaultOptionType } from "antd/es/select";
 import ShadowHTML from "../components/shadowHTML";
 import React from "react";
+import MediaGallery from "../components/gallery";
 
 const isGalleryLoadingAtom = atom(false);
 const modelsAtom = atom<Array<ModelWithAllRelations>>([]);
@@ -515,26 +516,14 @@ function LocalModelCardContentLeftSide({
     <>
       <div>
         {modelVersion.images[0]?.url ? (
-          <Image.PreviewGroup
-            items={modelVersion.images.map(
+          <MediaGallery
+            mediaArray={modelVersion.images.map(
               (i) =>
                 `${location.origin}/civitai/local/media/preview?previewFile=${extractFilenameFromUrl(
                   i.url
                 )}`
             )}
-          >
-            <Image
-              width={200}
-              src={
-                modelVersion.images[0].url
-                  ? `${location.origin}/civitai/local/media/preview?previewFile=${extractFilenameFromUrl(
-                      modelVersion.images[0].url
-                    )}`
-                  : undefined
-              }
-              alt="Have no previews"
-            />
-          </Image.PreviewGroup>
+          />
         ) : (
           <img title="Have no preview" />
         )}

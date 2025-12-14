@@ -38,7 +38,11 @@ import DOMPurify from "dompurify";
 import { debounce } from "es-toolkit";
 import { atom, useAtom } from "jotai";
 import { atomWithImmer } from "jotai-immer";
-import { extractFilenameFromUrl } from "#modules/civitai/service/sharedUtils";
+import {
+  getFileType,
+  extractFilenameFromUrl,
+  replaceUrlParam,
+} from "#modules/civitai/service/sharedUtils";
 
 import {
   BaseModelsArray,
@@ -49,12 +53,12 @@ import {
   ModelTypesArray,
 } from "../../modules/civitai/models/baseModels/misc";
 import { useEffect, useRef, useState } from "react";
-import { edenTreaty, getFileType, replaceUrlParam } from "../utils";
+import { edenTreaty } from "../utils";
+
 import {
   Model,
   type ModelsRequestOpts,
 } from "../../modules/civitai/models/models_endpoint";
-import { ModalWidthEnum } from "./localModelsGallery";
 import {
   ExistedModelversions,
   existedModelversions,
@@ -62,6 +66,10 @@ import {
 } from "#modules/civitai/models/modelId_endpoint";
 import { useQuery } from "@tanstack/react-query";
 
+enum ModalWidthEnum {
+  SearchPanel = 600,
+  modelDetailCard = 1000,
+}
 const defaultPageAndSize = {
   page: 1,
   limit: 20,
@@ -73,9 +81,8 @@ const modelsOnPageAtom = atom<Model[]>([]);
 const searchOptsAtom = atom<ModelsRequestOpts>({});
 const tempSearchOptsAtom = atomWithImmer<ModelsRequestOpts>({});
 const nextPageUrlAtom = atom<string>(``);
-const nonEffectiveSearchOptsAtom = atom<Partial<ModelsRequestOpts>>(
-  defaultPageAndSize,
-);
+const nonEffectiveSearchOptsAtom =
+  atom<Partial<ModelsRequestOpts>>(defaultPageAndSize);
 const isGalleryLoadingAtom = atom<boolean>(false);
 const isModalOpenAtom = atom<boolean>(false);
 const activeVersionIdAtom = atom<string>(``);
@@ -265,10 +272,7 @@ function SearchPanel() {
         </Form.Item>
         <Form.Item>
           <Space>
-            <Button
-              type="primary"
-              htmlType="submit"
-            >
+            <Button type="primary" htmlType="submit">
               Search
             </Button>
             <Button onClick={() => setSearchOpt({})}>Reset</Button>
@@ -307,7 +311,7 @@ function FloatingButtons() {
 
 function CivitaiPagination() {
   const [nonEffectiveSearchOpts, setNonEffectiveSearchOpts] = useAtom(
-    nonEffectiveSearchOptsAtom,
+    nonEffectiveSearchOptsAtom
   );
   const [modelsOnPage, setModelsOnPage] = useAtom(modelsOnPageAtom);
 
@@ -324,8 +328,8 @@ function CivitaiPagination() {
       // Dismiss manually and asynchronously
       // setTimeout(messageApi.destroy, 2500);
       try {
-        const { data, error, headers, response, status } = await edenTreaty
-          .civitai.api.v1.models.nextPage.get({
+        const { data, error, headers, response, status } =
+          await edenTreaty.civitai.api.v1.models.nextPage.get({
             query: { nextPage: nextPageUrl },
           });
         if (error) {
@@ -384,7 +388,7 @@ function CivitaiPagination() {
     // Parameter validation
     if (!Number.isInteger(page) || page < 1) {
       throw new Error(
-        "Page number must be an integer greater than or equal to 1",
+        "Page number must be an integer greater than or equal to 1"
       );
     }
 
@@ -419,12 +423,14 @@ function CivitaiPagination() {
           page,
           limit: pageSize,
         }));
-        setModelsOnPage(models.slice(
-          // Start
-          (page - 1) * pageSize,
-          // End
-          page * pageSize,
-        ));
+        setModelsOnPage(
+          models.slice(
+            // Start
+            (page - 1) * pageSize,
+            // End
+            page * pageSize
+          )
+        );
         if (isLastPageSafe({ page, limit: pageSize, total: models.length })) {
           // If it's the last page, we can fetch the next set of results
           return debounceLoadNextPage(); // can't call such a function at here...
@@ -437,15 +443,11 @@ function CivitaiPagination() {
   );
 }
 
-function ModelCardContent({
-  data,
-}: {
-  data: Model;
-}) {
+function ModelCardContent({ data }: { data: Model }) {
   const [activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom);
   const [isDownloadButtonLoading, setIsDownloadButtonLoading] = useState(false);
   const [existedModelversions, setExistedModelversions] = useAtom(
-    civitaiExistedModelVersionsAtom,
+    civitaiExistedModelVersionsAtom
   );
 
   async function onDownloadClick(model: Model, versionId: number) {
@@ -461,9 +463,8 @@ function ModelCardContent({
     } catch (error) {
       notification.error({
         title: "Download failed",
-        description: error instanceof Error
-          ? error.message
-          : JSON.stringify(error),
+        description:
+          error instanceof Error ? error.message : JSON.stringify(error),
       });
       console.error(error);
     } finally {
@@ -481,30 +482,29 @@ function ModelCardContent({
           const leftSide = (
             <>
               <Space align="center" orientation="vertical">
-                {v.images[0]?.url
-                  ? (
-                    <Image.PreviewGroup
-                      items={v.images.map(
-                        (i) => replaceUrlParam(i.url),
-                      )}
-                    >
-                      <Image
-                        width={200}
-                        src={replaceUrlParam(v.images[0].url)}
-                        alt="No previews"
-                      />
-                    </Image.PreviewGroup>
-                  )
-                  : <img title="Have no preview" />}
+                {v.images[0]?.url ? (
+                  <Image.PreviewGroup
+                    items={v.images.map((i) => replaceUrlParam(i.url))}
+                  >
+                    <Image
+                      width={200}
+                      src={replaceUrlParam(v.images[0].url)}
+                      alt="No previews"
+                    />
+                  </Image.PreviewGroup>
+                ) : (
+                  <img title="Have no preview" />
+                )}
                 <Button
                   type="primary"
                   block
                   onClick={() => onDownloadClick(data, v.id)}
-                  disabled={existedModelversions.find((obj) =>
-                      obj.versionId === v.id
-                    )?.filesOnDisk.length === v.files.length
-                    ? true
-                    : false}
+                  disabled={
+                    existedModelversions.find((obj) => obj.versionId === v.id)
+                      ?.filesOnDisk.length === v.files.length
+                      ? true
+                      : false
+                  }
                   loading={isDownloadButtonLoading}
                 >
                   Download
@@ -539,8 +539,8 @@ function ModelCardContent({
               key: 7,
               label: `Model Files`,
               span: `filled`,
-              children: v.files.length > 0
-                ? (
+              children:
+                v.files.length > 0 ? (
                   <>
                     <List
                       dataSource={v.files}
@@ -548,11 +548,11 @@ function ModelCardContent({
                         <List.Item>
                           <Row>
                             <Col span={18}>
-                              {existedModelversions.find((obj) =>
-                                  obj.versionId === v.id
-                                )?.filesOnDisk.includes(file.id)
-                                ? <Tag color="green">onDisk</Tag>
-                                : undefined}
+                              {existedModelversions
+                                .find((obj) => obj.versionId === v.id)
+                                ?.filesOnDisk.includes(file.id) ? (
+                                <Tag color="green">onDisk</Tag>
+                              ) : undefined}
                               {file.name}
                             </Col>
                             <Col span={6}>
@@ -579,8 +579,7 @@ function ModelCardContent({
                       )}
                     />
                   </>
-                )
-                : (
+                ) : (
                   `have no files`
                 ),
             },
@@ -588,63 +587,55 @@ function ModelCardContent({
               key: 8,
               label: "Tags",
               span: "filled",
-              children: (
-                v.trainedWords
-                  ? (
-                    <Flex wrap gap="small">
-                      {v.trainedWords.map((tagStr, index) => (
-                        <div
-                          key={index}
-                          onClick={async () => {
-                            await clipboard.write(tagStr);
-                            return notification.success({
-                              title: "Copied to clipboard",
-                            });
-                          }}
-                          className="
+              children: v.trainedWords ? (
+                <Flex wrap gap="small">
+                  {v.trainedWords.map((tagStr, index) => (
+                    <div
+                      key={index}
+                      onClick={async () => {
+                        await clipboard.write(tagStr);
+                        return notification.success({
+                          title: "Copied to clipboard",
+                        });
+                      }}
+                      className="
                         bg-blue-500 hover:bg-blue-700 text-white 
                           font-bold p-1 rounded transition-all 
                           duration-300 transform hover:scale-105
                           hover:cursor-pointer"
-                        >
-                          {tagStr}
-                        </div>
-                      ))}
-                    </Flex>
-                  )
-                  : undefined
-              ),
+                    >
+                      {tagStr}
+                    </div>
+                  ))}
+                </Flex>
+              ) : undefined,
             },
             {
               key: 9,
               label: "Model Description",
               span: "filled",
-              children: data.description
-                ? (
-                  <div
-                    className="bg-gray-300"
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(data.description),
-                    }}
-                  />
-                )
-                : undefined,
+              children: data.description ? (
+                <div
+                  className="bg-gray-300"
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(data.description),
+                  }}
+                />
+              ) : undefined,
               // data.description,
             },
             {
               key: 10,
               label: "Model Version Description",
               span: "filled",
-              children: v.description
-                ? (
-                  <div
-                    className="bg-gray-300"
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(v.description),
-                    }}
-                  />
-                )
-                : undefined,
+              children: v.description ? (
+                <div
+                  className="bg-gray-300"
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(v.description),
+                  }}
+                />
+              ) : undefined,
               // v.description
             },
           ];
@@ -655,8 +646,7 @@ function ModelCardContent({
                   title="Model Version Details"
                   layout="vertical"
                   items={descriptionItems}
-                >
-                </Descriptions>
+                ></Descriptions>
               </Space>
             </>
           );
@@ -707,9 +697,13 @@ function ModelCard({ item }: { item: Model }) {
       <Card
         onClick={() => openModelCard(item)}
         hoverable
-        cover={item.modelVersions[0]?.images[0]?.url
-          ? <MediaPreview url={item.modelVersions[0].images[0].url} />
-          : <img title="Have no preview" />}
+        cover={
+          item.modelVersions[0]?.images[0]?.url ? (
+            <MediaPreview url={item.modelVersions[0].images[0].url} />
+          ) : (
+            <img title="Have no preview" />
+          )
+        }
       >
         <Card.Meta description={item.name} />
       </Card>
@@ -755,7 +749,7 @@ function CivitaiModelsGallery() {
   const [isGalleryLoading, setIsGalleryLoading] = useAtom(isGalleryLoadingAtom);
   const [searchOptions, setSearchOptions] = useAtom(searchOptsAtom);
   const [nonEffectiveSearchOpts, setNonEffectiveSearchOpts] = useAtom(
-    nonEffectiveSearchOptsAtom,
+    nonEffectiveSearchOptsAtom
   );
   const [modelsOnPage, setModelsOnPage] = useAtom(modelsOnPageAtom);
   const [models, setModels] = useAtom(modelsAtom);
@@ -765,8 +759,8 @@ function CivitaiModelsGallery() {
   async function fetchModels(searchOptions: ModelsRequestOpts) {
     setIsGalleryLoading(true);
     try {
-      const { data, error, headers, response, status } = await edenTreaty
-        .civitai.api.v1.models.post(searchOptions);
+      const { data, error, headers, response, status } =
+        await edenTreaty.civitai.api.v1.models.post(searchOptions);
       if (error) {
         setIsError(true);
         // need to write a more reliable error handling logic
@@ -821,7 +815,7 @@ function CivitaiModelsGallery() {
                     </Paragraph>
                   </div>
                 </Result>
-              </Space>,
+              </Space>
             );
             break;
           case 422:
@@ -836,7 +830,6 @@ function CivitaiModelsGallery() {
         }
         throw error;
       } else {
-        console.log(data);
         setModels((state) => {
           setModelsOnPage(data.items);
           return data.items;
@@ -868,8 +861,12 @@ function CivitaiModelsGallery() {
     });
   }, [searchOptions]);
 
-  return isGalleryLoading ? <div>Loading...</div> : (
-    isError ? <GalleryContent /> : errorContent
+  return isGalleryLoading ? (
+    <div>Loading...</div>
+  ) : isError ? (
+    <GalleryContent />
+  ) : (
+    errorContent
   );
 }
 

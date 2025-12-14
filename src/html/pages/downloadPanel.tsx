@@ -30,8 +30,9 @@ import {
   modelId_model,
 } from "#modules/civitai/models/modelId_endpoint";
 import { model_types } from "#modules/civitai/models/baseModels/misc";
-import { edenTreaty, replaceUrlParam } from "#client/utils";
+import { edenTreaty } from "../utils";
 import {
+  replaceUrlParam,
   extractFilenameFromUrl,
   modelId2Model,
   removeFileExtension,
@@ -47,21 +48,17 @@ enum LoadingOptionsEnum {
 const activeVersionIdAtom = atom<string>(``);
 const existedModelVersionsAtom = atom<ExistedModelversions>([]);
 const selectedOptionAtom = atom<LoadingOptionsEnum>(
-  LoadingOptionsEnum.VersionId,
+  LoadingOptionsEnum.VersionId
 );
 const inputValueAtom = atom<string>(``);
 const loadingAtom = atom<boolean>(false);
 const modelContentAtom = atom(<></>);
 
-function ModelCardContent({
-  data,
-}: {
-  data: Model;
-}) {
+function ModelCardContent({ data }: { data: Model }) {
   const [activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom);
   const [isDownloadButtonLoading, setIsDownloadButtonLoading] = useState(false);
   const [existedModelversions, setExistedModelversions] = useAtom(
-    existedModelVersionsAtom,
+    existedModelVersionsAtom
   );
 
   async function onDownloadClick(model: Model, versionId: number) {
@@ -77,9 +74,8 @@ function ModelCardContent({
     } catch (error) {
       notification.error({
         title: "Download failed",
-        description: error instanceof Error
-          ? error.message
-          : JSON.stringify(error),
+        description:
+          error instanceof Error ? error.message : JSON.stringify(error),
       });
       console.error(error);
     } finally {
@@ -91,36 +87,35 @@ function ModelCardContent({
     <>
       <Tabs
         defaultActiveKey="1"
-        tabPosition="top"
+        tabPlacement="top"
         onChange={(id) => setActiveVersionId(id)}
         items={data?.modelVersions.map((v) => {
           const leftSide = (
             <>
               <Space align="center" orientation="vertical">
-                {v.images[0]?.url
-                  ? (
-                    <Image.PreviewGroup
-                      items={v.images.map(
-                        (i) => replaceUrlParam(i.url),
-                      )}
-                    >
-                      <Image
-                        width={200}
-                        src={replaceUrlParam(v.images[0].url)}
-                        alt="No previews"
-                      />
-                    </Image.PreviewGroup>
-                  )
-                  : <img title="Have no preview" />}
+                {v.images[0]?.url ? (
+                  <Image.PreviewGroup
+                    items={v.images.map((i) => replaceUrlParam(i.url))}
+                  >
+                    <Image
+                      width={200}
+                      src={replaceUrlParam(v.images[0].url)}
+                      alt="No previews"
+                    />
+                  </Image.PreviewGroup>
+                ) : (
+                  <img title="Have no preview" />
+                )}
                 <Button
                   type="primary"
                   block
                   onClick={() => onDownloadClick(data, v.id)}
-                  disabled={existedModelversions.find((obj) =>
-                      obj.versionId === v.id
-                    )?.filesOnDisk.length === v.files.length
-                    ? true
-                    : false}
+                  disabled={
+                    existedModelversions.find((obj) => obj.versionId === v.id)
+                      ?.filesOnDisk.length === v.files.length
+                      ? true
+                      : false
+                  }
                   loading={isDownloadButtonLoading}
                 >
                   Download
@@ -155,8 +150,8 @@ function ModelCardContent({
               key: 7,
               label: `Model Files`,
               span: `filled`,
-              children: v.files.length > 0
-                ? (
+              children:
+                v.files.length > 0 ? (
                   <>
                     <List
                       dataSource={v.files}
@@ -164,11 +159,11 @@ function ModelCardContent({
                         <List.Item>
                           <Row>
                             <Col span={18}>
-                              {existedModelversions.find((obj) =>
-                                  obj.versionId === v.id
-                                )?.filesOnDisk.includes(file.id)
-                                ? <Tag color="green">onDisk</Tag>
-                                : undefined}
+                              {existedModelversions
+                                .find((obj) => obj.versionId === v.id)
+                                ?.filesOnDisk.includes(file.id) ? (
+                                <Tag color="green">onDisk</Tag>
+                              ) : undefined}
                               {file.name}
                             </Col>
                             <Col span={6}>
@@ -195,8 +190,7 @@ function ModelCardContent({
                       )}
                     />
                   </>
-                )
-                : (
+                ) : (
                   `have no files`
                 ),
             },
@@ -204,63 +198,55 @@ function ModelCardContent({
               key: 8,
               label: "Tags",
               span: "filled",
-              children: (
-                v.trainedWords
-                  ? (
-                    <Flex wrap gap="small">
-                      {v.trainedWords.map((tagStr, index) => (
-                        <div
-                          key={index}
-                          onClick={async () => {
-                            await clipboard.write(tagStr);
-                            return notification.success({
-                              title: "Copied to clipboard",
-                            });
-                          }}
-                          className="
+              children: v.trainedWords ? (
+                <Flex wrap gap="small">
+                  {v.trainedWords.map((tagStr, index) => (
+                    <div
+                      key={index}
+                      onClick={async () => {
+                        await clipboard.write(tagStr);
+                        return notification.success({
+                          title: "Copied to clipboard",
+                        });
+                      }}
+                      className="
                         bg-blue-500 hover:bg-blue-700 text-white 
                           font-bold p-1 rounded transition-all 
                           duration-300 transform hover:scale-105
                           hover:cursor-pointer"
-                        >
-                          {tagStr}
-                        </div>
-                      ))}
-                    </Flex>
-                  )
-                  : undefined
-              ),
+                    >
+                      {tagStr}
+                    </div>
+                  ))}
+                </Flex>
+              ) : undefined,
             },
             {
               key: 9,
               label: "Model Description",
               span: "filled",
-              children: data.description
-                ? (
-                  <div
-                    className="bg-gray-300"
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(data.description),
-                    }}
-                  />
-                )
-                : undefined,
+              children: data.description ? (
+                <div
+                  className="bg-gray-300"
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(data.description),
+                  }}
+                />
+              ) : undefined,
               // data.description,
             },
             {
               key: 10,
               label: "Model Version Description",
               span: "filled",
-              children: v.description
-                ? (
-                  <div
-                    className="bg-gray-300"
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(v.description),
-                    }}
-                  />
-                )
-                : undefined,
+              children: v.description ? (
+                <div
+                  className="bg-gray-300"
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(v.description),
+                  }}
+                />
+              ) : undefined,
               // v.description
             },
           ];
@@ -271,8 +257,7 @@ function ModelCardContent({
                   title="Model Version Details"
                   layout="vertical"
                   items={descriptionItems}
-                >
-                </Descriptions>
+                ></Descriptions>
               </Space>
             </>
           );
@@ -316,7 +301,7 @@ function InputBar() {
   const [loading, setLoading] = useAtom(loadingAtom);
   const [modelContent, setModelContent] = useAtom(modelContentAtom);
   const [existedModelversions, setExistedModelversions] = useAtom(
-    existedModelVersionsAtom,
+    existedModelVersionsAtom
   );
 
   async function loadModelInfo() {
@@ -325,8 +310,8 @@ function InputBar() {
       switch (selectedOption) {
         case LoadingOptionsEnum.VersionId:
           {
-            const { data, error, headers, response, status } = await edenTreaty
-              .civitai.api.v1.loadModelInfoByVersionId.post({
+            const { data, error, headers, response, status } =
+              await edenTreaty.civitai.api.v1.loadModelInfoByVersionId.post({
                 modelVersionId: Number.parseInt(inputValue),
               });
             if (error) {
@@ -337,13 +322,11 @@ function InputBar() {
                       type="error"
                       title={error.value.message}
                       description={error.value.summary}
-                    />,
+                    />
                   );
                   throw error;
                 default:
-                  setModelContent(
-                    <Alert type="error" title={String(error)} />,
-                  );
+                  setModelContent(<Alert type="error" title={String(error)} />);
                   throw error;
               }
             } else {
@@ -357,8 +340,8 @@ function InputBar() {
           break;
         case LoadingOptionsEnum.ModelId:
           {
-            const { data, error, headers, response, status } = await edenTreaty
-              .civitai.api.v1.loadModelInfoById.post({
+            const { data, error, headers, response, status } =
+              await edenTreaty.civitai.api.v1.loadModelInfoById.post({
                 modelId: Number.parseInt(inputValue),
               });
             if (error) {
@@ -369,13 +352,11 @@ function InputBar() {
                       type="error"
                       title={error.value.message}
                       description={error.value.summary}
-                    />,
+                    />
                   );
                   throw error;
                 default:
-                  setModelContent(
-                    <Alert type="error" title={String(error)} />,
-                  );
+                  setModelContent(<Alert type="error" title={String(error)} />);
                   throw error;
               }
             } else {

@@ -124,8 +124,7 @@ function App() {
               return state;
             });
           }}
-        >
-        </Input>
+        ></Input>
       </Form.Item>
       <Form.Item label={null}>
         <Button

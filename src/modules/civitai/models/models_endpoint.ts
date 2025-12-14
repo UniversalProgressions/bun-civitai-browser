@@ -70,7 +70,7 @@ export const model_version = type({
 export type ModelVersion = typeof model_version.infer;
 
 import { creator } from "./creators_endpoint";
-// https://www.jsondiff.com/ 找到共有属性名
+// https://www.jsondiff.com/ find common property names
 
 export const model = type({
   id: "number.integer",

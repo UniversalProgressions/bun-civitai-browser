@@ -34,6 +34,7 @@
     "jotai": "^2.15.1",
     "jotai-immer": "^0.4.1",
     "ky": "^1.14.0",
+    "lightgallery": "^2.9.0",
     "path-exists": "^5.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

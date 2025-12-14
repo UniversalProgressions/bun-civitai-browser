@@ -10,7 +10,6 @@ import {
   Form,
   Image,
   Input,
-  List,
   Masonry,
   Modal,
   notification,
@@ -27,7 +26,7 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { debounce } from "es-toolkit";
 import clipboard from "clipboardy";
 import DOMPurify from "dompurify";
-import { edenTreaty, getFileType } from "../utils";
+import { edenTreaty } from "../utils";
 import {
   type Model,
   type ModelsRequestOpts,
@@ -42,16 +41,14 @@ import {
   ModelTypesArray,
 } from "../../modules/civitai/models/baseModels/misc";
 import { type ModelWithAllRelations } from "../../modules/civitai/service/crud/modelId";
-import { extractFilenameFromUrl } from "#modules/civitai/service/sharedUtils";
+import {
+  extractFilenameFromUrl,
+  getFileType,
+} from "#modules/civitai/service/sharedUtils";
 import { DefaultOptionType } from "antd/es/select";
 import ShadowHTML from "../components/shadowHTML";
-import { atomWithImmer } from "jotai-immer";
 import React from "react";
 
-export enum ModalWidthEnum {
-  SearchPanel = 600,
-  modelDetailCard = 1000,
-}
 const isGalleryLoadingAtom = atom(false);
 const modelsAtom = atom<Array<ModelWithAllRelations>>([]);
 const localSearchOptionsAtom = atom<ModelsRequestOpts>({});
@@ -60,8 +57,7 @@ const totalAtom = atom(0);
 
 export function MediaPreview({ fileName }: { fileName: string }) {
   const fileType = getFileType(fileName);
-  const srcPath =
-    `${location.origin}/civitai/local/media/preview?previewFile=${fileName}`;
+  const srcPath = `${location.origin}/civitai/local/media/preview?previewFile=${fileName}`;
   if (fileType === "video") {
     return <video src={srcPath} autoPlay loop muted></video>;
   } else if (fileType === "image") {
@@ -76,9 +72,11 @@ export function ModelCardContent({
   ModelCardContentLeftSide,
 }: {
   data: Model;
-  ModelCardContentLeftSide: (
-    { modelVersion }: { modelVersion: ModelVersion },
-  ) => React.JSX.Element;
+  ModelCardContentLeftSide: ({
+    modelVersion,
+  }: {
+    modelVersion: ModelVersion;
+  }) => React.JSX.Element;
 }) {
   return (
     <>
@@ -115,8 +113,8 @@ export function ModelCardContent({
               key: 7,
               label: `Model Files`,
               span: `filled`,
-              children: v.files.length > 0
-                ? (
+              children:
+                v.files.length > 0 ? (
                   <>
                     {v.files.map((file) => (
                       <Row key={file.id}>
@@ -143,8 +141,7 @@ export function ModelCardContent({
                       </Row>
                     ))}
                   </>
-                )
-                : (
+                ) : (
                   `have no files`
                 ),
             },
@@ -152,48 +149,44 @@ export function ModelCardContent({
               key: 8,
               label: "Tags",
               span: "filled",
-              children: (
-                v.trainedWords
-                  ? (
-                    <Flex wrap gap="small">
-                      {v.trainedWords.map((tagStr, index) => (
-                        <div
-                          key={index}
-                          onClick={async () => {
-                            await clipboard.write(tagStr);
-                            return notification.success({
-                              title: "Copied to clipboard",
-                            });
-                          }}
-                          className="
+              children: v.trainedWords ? (
+                <Flex wrap gap="small">
+                  {v.trainedWords.map((tagStr, index) => (
+                    <div
+                      key={index}
+                      onClick={async () => {
+                        await clipboard.write(tagStr);
+                        return notification.success({
+                          title: "Copied to clipboard",
+                        });
+                      }}
+                      className="
                         bg-blue-500 hover:bg-blue-700 text-white 
                           font-bold p-1 rounded transition-all 
                           duration-300 transform hover:scale-105
                           hover:cursor-pointer"
-                        >
-                          {tagStr}
-                        </div>
-                      ))}
-                    </Flex>
-                  )
-                  : undefined
-              ),
+                    >
+                      {tagStr}
+                    </div>
+                  ))}
+                </Flex>
+              ) : undefined,
             },
             {
               key: 9,
               label: "Model Description",
               span: "filled",
-              children: data.description
-                ? <ShadowHTML html={DOMPurify.sanitize(data.description)} />
-                : undefined,
+              children: data.description ? (
+                <ShadowHTML html={DOMPurify.sanitize(data.description)} />
+              ) : undefined,
             },
             {
               key: 10,
               label: "Model Version Description",
               span: "filled",
-              children: v.description
-                ? <ShadowHTML html={DOMPurify.sanitize(v.description)} />
-                : undefined,
+              children: v.description ? (
+                <ShadowHTML html={DOMPurify.sanitize(v.description)} />
+              ) : undefined,
             },
           ];
           const rightSide = (
@@ -203,8 +196,7 @@ export function ModelCardContent({
                   title="Model Version Details"
                   layout="vertical"
                   items={descriptionItems}
-                >
-                </Descriptions>
+                ></Descriptions>
               </Space>
             </>
           );
@@ -239,19 +231,24 @@ export function ModelCardContent({
   );
 }
 
-export function ModelCard(
-  { item, ModelCardContentLeftSide }: {
-    item: ModelWithAllRelations;
-    ModelCardContentLeftSide: (
-      { modelVersion }: { modelVersion: ModelVersion },
-    ) => React.JSX.Element;
-  },
-) {
-  const [modalContent, setModalContent] = useState(<></>);
+export function ModelCard({
+  item,
+  ModelCardContentLeftSide,
+}: {
+  item: ModelWithAllRelations;
+  ModelCardContentLeftSide: ({
+    modelVersion,
+  }: {
+    modelVersion: ModelVersion;
+  }) => React.JSX.Element;
+}) {
+  const [modelData, setModelData] = useState<Model | null>(null);
+  const [isError, setIsError] = useState(false);
+  const [errorDescription, setErrorDescription] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   async function openModelCard(dbModel: ModelWithAllRelations) {
-    const { data, error, headers, response, status } = await edenTreaty.civitai
-      .local.models.modelId.post({
+    const { data, error, headers, response, status } =
+      await edenTreaty.civitai.local.models.modelId.post({
         modelId: dbModel.id,
         modelVersionIdNumbers: dbModel.modelVersions.map((v) => v.id),
         type: dbModel.type.name as ModelTypes,
@@ -259,28 +256,27 @@ export function ModelCard(
     if (error?.status) {
       switch (error.status) {
         case 422:
-          setModalContent(<>{JSON.stringify(error.value, null, 2)}</>);
+          setErrorDescription(JSON.stringify(error.value, null, 2));
         default:
-          setModalContent(<div>Unknown Exception</div>);
+          setErrorDescription(String(error));
       }
     } else {
-      setModalContent(
-        <ModelCardContent
-          data={data!}
-          ModelCardContentLeftSide={ModelCardContentLeftSide}
-        />,
-      );
+      setModelData(data!);
+      setIsModalOpen(true);
     }
-    setIsModalOpen(true);
   }
   return (
     <>
       <Card
         onClick={() => openModelCard(item)}
         hoverable
-        cover={item.previewFile
-          ? <MediaPreview fileName={item.previewFile} />
-          : <img title="Have no preview" />}
+        cover={
+          item.previewFile ? (
+            <MediaPreview fileName={item.previewFile} />
+          ) : (
+            <img title="Have no preview" />
+          )
+        }
       >
         <Card.Meta description={item.name} />
       </Card>
@@ -294,20 +290,30 @@ export function ModelCard(
         centered
         destroyOnHidden={true} // force refetch data by force destory DOM
       >
-        {isModalOpen ? modalContent : <div>loading...</div>}
+        {isModalOpen ? (
+          <ModelCardContent
+            data={modelData!}
+            ModelCardContentLeftSide={ModelCardContentLeftSide}
+          />
+        ) : (
+          <div>loading...</div>
+        )}
       </Modal>
     </>
   );
 }
 
-export function GalleryContent(
-  { models, ModelCardContentLeftSide }: {
-    models: Array<ModelWithAllRelations>;
-    ModelCardContentLeftSide: (
-      { modelVersion }: { modelVersion: ModelVersion },
-    ) => React.JSX.Element;
-  },
-) {
+export function GalleryContent({
+  models,
+  ModelCardContentLeftSide,
+}: {
+  models: Array<ModelWithAllRelations>;
+  ModelCardContentLeftSide: ({
+    modelVersion,
+  }: {
+    modelVersion: ModelVersion;
+  }) => React.JSX.Element;
+}) {
   return (
     <>
       <Masonry
@@ -338,12 +344,13 @@ export function GalleryContent(
   );
 }
 
-export function SearchPanel(
-  { setIsModalOpen, searchOptsAtom }: {
-    setIsModalOpen: Dispatch<SetStateAction<boolean>>;
-    searchOptsAtom: PrimitiveAtom<ModelsRequestOpts>;
-  },
-) {
+export function SearchPanel({
+  setIsModalOpen,
+  searchOptsAtom,
+}: {
+  setIsModalOpen: Dispatch<SetStateAction<boolean>>;
+  searchOptsAtom: PrimitiveAtom<ModelsRequestOpts>;
+}) {
   const [searchOpt, setSearchOpt] = useAtom(searchOptsAtom);
   const [form] = Form.useForm<ModelsRequestOpts>();
   const [tagsOptions, setTagsOptions] = useState<Array<DefaultOptionType>>([]);
@@ -488,10 +495,7 @@ export function SearchPanel(
         </Form.Item>
         <Form.Item>
           <Space>
-            <Button
-              type="primary"
-              htmlType="submit"
-            >
+            <Button type="primary" htmlType="submit">
               Search
             </Button>
             <Button onClick={() => setSearchOpt({})}>Reset</Button>
@@ -502,36 +506,38 @@ export function SearchPanel(
   );
 }
 
-function LocalModelCardContentLeftSide(
-  { modelVersion }: { modelVersion: ModelVersion },
-) {
+function LocalModelCardContentLeftSide({
+  modelVersion,
+}: {
+  modelVersion: ModelVersion;
+}) {
   return (
     <>
       <div>
-        {modelVersion.images[0]?.url
-          ? (
-            <Image.PreviewGroup
-              items={modelVersion.images.map(
-                (i) =>
-                  `${location.origin}/civitai/local/media/preview?previewFile=${
-                    extractFilenameFromUrl(
-                      i.url,
-                    )
-                  }`,
-              )}
-            >
-              <Image
-                width={200}
-                src={modelVersion.images[0].url
-                  ? `${location.origin}/civitai/local/media/preview?previewFile=${
-                    extractFilenameFromUrl(modelVersion.images[0].url)
-                  }`
-                  : undefined}
-                alt="Have no previews"
-              />
-            </Image.PreviewGroup>
-          )
-          : <img title="Have no preview" />}
+        {modelVersion.images[0]?.url ? (
+          <Image.PreviewGroup
+            items={modelVersion.images.map(
+              (i) =>
+                `${location.origin}/civitai/local/media/preview?previewFile=${extractFilenameFromUrl(
+                  i.url
+                )}`
+            )}
+          >
+            <Image
+              width={200}
+              src={
+                modelVersion.images[0].url
+                  ? `${location.origin}/civitai/local/media/preview?previewFile=${extractFilenameFromUrl(
+                      modelVersion.images[0].url
+                    )}`
+                  : undefined
+              }
+              alt="Have no previews"
+            />
+          </Image.PreviewGroup>
+        ) : (
+          <img title="Have no preview" />
+        )}
       </div>
     </>
   );
@@ -557,7 +563,6 @@ function LocalPagination() {
 }
 
 function LocalFloatingButtons() {
-  const [modalContent, setModalContent] = useState(<></>);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
@@ -566,12 +571,6 @@ function LocalFloatingButtons() {
         <FloatButton
           icon={<SearchOutlined />}
           onClick={() => {
-            setModalContent(
-              <SearchPanel
-                setIsModalOpen={setIsModalOpen}
-                searchOptsAtom={localSearchOptionsAtom}
-              />,
-            );
             setIsModalOpen(true);
           }}
         />
@@ -595,7 +594,14 @@ function LocalFloatingButtons() {
         centered
         destroyOnHidden={true} // force refetch data by force destory DOM
       >
-        {isModalOpen ? modalContent : <div>loading...</div>}
+        {isModalOpen ? (
+          <SearchPanel
+            setIsModalOpen={setIsModalOpen}
+            searchOptsAtom={localSearchOptionsAtom}
+          />
+        ) : (
+          <div>loading...</div>
+        )}
       </Modal>
     </>
   );
@@ -610,8 +616,8 @@ function LocalModelsGallery() {
   async function fetchModels(opts: ModelsRequestOpts) {
     setIsGalleryLoading(true);
     try {
-      const { data, error, headers, response, status } = await edenTreaty
-        .civitai.local.models.pagination.post(opts);
+      const { data, error, headers, response, status } =
+        await edenTreaty.civitai.local.models.pagination.post(opts);
       if (error) {
         throw error;
       } else {
@@ -631,7 +637,9 @@ function LocalModelsGallery() {
 
   return (
     <>
-      {isGalleryLoading ? <div>Loading...</div> : (
+      {isGalleryLoading ? (
+        <div>Loading...</div>
+      ) : (
         <GalleryContent
           models={models}
           ModelCardContentLeftSide={LocalModelCardContentLeftSide}

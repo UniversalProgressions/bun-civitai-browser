@@ -4,6 +4,7 @@ import SettingsPanel from "./pages/settingsPanel";
 import LocalModelsGallery from "./pages/localModelsGallery";
 import DownloadPanel from "./pages/downloadPanel";
 import CivitaiGallery from "./pages/civitaiModelsGallery";
+import TestPage from "./pages/galleryTestPage";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -16,6 +17,11 @@ enum MenuItemKeys {
 
 function GalleryContent() {
   const galleries: TabsProps["items"] = [
+    {
+      label: "test",
+      key: "test",
+      children: <TestPage />,
+    },
     {
       label: MenuItemKeys.Local,
       key: MenuItemKeys.Local,

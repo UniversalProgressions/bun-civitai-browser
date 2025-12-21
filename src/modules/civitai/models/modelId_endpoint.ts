@@ -65,7 +65,7 @@ export const modelId_model_version = type({
 export type ModelId_ModelVersion = typeof modelId_model_version.infer;
 
 import { creator } from "./creators_endpoint";
-// https://www.jsondiff.com/ 找到共有属性名
+// https://www.jsondiff.com/ Find common property names
 
 export const modelId_model = type({
   id: "number.integer",

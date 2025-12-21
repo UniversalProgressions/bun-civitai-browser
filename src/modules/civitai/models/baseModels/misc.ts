@@ -1,7 +1,7 @@
 import { type } from "arktype";
 import { map } from "es-toolkit/compat";
 
-// https://www.jsondiff.com/ 找到共有属性名
+// https://www.jsondiff.com/ Find common property names
 
 type arkUnit = {
   unit: string;

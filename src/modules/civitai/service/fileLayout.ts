@@ -9,7 +9,7 @@ import type {
 } from "../models/models_endpoint";
 import { ModelTypes } from "../models/baseModels/misc";
 import { findModelVersion } from "./sharedUtils";
-import { getSettings } from "../../settings/service";
+import { getSettings } from "../../settings-deprecated/service";
 import { extractFilenameFromUrl } from "./sharedUtils";
 // import { pathExists } from "path-exists"; // use Bun.file() to locate file and use the returned object's exists() function to ensure if it exists.
 
@@ -22,11 +22,10 @@ import { extractFilenameFromUrl } from "./sharedUtils";
  * {baseDir} / "media" / {imageId}.xxx
  */
 
-
 export function getModelIdPath(
   basePath: string,
   modelType: ModelTypes,
-  modelId: number
+  modelId: number,
 ) {
   return join(normalize(basePath), modelType, modelId.toString());
 }
@@ -38,11 +37,11 @@ export function getApiInfoJsonFileName(id: number): string {
 export function getModelIdApiInfoJsonPath(
   basePath: string,
   modelType: ModelTypes,
-  modelId: number
+  modelId: number,
 ): string {
   return join(
     getModelIdPath(basePath, modelType, modelId),
-    getApiInfoJsonFileName(modelId)
+    getApiInfoJsonFileName(modelId),
   );
 }
 
@@ -50,11 +49,11 @@ export function getModelVersionPath(
   basePath: string,
   modelType: ModelTypes,
   modelId: number,
-  versionId: number
+  versionId: number,
 ) {
   return join(
     getModelIdPath(basePath, modelType, modelId),
-    versionId.toString()
+    versionId.toString(),
   );
 }
 
@@ -62,11 +61,11 @@ export function getModelVersionApiInfoJsonPath(
   basePath: string,
   modelType: ModelTypes,
   modelId: number,
-  modelVersionId: number
+  modelVersionId: number,
 ) {
   return join(
     getModelVersionPath(basePath, modelType, modelId, modelVersionId),
-    getApiInfoJsonFileName(modelVersionId)
+    getApiInfoJsonFileName(modelVersionId),
   );
 }
 
@@ -96,7 +95,7 @@ export class ModelVersionLayout {
   constructor(
     public modelVersionPath: string,
     public modelVersion: ModelVersion,
-    public imgDir: string
+    public imgDir: string,
   ) {
     this.modelVersionPath = normalize(modelVersionPath);
     this.modelVersion = modelVersion;
@@ -114,7 +113,7 @@ export class ModelVersionLayout {
   getApiInfoJsonPath(): string {
     return join(
       this.getApiInfoJsonFileDirPath(),
-      this.getApiInfoJsonFileName()
+      this.getApiInfoJsonFileName(),
     );
   }
 
@@ -169,11 +168,14 @@ export class ModelVersionLayout {
 export class ModelLayout {
   imgDir: string;
   modelIdPath: string;
-  constructor(public basePath: string, public modelId: Model) {
+  constructor(
+    public basePath: string,
+    public modelId: Model,
+  ) {
     this.modelIdPath = getModelIdPath(
       basePath,
       this.modelId.type,
-      this.modelId.id
+      this.modelId.id,
     );
     this.imgDir = getMediaDir(basePath);
     this.modelId = modelId;
@@ -195,7 +197,7 @@ export class ModelLayout {
     return getModelIdApiInfoJsonPath(
       this.basePath,
       this.modelId.type,
-      this.modelId.id
+      this.modelId.id,
     );
   }
 
@@ -206,23 +208,23 @@ export class ModelLayout {
         this.basePath,
         this.modelId.type,
         this.modelId.id,
-        versionId
+        versionId,
       ),
       this.findModelVersion(versionId),
-      this.imgDir
+      this.imgDir,
     );
   }
 
   async checkVersionFilesOnDisk(versionId: number): Promise<Array<number>> {
-    const mv = this.getModelVersionLayout(versionId)
-    const existedFiles: Array<number> = []
+    const mv = this.getModelVersionLayout(versionId);
+    const existedFiles: Array<number> = [];
     for (let index = 0; index < mv.modelVersion.files.length; index++) {
       const file = mv.modelVersion.files[index];
       const element = Bun.file(mv.getFilePath(file.id));
       if (await element.exists()) {
-        existedFiles.push(file.id)
+        existedFiles.push(file.id);
       }
     }
-    return existedFiles
+    return existedFiles;
   }
 }

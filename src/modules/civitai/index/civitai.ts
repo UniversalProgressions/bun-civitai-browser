@@ -1,25 +1,29 @@
 import { KyResponse } from "ky";
 import { ArkErrors, type } from "arktype";
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import {
   model,
   models_request_opts,
   models_response,
-  ModelsResponse
+  ModelsResponse,
 } from "../models/models_endpoint";
-import { modelVersion_model_version, type ModelVersion_ModelVersion } from "../models/modelVersion_endpoint";
-import { modelId_model, type ModelId_ModelId } from "../models/modelId_endpoint";
+import {
+  modelVersion_model_version,
+  type ModelVersion_ModelVersion,
+} from "../models/modelVersion_endpoint";
+import {
+  modelId_model,
+  type ModelId_ModelId,
+} from "../models/modelId_endpoint";
 import { modelId2Model, obj2UrlSearchParams } from "../service/sharedUtils";
 import { getRequester } from "../service/utils";
-import { ModelLayout } from "../service/fileLayout";
-import { getSettings } from "#modules/settings/service";
 import { checkModelOnDisk } from "#modules/civitai/service/localModels";
 export class DataValidationErrorResponse extends Error {
   constructor(
     public message: string,
     public resData: string,
     public arkSummary: string,
-    public kyRes: KyResponse
+    public kyRes: KyResponse,
   ) {
     super(message);
     this.name = "DataValidationErrorResponse";
@@ -32,7 +36,7 @@ export class DataValidationErrorResponse extends Error {
 export class ApiCommunicationError extends Error {
   constructor(
     public message: string,
-    public kyResponse: KyResponse
+    public kyResponse: KyResponse,
   ) {
     super(message);
     this.name = "ApiCommunicationError";
@@ -40,13 +44,16 @@ export class ApiCommunicationError extends Error {
   }
 }
 
-async function apiResponseProcess<T>(arkValidator: (data: unknown) => T | ArkErrors, kyRes: KyResponse): Promise<T> {
+async function apiResponseProcess<T>(
+  arkValidator: (data: unknown) => T | ArkErrors,
+  kyRes: KyResponse,
+): Promise<T> {
   if (!kyRes.ok) {
     // network error handle
     // there are some situations that unknowable error happens
     throw new ApiCommunicationError(
       `civitai api error: ${kyRes.status} ${kyRes.statusText}`,
-      kyRes
+      kyRes,
     );
   }
   const json = await kyRes.json();
@@ -57,7 +64,7 @@ async function apiResponseProcess<T>(arkValidator: (data: unknown) => T | ArkErr
       `Failed to validate civitai responsed data.`,
       JSON.stringify(json),
       data.summary,
-      kyRes
+      kyRes,
     );
   } else {
     return data;
@@ -94,7 +101,7 @@ const civitaiApiMirror = new Elysia({ prefix: "/api/v1" })
     {
       body: models_request_opts,
       response: models_response,
-    }
+    },
   )
   .get(
     "/models/nextPage",
@@ -106,69 +113,112 @@ const civitaiApiMirror = new Elysia({ prefix: "/api/v1" })
     {
       query: type({ nextPage: "string" }),
       response: models_response,
-    }
+    },
   )
-  .post(`/modelById`, async ({ body }) => {
-    const requester = getRequester();
-    const res = await requester.get(`https://civitai.com/api/v1/models/${body.modelId}`)
-    return await apiResponseProcess<ModelId_ModelId>(modelId_model, res);
-  }, { body: type({ modelId: "number" }), response: modelId_model })
+  .post(
+    `/modelById`,
+    async ({ body }) => {
+      const requester = getRequester();
+      const res = await requester.get(
+        `https://civitai.com/api/v1/models/${body.modelId}`,
+      );
+      return await apiResponseProcess<ModelId_ModelId>(modelId_model, res);
+    },
+    { body: type({ modelId: "number" }), response: modelId_model },
+  )
   .post(
     `/modelVersionById/`,
     async ({ body }) => {
       const requester = getRequester();
       const res = await requester.get(
-        `https://civitai.com/api/v1/model-versions/${body.modelVersionId}`
+        `https://civitai.com/api/v1/model-versions/${body.modelVersionId}`,
       );
-      return await apiResponseProcess<ModelVersion_ModelVersion>(modelVersion_model_version, res);
+      return await apiResponseProcess<ModelVersion_ModelVersion>(
+        modelVersion_model_version,
+        res,
+      );
     },
     {
       body: type({ modelVersionId: "number" }),
       response: modelVersion_model_version,
-    }
+    },
   )
-  .get(`/modelVersionByHash/:hash`, async ({ params }) => {
-    const requester = getRequester();
-    const res = await requester.get(
-      `https://civitai.com/api/v1/model-versions/by-hash/${params.hash}`
-    );
-    return await apiResponseProcess<ModelVersion_ModelVersion>(modelVersion_model_version, res);
-  }, {
-    response: modelVersion_model_version,
-  })
-  .post(`/loadModelInfoById`,
+  .get(
+    `/modelVersionByHash/:hash`,
+    async ({ params }) => {
+      const requester = getRequester();
+      const res = await requester.get(
+        `https://civitai.com/api/v1/model-versions/by-hash/${params.hash}`,
+      );
+      return await apiResponseProcess<ModelVersion_ModelVersion>(
+        modelVersion_model_version,
+        res,
+      );
+    },
+    {
+      response: modelVersion_model_version,
+    },
+  )
+  .post(
+    `/loadModelInfoById`,
     async ({ body }) => {
       const requester = getRequester();
-      const res = await requester.get(`https://civitai.com/api/v1/models/${body.modelId}`)
+      const res = await requester.get(
+        `https://civitai.com/api/v1/models/${body.modelId}`,
+      );
       const mi = await apiResponseProcess<ModelId_ModelId>(modelId_model, res);
       const modelData = modelId2Model(mi);
       const existedModelversions = await checkModelOnDisk(modelData);
       return {
         model: modelData,
-        existedModelversions: existedModelversions
+        existedModelversions: existedModelversions,
       };
     },
     {
       body: type({ modelId: "number" }),
-      response: type({ model: model, existedModelversions: type({ "versionId": "number", "filesOnDisk": type("number[]") }).array() })
-    }
+      response: type({
+        model: model,
+        existedModelversions: type({
+          versionId: "number",
+          filesOnDisk: type("number[]"),
+        }).array(),
+      }),
+    },
   )
-  .post(`/loadModelInfoByVersionId`, async ({ body }) => {
-    const requester = getRequester();
-    const mvRes = await requester.get(
-      `https://civitai.com/api/v1/model-versions/${body.modelVersionId}`
-    );
-    const mv = await apiResponseProcess<ModelVersion_ModelVersion>(modelVersion_model_version, mvRes);
-    const miRes = await requester.get(`https://civitai.com/api/v1/models/${mv.modelId}`)
-    const mi = await apiResponseProcess<ModelId_ModelId>(modelId_model, miRes);
-    const modelData = modelId2Model(mi);
-    const existedModelversions = await checkModelOnDisk(modelData);
-    return {
-      model: modelData,
-      existedModelversions: existedModelversions
-    };
-  }, {
-    body: type({ modelVersionId: "number" }),
-    response: type({ model: model, existedModelversions: type({ "versionId": "number", "filesOnDisk": type("number[]") }).array() })
-  });
+  .post(
+    `/loadModelInfoByVersionId`,
+    async ({ body }) => {
+      const requester = getRequester();
+      const mvRes = await requester.get(
+        `https://civitai.com/api/v1/model-versions/${body.modelVersionId}`,
+      );
+      const mv = await apiResponseProcess<ModelVersion_ModelVersion>(
+        modelVersion_model_version,
+        mvRes,
+      );
+      const miRes = await requester.get(
+        `https://civitai.com/api/v1/models/${mv.modelId}`,
+      );
+      const mi = await apiResponseProcess<ModelId_ModelId>(
+        modelId_model,
+        miRes,
+      );
+      const modelData = modelId2Model(mi);
+      const existedModelversions = await checkModelOnDisk(modelData);
+      return {
+        model: modelData,
+        existedModelversions: existedModelversions,
+      };
+    },
+    {
+      body: type({ modelVersionId: "number" }),
+      response: type({
+        model: model,
+        existedModelversions: type({
+          versionId: "number",
+          filesOnDisk: type("number[]"),
+        }).array(),
+      }),
+    },
+  );
 export default civitaiApiMirror;

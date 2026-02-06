@@ -1,9 +1,9 @@
-import { base_models, BaseModelsArray } from "../baseModels/misc";
+import { baseModelsSchema, BaseModelsArray } from "./misc.js";
 import { type } from "arktype";
-import { describe, test, expect } from "bun:test";
+import { test, expect } from "bun:test";
 
 test("test enumerated type in runtime", () => {
-  const out = base_models("Illustrious");
+  const out = baseModelsSchema("Illustrious");
 
   let result = ``;
 

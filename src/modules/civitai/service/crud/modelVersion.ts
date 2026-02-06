@@ -1,6 +1,11 @@
 import { prisma } from "../../../db/service";
-import { model, model_version, type Model, type ModelVersion } from "../../models/models_endpoint";
-import { getSettings } from "../../../settings/service";
+import {
+  model,
+  model_version,
+  type Model,
+  type ModelVersion,
+} from "../../models/models_endpoint";
+import { getSettings } from "../../../settings-deprecated/service";
 import { findOrCreateOneBaseModel } from "./baseModel";
 import { findOrCreateOneBaseModelType } from "./baseModelType";
 import { findOrCreateOneModelId } from "./modelId";
@@ -18,16 +23,16 @@ import { PathScurry } from "path-scurry";
 
 export async function upsertOneModelVersion(
   modelId: Model,
-  modelVersion: ModelVersion
+  modelVersion: ModelVersion,
 ) {
   const baseModelRecord = await findOrCreateOneBaseModel(
-    modelVersion.baseModel
+    modelVersion.baseModel,
   );
   const baseModelTypeRecord = modelVersion.baseModelType
     ? await findOrCreateOneBaseModelType(
-      modelVersion.baseModelType,
-      baseModelRecord.id
-    )
+        modelVersion.baseModelType,
+        baseModelRecord.id,
+      )
     : undefined;
   const modelIdRecord = await findOrCreateOneModelId(modelId);
 
@@ -84,7 +89,7 @@ export async function upsertOneModelVersion(
 
 export async function deleteOneModelVersion(
   modelVersionId: number,
-  modelId: number
+  modelId: number,
 ) {
   await prisma.modelVersion.delete({
     where: {
@@ -152,39 +157,43 @@ export async function scanModelsAndSyncToDb() {
       },
     });
     if (isExistsInDb === null) {
-      const modelVersionJson = Bun.file(getModelVersionApiInfoJsonPath(
-        getSettings().basePath,
-        modelInfo.modelType as ModelTypes,
-        modelInfo.modelId,
-        modelInfo.versionId
-      ));
+      const modelVersionJson = Bun.file(
+        getModelVersionApiInfoJsonPath(
+          getSettings().basePath,
+          modelInfo.modelType as ModelTypes,
+          modelInfo.modelId,
+          modelInfo.versionId,
+        ),
+      );
       if ((await modelVersionJson.exists()) === false) {
         console.log(
-          `modelVersion ${modelInfo.versionId}'s json file doesn't exists, exclude from processing.`
+          `modelVersion ${modelInfo.versionId}'s json file doesn't exists, exclude from processing.`,
         );
         continue;
       }
       const modelVersionInfo = model_version(await modelVersionJson.json());
       if (modelVersionInfo instanceof type.errors) {
         // hover out.summary to see validation errors
-        console.error(modelVersionInfo.summary)
+        console.error(modelVersionInfo.summary);
         throw modelVersionInfo;
       }
-      const modelIdJson = Bun.file(getModelIdApiInfoJsonPath(
-        getSettings().basePath,
-        modelInfo.modelType as ModelTypes,
-        modelInfo.modelId
-      ));
+      const modelIdJson = Bun.file(
+        getModelIdApiInfoJsonPath(
+          getSettings().basePath,
+          modelInfo.modelType as ModelTypes,
+          modelInfo.modelId,
+        ),
+      );
       if ((await modelIdJson.exists()) === false) {
         console.log(
-          `modelID ${modelInfo.modelId}'s json file doesn't exists, exclude from processing.`
+          `modelID ${modelInfo.modelId}'s json file doesn't exists, exclude from processing.`,
         );
         continue;
       }
       const modelIdInfo = model(await modelIdJson.json());
       if (modelIdInfo instanceof type.errors) {
         // hover out.summary to see validation errors
-        console.error(modelIdInfo.summary)
+        console.error(modelIdInfo.summary);
         throw modelIdInfo;
       }
       await upsertOneModelVersion(modelIdInfo, modelVersionInfo);

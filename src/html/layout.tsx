@@ -1,6 +1,6 @@
 import { type MenuProps, Tabs, type TabsProps } from "antd";
 import { SettingFilled } from "@ant-design/icons";
-import SettingsPanel from "./pages/settingsPanel";
+import SettingsPanel from "./pages/settings";
 import LocalModelsGallery from "./pages/localModelsGallery";
 import DownloadPanel from "./pages/downloadPanel";
 import CivitaiGallery from "./pages/civitaiModelsGallery";

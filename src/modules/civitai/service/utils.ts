@@ -1,5 +1,5 @@
 import ky, { KyResponse } from "ky";
-import { getSettings } from "../../settings/service";
+import { getSettings } from "../../settings-deprecated/service";
 
 export function getRequester() {
   const settingsInfo = getSettings();

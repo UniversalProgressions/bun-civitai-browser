@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { pathExists } from "path-exists";
 import fg from "fast-glob";
-import { getSettings } from "../../settings/service";
+import { getSettings } from "../../settings-deprecated/service";
 import { Model } from "../models/models_endpoint";
 import { ModelLayout } from "./fileLayout";
 import { ExistedModelversions } from "../models/modelId_endpoint";
@@ -53,16 +53,18 @@ export async function scanModels() {
 
 export async function checkModelOnDisk(modelData: Model) {
   // check existed model versions
-  const settings = getSettings()
+  const settings = getSettings();
   const mi = new ModelLayout(settings.basePath, modelData);
-  const existedModelversions: ExistedModelversions = []
+  const existedModelversions: ExistedModelversions = [];
   for (const version of modelData.modelVersions) {
-    const IdsOfFilesOnDisk = await mi.checkVersionFilesOnDisk(version.id)
-    if (IdsOfFilesOnDisk.length === 0) { continue }
+    const IdsOfFilesOnDisk = await mi.checkVersionFilesOnDisk(version.id);
+    if (IdsOfFilesOnDisk.length === 0) {
+      continue;
+    }
     existedModelversions.push({
       versionId: version.id,
-      filesOnDisk: IdsOfFilesOnDisk
-    })
+      filesOnDisk: IdsOfFilesOnDisk,
+    });
   }
-  return existedModelversions
+  return existedModelversions;
 }

@@ -16,9 +16,12 @@ import {
   model_version,
   type ModelVersion,
 } from "../models/models_endpoint";
-import { existedModelversions, ExistedModelversions } from "../models/modelId_endpoint";
+import {
+  existedModelversions,
+  ExistedModelversions,
+} from "../models/modelId_endpoint";
 import { type ModelTypes, model_types } from "../models/baseModels/misc";
-import { Model as TypeBox_Model } from "../../../../generated/typebox/barrel";
+import { Model as TypeBox_Model } from "../../db/generated/typebox/barrel";
 import {
   getModelIdApiInfoJsonPath,
   getModelVersionApiInfoJsonPath,
@@ -48,7 +51,7 @@ const mediaController = new Elysia({ prefix: "/media" })
     }
   })
   .get("/:filename", ({ params: { filename } }) =>
-    file(join(getMediaDir(getSettings().basePath), filename))
+    file(join(getMediaDir(getSettings().basePath), filename)),
   )
   .get(
     "/preview",
@@ -62,13 +65,13 @@ const mediaController = new Elysia({ prefix: "/media" })
     },
     {
       query: type({ previewFile: "string" }),
-    }
+    },
   );
 
 export class ModelJSONFileNotExists extends Error {
   constructor(
     public message: string,
-    public jsonFilePath: string
+    public jsonFilePath: string,
   ) {
     super(message);
     this.jsonFilePath = jsonFilePath;
@@ -80,7 +83,7 @@ export class ModelJSONContentValidationError extends Error {
     public message: string,
     public jsonFilePath: string,
     public jsonContent: string,
-    public arkSummary: string
+    public arkSummary: string,
   ) {
     super(message);
     this.jsonFilePath = jsonFilePath;
@@ -93,7 +96,7 @@ export class ModelJSONParseError extends Error {
   constructor(
     public message: string,
     public jsonFilePath: string,
-    public jsonContent: string
+    public jsonContent: string,
   ) {
     super(message);
     this.jsonFilePath = jsonFilePath;
@@ -104,7 +107,7 @@ export class ModelJSONParseError extends Error {
 async function parseModelJson(
   basePath: string,
   modelType: ModelTypes,
-  modelId: number
+  modelId: number,
 ): Promise<Model> {
   const modelJsonPath = getModelIdApiInfoJsonPath(basePath, modelType, modelId);
   const modelJsonFile = Bun.file(modelJsonPath);
@@ -125,7 +128,7 @@ async function parseModelJson(
         message,
         modelJsonPath,
         rawData,
-        data.summary
+        data.summary,
       );
     } else {
       return data;
@@ -137,7 +140,7 @@ async function parseModelJson(
     throw new ModelJSONParseError(
       message,
       modelJsonPath,
-      await modelJsonFile.text()
+      await modelJsonFile.text(),
     );
   }
 }
@@ -146,13 +149,13 @@ async function parseModelVersionJson(
   basePath: string,
   modelType: ModelTypes,
   modelId: number,
-  modelVersionId: number
+  modelVersionId: number,
 ): Promise<ModelVersion> {
   const modelVersionJsonPath = getModelVersionApiInfoJsonPath(
     basePath,
     modelType,
     modelId,
-    modelVersionId
+    modelVersionId,
   );
   const modelVersionJsonFile = Bun.file(modelVersionJsonPath);
   if ((await modelVersionJsonFile.exists()) === false) {
@@ -172,7 +175,7 @@ async function parseModelVersionJson(
         message,
         modelVersionJsonPath,
         rawData,
-        data.summary
+        data.summary,
       );
     } else {
       return data;
@@ -184,7 +187,7 @@ async function parseModelVersionJson(
     throw new ModelJSONParseError(
       message,
       modelVersionJsonPath,
-      await modelVersionJsonFile.text()
+      await modelVersionJsonFile.text(),
     );
   }
 }
@@ -204,7 +207,7 @@ const localModelsApi = new Elysia({ prefix: `/models` })
         totalCount: t.Number(),
         records: t.Array(TypeBox_Model),
       }),
-    }
+    },
   )
   .get(
     "/nextPage",
@@ -220,7 +223,7 @@ const localModelsApi = new Elysia({ prefix: `/models` })
       response: t.Object({
         records: t.Array(TypeBox_Model),
       }),
-    }
+    },
   )
   .post(
     "/pagination",
@@ -237,7 +240,7 @@ const localModelsApi = new Elysia({ prefix: `/models` })
         totalCount: t.Number(),
         records: t.Array(TypeBox_Model),
       }),
-    }
+    },
   )
   .post(
     "/modelId",
@@ -247,7 +250,7 @@ const localModelsApi = new Elysia({ prefix: `/models` })
       const modelJson = await parseModelJson(
         settings.basePath,
         body.type,
-        body.modelId
+        body.modelId,
       );
       for await (const element of body.modelVersionIdNumbers) {
         modelVersions.push(
@@ -255,8 +258,8 @@ const localModelsApi = new Elysia({ prefix: `/models` })
             settings.basePath,
             body.type,
             body.modelId,
-            element
-          )
+            element,
+          ),
         );
       }
       modelJson.modelVersions = modelVersions;
@@ -269,7 +272,7 @@ const localModelsApi = new Elysia({ prefix: `/models` })
         modelVersionIdNumbers: type("number.integer").array(),
       }),
       response: model,
-    }
+    },
   );
 
 export default new Elysia({ prefix: `/local` })
@@ -294,20 +297,27 @@ export default new Elysia({ prefix: `/local` })
     await scanModelsAndSyncToDb();
     return true;
   })
-  .post("/checkModelOnDisk", async ({ body }) => {
-    // check existed model versions
-    const settings = getSettings()
-    const mi = new ModelLayout(settings.basePath, body);
-    const existedModelversions: ExistedModelversions = []
-    for (const version of body.modelVersions) {
-      const IdsOfFilesOnDisk = await mi.checkVersionFilesOnDisk(version.id)
-      if (IdsOfFilesOnDisk.length === 0) { continue }
-      existedModelversions.push({
-        versionId: version.id,
-        filesOnDisk: IdsOfFilesOnDisk
-      })
-    }
-    return existedModelversions
-  }, {
-    body: model, response: existedModelversions
-  });
+  .post(
+    "/checkModelOnDisk",
+    async ({ body }) => {
+      // check existed model versions
+      const settings = getSettings();
+      const mi = new ModelLayout(settings.basePath, body);
+      const existedModelversions: ExistedModelversions = [];
+      for (const version of body.modelVersions) {
+        const IdsOfFilesOnDisk = await mi.checkVersionFilesOnDisk(version.id);
+        if (IdsOfFilesOnDisk.length === 0) {
+          continue;
+        }
+        existedModelversions.push({
+          versionId: version.id,
+          filesOnDisk: IdsOfFilesOnDisk,
+        });
+      }
+      return existedModelversions;
+    },
+    {
+      body: model,
+      response: existedModelversions,
+    },
+  );

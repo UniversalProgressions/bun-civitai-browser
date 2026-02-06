@@ -1,4 +1,4 @@
-import { PrismaClient } from "../../../generated/client";
+import { PrismaClient } from "./generated/client";
 import { BunSQLiteAdapter } from "@abcx3/prisma-bun-adapter";
 
 // Create adapter factory

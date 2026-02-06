@@ -3,12 +3,15 @@ import { ModelsRequestSort } from "../../models/baseModels/misc";
 import { findOrCreateOneCreator } from "./creator";
 import { findOrCreateOneModelType } from "./modelType";
 import type { ModelsRequestOpts, Model } from "../../models/models_endpoint";
-import type { ModelOrderByWithRelationInput, ModelWhereInput } from "../../../../../generated/models";
-import { Model as ModelTypeboxSchema } from "../../../../../generated/typebox/Model";
+import type {
+  ModelOrderByWithRelationInput,
+  ModelWhereInput,
+} from "../../../db/generated/models";
+import { Model as ModelTypeboxSchema } from "../../../db/generated/typebox/Model";
 import { Static } from "elysia";
 import { extractFilenameFromUrl } from "../sharedUtils";
 
-export type ModelWithAllRelations = Static<typeof ModelTypeboxSchema>
+export type ModelWithAllRelations = Static<typeof ModelTypeboxSchema>;
 
 export async function findOrCreateOneModelId(modelId: Model) {
   const creatorRecord = modelId.creator
@@ -34,13 +37,17 @@ export async function findOrCreateOneModelId(modelId: Model) {
           create: { name: tag },
         })),
       },
-      previewFile: modelId.modelVersions[0]?.images[0]?.url ? extractFilenameFromUrl(modelId.modelVersions[0]?.images[0]?.url) : undefined
+      previewFile: modelId.modelVersions[0]?.images[0]?.url
+        ? extractFilenameFromUrl(modelId.modelVersions[0]?.images[0]?.url)
+        : undefined,
     },
   });
   return record;
 }
 
-function processCursorPaginationFindMany(params: ModelsRequestOpts): ModelWhereInput {
+function processCursorPaginationFindMany(
+  params: ModelsRequestOpts,
+): ModelWhereInput {
   return {
     name: {
       contains: params.query,
@@ -66,20 +73,22 @@ function processCursorPaginationFindMany(params: ModelsRequestOpts): ModelWhereI
         },
       },
     },
-  }
+  };
 }
 
-function processSort(sortType?: ModelsRequestSort): ModelOrderByWithRelationInput {
+function processSort(
+  sortType?: ModelsRequestSort,
+): ModelOrderByWithRelationInput {
   switch (sortType) {
     case "Newest":
       return {
-        id: 'desc'
-      }
+        id: "desc",
+      };
 
     default: // defualt as Newest
       return {
-        id: 'desc'
-      }
+        id: "desc",
+      };
   }
 }
 
@@ -94,17 +103,20 @@ export async function cursorPaginationQuery(params: ModelsRequestOpts) {
         tags: true,
         type: true,
       },
-      orderBy: processSort(params.sort)
+      orderBy: processSort(params.sort),
     }),
     prisma.model.count({
       where: processCursorPaginationFindMany(params),
     }),
-  ])
+  ]);
 
-  return { records, totalCount }
+  return { records, totalCount };
 }
 
-export async function cursorPaginationNext(params: ModelsRequestOpts, modelIdAsCursor: number) {
+export async function cursorPaginationNext(
+  params: ModelsRequestOpts,
+  modelIdAsCursor: number,
+) {
   const records = await prisma.model.findMany({
     cursor: { id: modelIdAsCursor },
     take: 20,
@@ -116,19 +128,19 @@ export async function cursorPaginationNext(params: ModelsRequestOpts, modelIdAsC
       tags: true,
       type: true,
     },
-    orderBy: processSort(params.sort)
-  })
-  type test = typeof records
-  return records
+    orderBy: processSort(params.sort),
+  });
+  type test = typeof records;
+  return records;
 }
 
 export async function simplePagination(params: ModelsRequestOpts) {
   // defaultPageSize
   if (params.limit === undefined) {
-    params.limit = 20
+    params.limit = 20;
   }
   if (params.page === undefined || params.page < 1) {
-    params.page = 1
+    params.page = 1;
   }
   const [records, totalCount] = await prisma.$transaction([
     prisma.model.findMany({
@@ -141,12 +153,12 @@ export async function simplePagination(params: ModelsRequestOpts) {
         tags: true,
         type: true,
       },
-      orderBy: processSort(params.sort)
+      orderBy: processSort(params.sort),
     }),
     prisma.model.count({
       where: processCursorPaginationFindMany(params),
     }),
-  ])
+  ]);
 
-  return { records, totalCount }
+  return { records, totalCount };
 }

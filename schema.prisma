@@ -61,7 +61,6 @@ model Model {
   tags          Tag[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
-  previewFile   String?
 
   creator Creator?  @relation(fields: [creatorId], references: [id])
   type    ModelType @relation(fields: [typeId], references: [id])

@@ -1,12 +1,6 @@
 import { describe, it, expect, beforeAll } from "bun:test";
 import { createCivitaiClient } from "../../../v1/index";
 import {
-  toModelCore,
-  isModelsEndpointModel,
-  isModelByIdEndpointModel,
-  findModel,
-} from "../../../v1/models/model-version-abstract";
-import {
   EXAMPLE_MODEL_ID,
   EXAMPLE_VERSION_ID,
   LEGACY_EXAMPLE_MODEL_ID,
@@ -180,67 +174,4 @@ describe("Civitai API Client Basic Usage", () => {
       console.log(`Tags list API error: ${tagsResult.error.message}`);
     }
   }, 10000);
-
-  it("should demonstrate unified type system", async () => {
-    // Fetch data from different endpoints
-    const [unifiedModelsResult, unifiedModelByIdResult] = await Promise.all([
-      client.models.list({ limit: 1 }),
-      client.models.getById(LEGACY_EXAMPLE_MODEL_ID),
-    ]);
-
-    if (unifiedModelsResult.isOk() && unifiedModelByIdResult.isOk()) {
-      const modelFromList = unifiedModelsResult.value.items[0];
-      const modelById = unifiedModelByIdResult.value;
-
-      expect(modelFromList).toBeDefined();
-      expect(modelById).toBeDefined();
-
-      // Create model array
-      const models = [modelFromList, modelById];
-
-      // Extract core fields
-      models.forEach((model, index) => {
-        const core = toModelCore(model as any);
-        expect(core).toBeDefined();
-        expect(core.name).toBeDefined();
-        expect(core.type).toBeDefined();
-        expect(core.modelVersions).toBeDefined();
-        expect(Array.isArray(core.modelVersions)).toBe(true);
-        expect(core.tags).toBeDefined();
-        expect(Array.isArray(core.tags)).toBe(true);
-      });
-
-      // Use type guards
-      models.forEach((model, index) => {
-        if (isModelsEndpointModel(model as any)) {
-          // Model is from /models endpoint
-          expect(model).toBeDefined();
-        } else if (isModelByIdEndpointModel(model as any)) {
-          // Model is from /models/{id} endpoint
-          expect(model).toBeDefined();
-        }
-      });
-
-      // Use find function
-      const foundModel = findModel(models as any, LEGACY_EXAMPLE_MODEL_ID);
-      expect(foundModel).toBeDefined();
-      if (foundModel) {
-        const core = toModelCore(foundModel);
-        expect(core.id).toBe(LEGACY_EXAMPLE_MODEL_ID);
-        expect(core.name).toBeDefined();
-      }
-    } else {
-      // Log errors but don't fail test
-      if (unifiedModelsResult.isErr()) {
-        console.log(
-          `Unified models list API error: ${unifiedModelsResult.error.message}`,
-        );
-      }
-      if (unifiedModelByIdResult.isErr()) {
-        console.log(
-          `Unified model by ID API error: ${unifiedModelByIdResult.error.message}`,
-        );
-      }
-    }
-  }, 15000);
 });

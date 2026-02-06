@@ -1,4 +1,4 @@
-import MediaGallery from "../components/gallery";
+import MediaGallery from "../components/gallery-deprecated";
 import { GalleryContent } from "./localModelsGallery";
 import { Image } from "antd";
 import {

@@ -1,6 +1,5 @@
+import { treaty } from "@elysiajs/eden";
 
-import { treaty } from '@elysiajs/eden'
+import type { App } from "../modules/index";
 
-import type { App } from '../index'
-
-export const edenTreaty = treaty<App>(window.location.origin)
+export const edenTreaty = treaty<App>(window.location.origin);

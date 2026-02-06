@@ -1,34 +1,23 @@
-import { Image, Button, Card, Space } from "antd";
+import { Image, Card, Space } from "antd";
 import {
-  DownloadOutlined,
   LeftOutlined,
   RightOutlined,
-  RotateLeftOutlined,
-  RotateRightOutlined,
-  SwapOutlined,
   UndoOutlined,
   ZoomInOutlined,
   ZoomOutOutlined,
 } from "@ant-design/icons";
 import { useState } from "react";
-import { type } from "arktype";
 import {
-  extractFilenameFromUrl,
   getFileType,
 } from "#modules/civitai/service/sharedUtils";
-
-const mediaItem = type({
-  url: "string",
-  type: "'image' | 'video' | 'unknown'",
-});
-type MediaItem = typeof mediaItem.infer;
+import { ModelImage } from "#modules/civitai-api/v1/models";
 
 function GalleryThumb({
   item,
   modalVisible,
   setModalVisible,
 }: {
-  item?: MediaItem;
+  item?: ModelImage;
   modalVisible: boolean;
   setModalVisible: (visible: boolean) => void;
 }) {
@@ -110,10 +99,15 @@ export default function Gallery({ mediaArray }: { mediaArray: string[] }) {
     <>
       <GalleryThumb
         item={{
+          id: null,
+          url: mediaArray[0],
+          nsfwLevel: 0,
+          width: 0,
+          height: 0,
+          hash: '',
           type: getFileType(
             new URL(mediaArray[0]).searchParams.get("previewFile")!
-          ),
-          url: mediaArray[0],
+          ) as 'image' | 'video',
         }}
         modalVisible
         setModalVisible={setModalVisible}
@@ -179,68 +173,59 @@ export default function Gallery({ mediaArray }: { mediaArray: string[] }) {
               urlobj.searchParams.get("previewFile")!
             );
             console.log(fileType);
-            if (fileType !== "unknown") {
-              // Build transform string including flip, rotate, and our custom scale/position
-              const flipTransforms = [];
-              if (flipX) flipTransforms.push("scaleX(-1)");
-              if (flipY) flipTransforms.push("scaleY(-1)");
-              const flipTransform = flipTransforms.join(" ");
-              const rotateTransform =
-                rotate !== 0 ? `rotate(${rotate}deg)` : "";
-              const customTransform = `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`;
+            // Build transform string including flip, rotate, and our custom scale/position
+            const flipTransforms = [];
+            if (flipX) flipTransforms.push("scaleX(-1)");
+            if (flipY) flipTransforms.push("scaleY(-1)");
+            const flipTransform = flipTransforms.join(" ");
+            const rotateTransform =
+              rotate !== 0 ? `rotate(${rotate}deg)` : "";
+            const customTransform = `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`;
 
-              // Combine transforms - order matters: flip -> rotate -> scale/translate
-              const transform = [
-                flipTransform,
-                rotateTransform,
-                customTransform,
-              ]
-                .filter(Boolean)
-                .join(" ");
+            // Combine transforms - order matters: flip -> rotate -> scale/translate
+            const transform = [
+              flipTransform,
+              rotateTransform,
+              customTransform,
+            ]
+              .filter(Boolean)
+              .join(" ");
 
-              return (
-                <div className="relative w-full max-w-4xl rounded-lg bg-gray-100 dark:bg-gray-800">
-                  <div
-                    className="flex items-center justify-center cursor-move"
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                    onWheel={handleWheel}
-                    style={{
-                      transform: transform,
-                      transformOrigin: "center center",
-                      transition: isDragging ? "none" : "transform 0.2s ease",
-                      minHeight: "300px",
-                    }}
-                  >
-                    {fileType === "image" ? (
-                      <img
-                        src={info.image.url}
-                        alt={info.image.alt ?? ""}
-                        className="max-w-full max-h-[80vh] object-contain select-none"
-                        draggable="false"
-                      />
-                    ) : (
-                      <video
-                        autoPlay
-                        src={info.image.url}
-                        className="max-w-full max-h-[80vh] object-contain select-none"
-                        controls
-                        draggable="false"
-                      />
-                    )}
-                  </div>
+            return (
+              <div className="relative w-full max-w-4xl rounded-lg bg-gray-100 dark:bg-gray-800">
+                <div
+                  className="flex items-center justify-center cursor-move"
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  onWheel={handleWheel}
+                  style={{
+                    transform: transform,
+                    transformOrigin: "center center",
+                    transition: isDragging ? "none" : "transform 0.2s ease",
+                    minHeight: "300px",
+                  }}
+                >
+                  {fileType === "image" ? (
+                    <img
+                      src={info.image.url}
+                      alt={info.image.alt ?? ""}
+                      className="max-w-full max-h-[80vh] object-contain select-none"
+                      draggable="false"
+                    />
+                  ) : (
+                    <video
+                      autoPlay
+                      src={info.image.url}
+                      className="max-w-full max-h-[80vh] object-contain select-none"
+                      controls
+                      draggable="false"
+                    />
+                  )}
                 </div>
-              );
-            } else {
-              return (
-                <Card>
-                  <p>Unknown file type</p>
-                  <p>url: {info.image.url}</p>
-                </Card>
-              );
-            }
+              </div>
+            );
           },
         }}
       ></Image.PreviewGroup>

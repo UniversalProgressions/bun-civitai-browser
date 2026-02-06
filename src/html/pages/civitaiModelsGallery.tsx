@@ -46,25 +46,26 @@ import {
 
 import {
   BaseModelsArray,
-  CheckPointTypeArray,
+  CheckpointTypeArray,
   ModelsRequestPeriodArray,
   ModelsRequestSortArray,
   type ModelTypes,
   ModelTypesArray,
-} from "../../modules/civitai/models/baseModels/misc";
+} from "#modules/civitai-api/v1/models";
 import { useEffect, useRef, useState } from "react";
 import { edenTreaty } from "../utils";
 
-import {
+// import {
+//   Model,
+//   type ModelsRequestOpts,
+// } from "#modules/civitai/models/models_endpoint";
+import type {
   Model,
-  type ModelsRequestOpts,
-} from "../../modules/civitai/models/models_endpoint";
+  ModelsRequestOptions
+} from "#modules/civitai-api/v1/models";
 import {
-  ExistedModelversions,
-  existedModelversions,
-  modelId_model,
-} from "#modules/civitai/models/modelId_endpoint";
-import { useQuery } from "@tanstack/react-query";
+  ExistedModelVersions
+} from "#modules/civitai-api/v1/models";
 
 enum ModalWidthEnum {
   SearchPanel = 600,
@@ -78,16 +79,16 @@ const defaultPageAndSize = {
 const modalWidthAtom = atom<ModalWidthEnum>(ModalWidthEnum.SearchPanel);
 const modelsAtom = atomWithImmer<Model[]>([]);
 const modelsOnPageAtom = atom<Model[]>([]);
-const searchOptsAtom = atom<ModelsRequestOpts>({});
-const tempSearchOptsAtom = atomWithImmer<ModelsRequestOpts>({});
+const searchOptsAtom = atom<ModelsRequestOptions>({});
+const tempSearchOptsAtom = atomWithImmer<ModelsRequestOptions>({});
 const nextPageUrlAtom = atom<string>(``);
 const nonEffectiveSearchOptsAtom =
-  atom<Partial<ModelsRequestOpts>>(defaultPageAndSize);
+  atom<Partial<ModelsRequestOptions>>(defaultPageAndSize);
 const isGalleryLoadingAtom = atom<boolean>(false);
 const isModalOpenAtom = atom<boolean>(false);
 const activeVersionIdAtom = atom<string>(``);
 const modalContentAtom = atom<React.JSX.Element>(<div></div>);
-const civitaiExistedModelVersionsAtom = atom<ExistedModelversions>([]);
+const civitaiExistedModelVersionsAtom = atom<ExistedModelVersions>([]);
 
 function GalleryModal() {
   const [modalContent, setModalContent] = useAtom(modalContentAtom);
@@ -128,7 +129,7 @@ function MediaPreview({ url }: { url: string }) {
 
 function SearchPanel() {
   const [searchOpt, setSearchOpt] = useAtom(searchOptsAtom);
-  const [form] = Form.useForm<ModelsRequestOpts>();
+  const [form] = Form.useForm<ModelsRequestOptions>();
   const [tagsOptions, setTagsOptions] = useState<Array<DefaultOptionType>>([]);
   const [isModalOpen, setIsModalOpen] = useAtom(isModalOpenAtom);
 
@@ -218,7 +219,7 @@ function SearchPanel() {
         </Form.Item>
         <Form.Item name="checkpointType" label="Checkpoint Type">
           <Select
-            options={CheckPointTypeArray.map<DefaultOptionType>((v) => ({
+            options={CheckpointTypeArray.map<DefaultOptionType>((v) => ({
               label: v,
               value: v,
             }))}
@@ -756,7 +757,7 @@ function CivitaiModelsGallery() {
   const [nextPageUrl, setNextPageUrl] = useAtom(nextPageUrlAtom);
   const [isError, setIsError] = useState(false);
   const [errorContent, setErrorContent] = useState(<></>);
-  async function fetchModels(searchOptions: ModelsRequestOpts) {
+  async function fetchModels(searchOptions: ModelsRequestOptions) {
     setIsGalleryLoading(true);
     try {
       const { data, error, headers, response, status } =

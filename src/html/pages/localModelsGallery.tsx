@@ -48,7 +48,7 @@ import {
 import { DefaultOptionType } from "antd/es/select";
 import ShadowHTML from "../components/shadowHTML";
 import React from "react";
-import MediaGallery from "../components/gallery";
+import MediaGallery from "../components/gallery-deprecated";
 
 const isGalleryLoadingAtom = atom(false);
 const modelsAtom = atom<Array<ModelWithAllRelations>>([]);

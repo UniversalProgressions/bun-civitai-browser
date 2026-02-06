@@ -2,26 +2,21 @@
 // This file exports all v1 model-related types
 
 // Creator-related types
-export type * from './creators';
+export type * from "./creators";
 
 // Model-related types (list endpoint)
-export type * from './models';
+export type * from "./models";
 
 // Model by ID types
-export type * from './model-id';
+export type * from "./model-id";
 
 // Model version types
-export type * from './model-version';
-
-// Unified type system for ModelVersion
-export type * from './model-version-abstract';
-
-export * from './model-version-abstract';
+export type * from "./model-version";
 
 // Shared types used across multiple endpoints
-export type * from './shared-types';
+export type * from "./shared-types";
 
 // Base models and enums
-export * from './base-models/misc';
+export * from "./base-models/misc";
 
-export type * from './base-models/misc';
+export type * from "./base-models/misc";

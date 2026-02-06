@@ -2,8 +2,8 @@ import { type MenuProps, Tabs, type TabsProps } from "antd";
 import { SettingFilled } from "@ant-design/icons";
 import SettingsPanel from "./pages/settings";
 import LocalModelsGallery from "./pages/localModelsGallery";
-import DownloadPanel from "./pages/downloadPanel";
-import CivitaiGallery from "./pages/civitaiModelsGallery";
+import DownloadPanel from "./pages/downloadPanel-deprecated";
+import CivitaiGallery from "./pages/civitaiModelsGallery-deprecated";
 import TestPage from "./pages/galleryTestPage";
 
 type MenuItem = Required<MenuProps>["items"][number];

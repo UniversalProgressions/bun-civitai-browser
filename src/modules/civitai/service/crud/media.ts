@@ -5,7 +5,7 @@ import { extractFilenameFromUrl, removeFileExtension } from "../sharedUtils";
 
 export async function createOrConnectImagesByModelIdEndpointInfo(
   modelVersionId: number,
-  mediaArray: Array<ModelId_ModelVersionImage>
+  mediaArray: Array<ModelId_ModelVersionImage>,
 ) {
   const mediaArrayWithId: Array<ModelVersionImage> = mediaArray.map((image) => {
     const imageFileName = extractFilenameFromUrl(image.url);

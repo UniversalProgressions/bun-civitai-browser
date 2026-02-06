@@ -70,8 +70,8 @@ export const CheckPointTypeArray = (() => {
   const CheckPointTypeUnits = checkpoint_type.json as arkUnites;
   return map(CheckPointTypeUnits, function (u) {
     return u.unit;
-  })
-})()
+  });
+})();
 
 export const base_models = type.enumerated(
   "Aura Flow",
@@ -114,7 +114,6 @@ export const base_models = type.enumerated(
   "SDXL Distilled",
   "SDXL Hyper",
   "SDXL Lightning",
-  "SDXL Turbo",
   "SDXL Turbo",
   "SVD",
   "SVD XT",

@@ -3,7 +3,8 @@
     "paths": {
       "#generated/*": ["./src/modules/db/generated/*"],
       "#client/*": ["./src/html/*"],
-      "#modules/*": ["./src/modules/*"]
+      "#modules/*": ["./src/modules/*"],
+      "#civitai-api/*": ["./src/civitai-api/*"]
     },
     "target": "esnext",
     "jsx": "preserve",

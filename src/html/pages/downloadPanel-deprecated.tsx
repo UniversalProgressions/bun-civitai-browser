@@ -23,20 +23,20 @@ import { type } from "arktype";
 import clipboard from "clipboardy";
 import { debounce } from "es-toolkit";
 import DOMPurify from "dompurify";
-import { type Model } from "#modules/civitai/models/models_endpoint";
+import { type Model } from "#modules/civitai-deprecated/models/models_endpoint.js";
 import {
   ExistedModelversions,
   existedModelversions,
   modelId_model,
-} from "#modules/civitai/models/modelId_endpoint";
-import { model_types } from "#modules/civitai/models/baseModels/misc";
+} from "#modules/civitai-deprecated/models/modelId_endpoint.js";
+import { model_types } from "#modules/civitai-deprecated/models/baseModels/misc.js";
 import { edenTreaty } from "../utils";
 import {
   replaceUrlParam,
   extractFilenameFromUrl,
   modelId2Model,
   removeFileExtension,
-} from "#modules/civitai/service/sharedUtils";
+} from "#modules/civitai-deprecated/service/sharedUtils.js";
 
 enum LoadingOptionsEnum {
   VersionId = "VersionId",

@@ -9,8 +9,8 @@ import {
 import { useState } from "react";
 import {
   getFileType,
-} from "#modules/civitai/service/sharedUtils";
-import { ModelImage } from "#modules/civitai-api/v1/models";
+} from "#modules/civitai-deprecated/service/sharedUtils.js";
+import { ModelImage } from "../../civitai-api/v1/models/index.js";
 
 function GalleryThumb({
   item,

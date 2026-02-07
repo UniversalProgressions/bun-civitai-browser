@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "bun:test";
-import { createCivitaiClient } from "../../../v1/index";
+import { createCivitaiClient } from "../../index";
 import {
   EXAMPLE_MODEL_ID,
   EXAMPLE_VERSION_ID,

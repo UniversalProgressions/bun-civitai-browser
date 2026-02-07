@@ -42,7 +42,7 @@ import {
   getFileType,
   extractFilenameFromUrl,
   replaceUrlParam,
-} from "#modules/civitai/service/sharedUtils";
+} from "#modules/civitai-deprecated/service/sharedUtils.js";
 
 import {
   BaseModelsArray,
@@ -51,7 +51,7 @@ import {
   ModelsRequestSortArray,
   type ModelTypes,
   ModelTypesArray,
-} from "#modules/civitai-api/v1/models";
+} from "../../civitai-api/v1/models/index.js";
 import { useEffect, useRef, useState } from "react";
 import { edenTreaty } from "../utils";
 
@@ -62,10 +62,10 @@ import { edenTreaty } from "../utils";
 import type {
   Model,
   ModelsRequestOptions
-} from "#modules/civitai-api/v1/models";
+} from "../../civitai-api/v1/models/index.js";
 import {
   ExistedModelVersions
-} from "#modules/civitai-api/v1/models";
+} from "../../civitai-api/v1/models/index.js";
 
 enum ModalWidthEnum {
   SearchPanel = 600,

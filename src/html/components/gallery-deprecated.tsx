@@ -15,7 +15,7 @@ import { type } from "arktype";
 import {
   extractFilenameFromUrl,
   getFileType,
-} from "#modules/civitai/service/sharedUtils";
+} from "#modules/civitai-deprecated/service/sharedUtils.js";
 
 const mediaItem = type({
   url: "string",

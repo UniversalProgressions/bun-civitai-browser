@@ -31,7 +31,7 @@ import {
   type Model,
   type ModelsRequestOpts,
   type ModelVersion,
-} from "../../modules/civitai/models/models_endpoint";
+} from "../../modules/civitai-deprecated/models/models_endpoint";
 import {
   BaseModelsArray,
   CheckPointTypeArray,
@@ -39,12 +39,12 @@ import {
   ModelsRequestSortArray,
   type ModelTypes,
   ModelTypesArray,
-} from "../../modules/civitai/models/baseModels/misc";
-import { type ModelWithAllRelations } from "../../modules/civitai/service/crud/modelId";
+} from "../../modules/civitai-deprecated/models/baseModels/misc";
+import { type ModelWithAllRelations } from "../../modules/civitai-deprecated/service/crud/modelId";
 import {
   extractFilenameFromUrl,
   getFileType,
-} from "#modules/civitai/service/sharedUtils";
+} from "#modules/civitai-deprecated/service/sharedUtils.js";
 import { DefaultOptionType } from "antd/es/select";
 import ShadowHTML from "../components/shadowHTML";
 import React from "react";

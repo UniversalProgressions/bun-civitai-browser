@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { createCivitaiClient } from "../../../v1/index";
-import { isValidationError } from "../../../v1/client/errors";
+import { createCivitaiClient } from "../../index";
+import { isValidationError } from "../../client/errors";
 
 describe("Arktype Validation", () => {
   it("should create client with validation enabled", () => {

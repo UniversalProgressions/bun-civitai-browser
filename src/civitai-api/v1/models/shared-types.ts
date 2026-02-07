@@ -35,7 +35,7 @@ export type ModelFile = typeof modelFileSchema.infer;
 
 // Model image information
 export const modelImageSchema = type({
-  id: "number.integer | null", // Some endpoints don't include id
+  id: "number.integer | null", // model-id and model-versions/{id} endpoints don't include id field, but models/ endpoint does
   url: "string",
   nsfwLevel: "number.integer",
   width: "number.integer",

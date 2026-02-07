@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "bun:test";
-import { createCivitaiClient } from "../../../v1/index";
+import { createCivitaiClient } from "../../index";
 import { LEGACY_EXAMPLE_MODEL_ID } from "../shared-ids";
 
 describe("Civitai API Client - getModel() method", () => {

@@ -16,5 +16,3 @@ export * from "./client/errors";
 
 // Utility functions
 export * from "./utils";
-
-export default new Elysia({ prefix: "/v1" });

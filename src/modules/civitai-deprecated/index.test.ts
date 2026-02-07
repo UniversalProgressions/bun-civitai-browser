@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { Elysia } from "elysia";
 import { treaty } from "@elysiajs/eden";
-import ElysiaCivi from "./index";
+import ElysiaCivi from "./index/index";
 
 const app = new Elysia().use(ElysiaCivi);
 

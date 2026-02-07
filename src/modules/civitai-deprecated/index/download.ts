@@ -9,11 +9,14 @@ import {
   model,
   type Model,
   type ModelVersion,
-} from "#modules/civitai/models/models_endpoint";
+} from "#modules/civitai-deprecated/models/models_endpoint.js";
 import { getRequester } from "../service/utils";
 import { KyResponse } from "ky";
-import { ModelLayout, getMediaDir } from "#modules/civitai/service/fileLayout";
-import { upsertOneModelVersion } from "#modules/civitai/service/crud/modelVersion";
+import {
+  ModelLayout,
+  getMediaDir,
+} from "#modules/civitai-deprecated/service/fileLayout.js";
+import { upsertOneModelVersion } from "../../db/crud/modelVersion";
 import { extractFilenameFromUrl } from "../service/sharedUtils";
 import { writeJsonFile } from "write-json-file";
 

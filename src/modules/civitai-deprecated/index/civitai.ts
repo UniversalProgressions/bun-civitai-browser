@@ -17,7 +17,7 @@ import {
 } from "../models/modelId_endpoint";
 import { modelId2Model, obj2UrlSearchParams } from "../service/sharedUtils";
 import { getRequester } from "../service/utils";
-import { checkModelOnDisk } from "#modules/civitai/service/localModels";
+import { checkModelOnDisk } from "#modules/civitai-deprecated/service/localModels.js";
 export class DataValidationErrorResponse extends Error {
   constructor(
     public message: string,

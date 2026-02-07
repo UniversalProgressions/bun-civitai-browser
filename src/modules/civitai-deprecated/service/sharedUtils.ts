@@ -1,6 +1,13 @@
 import { find } from "es-toolkit/compat";
-import { type ModelId_ModelId, modelId_model } from "#modules/civitai/models/modelId_endpoint";
-import { type Model, model, ModelVersion } from "#modules/civitai/models/models_endpoint";
+import {
+  type ModelId_ModelId,
+  modelId_model,
+} from "#modules/civitai-deprecated/models/modelId_endpoint.js";
+import {
+  type Model,
+  model,
+  ModelVersion,
+} from "#modules/civitai-deprecated/models/models_endpoint.js";
 import { type } from "arktype";
 
 export function modelId2Model(data: ModelId_ModelId): Model {
@@ -16,16 +23,20 @@ export function modelId2Model(data: ModelId_ModelId): Model {
       mv.files.map((f) => {
         // Only UTC date format is valid!
         // @ts-ignore
-        f.scannedAt = f.scannedAt ? (new Date(f.scannedAt as string)).toISOString() : null;
+        f.scannedAt = f.scannedAt
+          ? new Date(f.scannedAt as string).toISOString()
+          : null;
       });
       mv.description = mv.description ?? null;
       // @ts-ignore
-      mv.publishedAt = mv.publishedAt ? (new Date(mv.publishedAt as string)).toISOString() : null;
+      mv.publishedAt = mv.publishedAt
+        ? new Date(mv.publishedAt as string).toISOString()
+        : null;
     });
     const out = model(data);
     if (out instanceof type.errors) {
       console.error(`convert ModelId to Model error!`);
-      console.log(out.summary)
+      console.log(out.summary);
       out.throw();
       throw out;
     }
@@ -36,8 +47,8 @@ export function modelId2Model(data: ModelId_ModelId): Model {
     const out = modelId_model(data);
     if (out instanceof type.errors) {
       console.error(`convert ModelId to Model error!`);
-      console.log(out.summary)
-      console.log(data)
+      console.log(out.summary);
+      console.log(data);
       out.throw();
       throw out;
     }
@@ -47,7 +58,7 @@ export function modelId2Model(data: ModelId_ModelId): Model {
 
 export function findModelVersion(
   modelId: Model,
-  modelVersionId: number
+  modelVersionId: number,
 ): ModelVersion {
   const modelVersion = find(modelId.modelVersions, function (mv) {
     return mv.id === modelVersionId;
@@ -99,7 +110,7 @@ export function removeFileExtension(filename: string): string {
   // 处理路径分隔符（兼容Windows和Unix）
   const lastSeparatorIndex = Math.max(
     filename.lastIndexOf("/"),
-    filename.lastIndexOf("\\")
+    filename.lastIndexOf("\\"),
   );
 
   // 获取最后一个点号的位置（在最后一个路径分隔符之后）
@@ -127,15 +138,15 @@ export function obj2UrlSearchParams(params: object) {
 }
 
 export function getFileType(filename: string) {
-  if (!filename) return 'unknown';
-  const ext = filename.split('.').pop()!.toLowerCase();
+  if (!filename) return "unknown";
+  const ext = filename.split(".").pop()!.toLowerCase();
 
-  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'avif'];
-  const videoExts = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'flv'];
+  const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "avif"];
+  const videoExts = ["mp4", "webm", "ogg", "mov", "avi", "mkv", "flv"];
 
-  if (imageExts.includes(ext)) return 'image';
-  if (videoExts.includes(ext)) return 'video';
-  return 'unknown';
+  if (imageExts.includes(ext)) return "image";
+  if (videoExts.includes(ext)) return "video";
+  return "unknown";
 }
 
 // // 示例：

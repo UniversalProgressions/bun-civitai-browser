@@ -9,7 +9,7 @@ import type {
 } from "../models/models_endpoint";
 import { ModelTypes } from "../models/baseModels/misc";
 import { findModelVersion } from "./sharedUtils";
-import { getSettings } from "../../settings-deprecated/service";
+import { getSettings } from "../../settings/service";
 import { extractFilenameFromUrl } from "./sharedUtils";
 // import { pathExists } from "path-exists"; // use Bun.file() to locate file and use the returned object's exists() function to ensure if it exists.
 

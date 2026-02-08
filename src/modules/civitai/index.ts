@@ -1,5 +1,5 @@
 import { type } from "arktype";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import {
   creatorsResponseSchema,
   creatorsRequestOptionsSchema,
@@ -9,12 +9,8 @@ import {
   modelsRequestOptionsSchema,
   modelsResponseSchema,
 } from "../../civitai-api/v1/models/models";
-import {
-  modelByIdSchema,
-} from "../../civitai-api/v1/models/model-id";
-import {
-  modelVersionEndpointDataSchema,
-} from "../../civitai-api/v1/models/model-version";
+import { modelByIdSchema } from "../../civitai-api/v1/models/model-id";
+import { modelVersionEndpointDataSchema } from "../../civitai-api/v1/models/model-version";
 import type {
   ModelsResponse,
   ModelById,
@@ -30,6 +26,14 @@ import {
   isValidationError,
   isNetworkError,
 } from "../../civitai-api/v1/client/errors";
+import { getSettings } from "../settings/service";
+import { Client } from "@gopeed/rest";
+import { join } from "node:path";
+import { CreateTaskWithRequest } from "@gopeed/types";
+import { ModelLayout, getMediaDir } from "../local-models/service/file-layout";
+import { upsertOneModelVersion } from "../db/crud/modelVersion";
+import { extractFilenameFromUrl } from "../../civitai-api/v1/utils";
+import { writeJsonFile } from "write-json-file";
 
 export const client = createCivitaiClient({
   apiKey: process.env.CIVITAI_API_KEY, // Read API key from environment variable
@@ -59,6 +63,21 @@ export class CivitaiValidationError extends Error {
   }
 }
 
+// Gopeed related error classes
+export class ExternalServiceError extends Error {
+  constructor(public message: string) {
+    super(message);
+    this.name = "ExternalServiceError";
+  }
+}
+
+export class GopeedHostNotSpecifiedError extends Error {
+  constructor(public message: string) {
+    super(message);
+    this.name = "GopeedHostNotSpecifiedError";
+  }
+}
+
 // Helper function to convert CivitaiError to appropriate error class
 function handleCivitaiError(error: CivitaiError): never {
   if (isValidationError(error)) {
@@ -79,8 +98,28 @@ function handleCivitaiError(error: CivitaiError): never {
   }
 }
 
+// Gopeed client helper function
+function getGopeedClient() {
+  const settings = getSettings();
+  if (!settings.gopeed_api_host) {
+    throw new GopeedHostNotSpecifiedError(
+      `Please specify gopeed API address to use model downloading feature.`,
+    );
+  }
+  const client = new Client({
+    host: settings.gopeed_api_host,
+    token: settings.gopeed_api_token || "",
+  });
+  return client;
+}
+
 export default new Elysia({ prefix: `/civitai_api` })
-  .error({ CivitaiApiError, CivitaiValidationError })
+  .error({
+    CivitaiApiError,
+    CivitaiValidationError,
+    ExternalServiceError,
+    GopeedHostNotSpecifiedError,
+  })
   .onError(({ code, error, status }) => {
     switch (code) {
       case "CivitaiApiError":
@@ -95,6 +134,10 @@ export default new Elysia({ prefix: `/civitai_api` })
           arkSummary: error.arkSummary,
           validationDetails: error.validationDetails,
         });
+      case "ExternalServiceError":
+        return status(500, error.message);
+      case "GopeedHostNotSpecifiedError":
+        return status(400, error.message);
     }
   })
   .use(
@@ -208,6 +251,146 @@ export default new Elysia({ prefix: `/civitai_api` })
         {
           params: type({ hash: "string" }),
           response: modelVersionEndpointDataSchema,
+        },
+      )
+      // POST /v1/download/model-version - Download model version files
+      .post(
+        "/download/model-version",
+        async ({ body }) => {
+          const { modelVersionId, model } = body;
+          const settings = getSettings();
+
+          // Check gopeed server status
+          const gopeed = getGopeedClient();
+
+          // Resolve model file download tasks
+          const modelFileDownloadTasks: Array<CreateTaskWithRequest> = [];
+          const milayout = new ModelLayout(settings.basePath, model);
+          const mvlayout = milayout.getModelVersionLayout(modelVersionId);
+
+          // Find the model version from the model's versions array
+          const modelVersionData = model.modelVersions.find(
+            (mv) => mv.id === modelVersionId,
+          );
+
+          if (!modelVersionData) {
+            throw new CivitaiApiError(
+              `Model version ${modelVersionId} not found in model ${model.id}`,
+              404,
+            );
+          }
+
+          // Get the full model version details from the API
+          const versionResult =
+            await client.modelVersions.getById(modelVersionId);
+          if (versionResult.isErr()) {
+            handleCivitaiError(versionResult.error);
+          }
+
+          const modelVersion = versionResult.value;
+
+          for (let index = 0; index < modelVersion.files.length; index++) {
+            const file = modelVersion.files[index];
+            const result = await client.modelVersions.resolveFileDownloadUrl(
+              file.downloadUrl,
+              settings.civitai_api_token,
+            );
+
+            if (result.isOk()) {
+              // Use resolved real download url to create gopeed download task
+              modelFileDownloadTasks.push({
+                req: { url: result.value },
+                opts: {
+                  name: mvlayout.getFileName(file.id),
+                  path: mvlayout.getFileDirPath(),
+                },
+              });
+            } else {
+              // Handle errors from resolveFileDownloadUrl
+              const error = result.error;
+              if (error.type === "UNAUTHORIZED") {
+                throw new CivitaiApiError(
+                  `Unauthorized to access model file download url: ${file.downloadUrl},\nmay you have to purchase the model on civitai.`,
+                  401,
+                  error,
+                );
+              } else {
+                throw new CivitaiApiError(
+                  `Failed to resolve model file download url: ${file.downloadUrl},\nplease try again later.`,
+                  "status" in error ? error.status : 500,
+                  error,
+                );
+              }
+            }
+          }
+
+          // Download Start
+          // 1. save json data
+          await writeJsonFile(milayout.getApiInfoJsonPath(), model);
+          await writeJsonFile(mvlayout.getApiInfoJsonPath(), modelVersion);
+
+          // 2. download model files
+          const modelfileTasksId: Array<string> = [];
+
+          for (let index = 0; index < modelFileDownloadTasks.length; index++) {
+            const task = modelFileDownloadTasks[index];
+            if (
+              await Bun.file(join(task.opts!.path!, task.opts!.name!)).exists()
+            ) {
+              continue;
+            }
+            const taskId = await gopeed.createTask(task);
+            modelfileTasksId.push(taskId);
+          }
+
+          // 3. download media files
+          const mediaTaskIds: string[] = [];
+          const mediaDir = getMediaDir(
+            settings.basePath,
+            model.type,
+            model.id,
+            modelVersionId,
+          );
+          for (let index = 0; index < modelVersion.images.length; index++) {
+            const media = modelVersion.images[index];
+            const filenameResult = extractFilenameFromUrl(media.url);
+            if (filenameResult.isOk()) {
+              if (
+                await Bun.file(join(mediaDir, filenameResult.value)).exists()
+              ) {
+                continue;
+              }
+              mediaTaskIds.push(
+                await gopeed.createTask({
+                  req: { url: media.url },
+                  opts: { path: mediaDir },
+                }),
+              );
+            } else {
+              // Log error but continue with other media files
+              console.error(
+                `Failed to extract filename from URL: ${media.url}`,
+                filenameResult.error,
+              );
+            }
+          }
+
+          // 4. upsert model info to db
+          // @ts-ignore 'video' and 'image' isn't assignable to string
+          const records = await upsertOneModelVersion(model, modelVersion);
+
+          // 5. return tasks info
+          return {
+            modelfileTasksId: modelfileTasksId,
+            mediaTaskIds: mediaTaskIds,
+          };
+        },
+        {
+          body: type({ modelVersionId: "number", model: modelSchema }),
+          response: t.Object({
+            modelfileTasksId: t.Array(t.String()),
+            mediaTaskIds: t.Array(t.String()),
+          }),
         },
       )
       // GET /v1/tags - List tags

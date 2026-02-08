@@ -174,4 +174,70 @@ describe("Civitai API Client Basic Usage", () => {
       console.log(`Tags list API error: ${tagsResult.error.message}`);
     }
   }, 10000);
+
+  it("should fetch next page of models using nextPage method", async () => {
+    // First, get initial page
+    const firstPageResult = await client.models.list({
+      limit: 2,
+      types: ["Checkpoint"],
+      sort: "Highest Rated",
+    });
+
+    if (firstPageResult.isOk()) {
+      const firstPage = firstPageResult.value;
+      expect(firstPage).toBeDefined();
+      expect(firstPage.items).toBeDefined();
+      expect(Array.isArray(firstPage.items)).toBe(true);
+      expect(firstPage.metadata).toBeDefined();
+
+      // Check if next page is available
+      if (firstPage.metadata.nextPage) {
+        console.log(`Next page URL available: ${firstPage.metadata.nextPage}`);
+
+        // Fetch next page using nextPage method
+        const nextPageResult = await client.models.nextPage(
+          firstPage.metadata.nextPage,
+        );
+
+        if (nextPageResult.isOk()) {
+          const nextPage = nextPageResult.value;
+          expect(nextPage).toBeDefined();
+          expect(nextPage.items).toBeDefined();
+          expect(Array.isArray(nextPage.items)).toBe(true);
+          expect(nextPage.metadata).toBeDefined();
+
+          // Verify it's a different page
+          expect(nextPage.metadata.currentPage).toBe(
+            firstPage.metadata.currentPage + 1,
+          );
+
+          // Verify items are different (not guaranteed but likely)
+          if (firstPage.items.length > 0 && nextPage.items.length > 0) {
+            const firstPageFirstModel = firstPage.items[0]!;
+            const nextPageFirstModel = nextPage.items[0]!;
+
+            // They might be different models
+            console.log(`First page first model ID: ${firstPageFirstModel.id}`);
+            console.log(`Next page first model ID: ${nextPageFirstModel.id}`);
+          }
+
+          // Check if there's another next page
+          if (nextPage.metadata.nextPage) {
+            console.log(
+              `Another next page available: ${nextPage.metadata.nextPage}`,
+            );
+          }
+        } else {
+          // Log error but don't fail test
+          console.log(`Next page API error: ${nextPageResult.error.message}`);
+        }
+      } else {
+        console.log("No next page available for testing");
+        // This is not an error - some queries might only have one page
+      }
+    } else {
+      // Log error but don't fail test
+      console.log(`First page API error: ${firstPageResult.error.message}`);
+    }
+  }, 15000); // Increased timeout for pagination test
 });

@@ -174,6 +174,30 @@ export default new Elysia({ prefix: `/civitai_api` })
           response: modelsResponseSchema,
         },
       )
+      // GET /v1/models/next-page - Get next page of models using nextPage URL
+      .get(
+        "/models/next-page",
+        async ({ query }) => {
+          const { nextPage } = query;
+          if (!nextPage || typeof nextPage !== "string") {
+            throw new CivitaiApiError(
+              "nextPage parameter is required and must be a string",
+              400,
+            );
+          }
+
+          const result = await client.models.nextPage(nextPage);
+          if (result.isOk()) {
+            return result.value;
+          } else {
+            handleCivitaiError(result.error);
+          }
+        },
+        {
+          query: type({ nextPage: "string" }),
+          response: modelsResponseSchema,
+        },
+      )
       // GET /v1/models/:id - Get model by ID
       .get(
         "/models/:id",

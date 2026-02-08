@@ -84,6 +84,47 @@ async function main() {
       console.log(`     Download count: ${model.stats.downloadCount}`);
       console.log(`     Version count: ${model.modelVersions.length}`);
     });
+
+    // 3.1. Demonstrate nextPage functionality
+    console.log("\n3.1. Demonstrating nextPage functionality...");
+    if (models.metadata.nextPage) {
+      console.log(`Next page URL available: ${models.metadata.nextPage}`);
+
+      const nextPageResult = await client.models.nextPage(
+        models.metadata.nextPage,
+      );
+
+      if (nextPageResult.isOk()) {
+        const nextPageModels = nextPageResult.value;
+        console.log(
+          `Successfully fetched next page (page ${nextPageModels.metadata.currentPage})`,
+        );
+        console.log(`Next page has ${nextPageModels.items.length} models`);
+
+        if (nextPageModels.items.length > 0) {
+          console.log("First model on next page:");
+          const firstModel = nextPageModels.items[0]!;
+          console.log(`  Name: ${firstModel.name} (${firstModel.type})`);
+          console.log(
+            `  Creator: ${firstModel.creator?.username || "Unknown"}`,
+          );
+          console.log(`  Download count: ${firstModel.stats.downloadCount}`);
+        }
+
+        // Check if there's another page after this
+        if (nextPageModels.metadata.nextPage) {
+          console.log(
+            `Another next page available: ${nextPageModels.metadata.nextPage}`,
+          );
+        } else {
+          console.log("No more pages available after this one");
+        }
+      } else {
+        console.log("Failed to fetch next page:", nextPageResult.error);
+      }
+    } else {
+      console.log("No next page available (this is the last page)");
+    }
   } else {
     console.error("Failed to get models list:", modelsResult.error);
   }

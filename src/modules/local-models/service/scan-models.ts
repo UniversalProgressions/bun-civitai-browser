@@ -95,47 +95,19 @@ export async function isModelVersionOnDisk(
   }
 }
 
-/**
- * Scans for model files in the base directory.
- *
- * TODO: Optimize using fast-glob's stream feature to implement async iterator pattern
- * This would allow streaming results instead of returning all at once, which is important
- * when dealing with thousands of files. Example optimization:
- *
- * ```typescript
- * import fg from "fast-glob";
- *
- * async function* scanModelsStream(): AsyncGenerator<string, void, void> {
- *   const stream = fg.stream(pattern);
- *   for await (const file of stream) {
- *     yield file;
- *   }
- * }
- * ```
- *
- * @returns Promise<Result<string[], Error>> - Array of absolute paths to model files
- */
-export async function scanModels(): Promise<Result<string[], Error>> {
-  try {
-    const settings = settingsService.getSettings();
-    const basePath = settings.basePath;
+// Scans for model files in the base directory.
+export function scanModelsStream() {
+  const settings = settingsService.getSettings();
+  const basePath = settings.basePath;
 
-    // Build pattern for all supported model file extensions
-    const extensionsPattern = `{${SUPPORTED_MODEL_EXTENSIONS.map((ext) => ext.slice(1)).join(",")}}`;
-    const pattern =
-      process.platform === "win32"
-        ? `${fg.convertPathToPattern(basePath)}/**/*.${extensionsPattern}`
-        : `${basePath}/**/*.${extensionsPattern}`;
+  // Build pattern for all supported model file extensions
+  const extensionsPattern = `{${SUPPORTED_MODEL_EXTENSIONS.map((ext) => ext.slice(1)).join(",")}}`;
+  const pattern =
+    process.platform === "win32"
+      ? `${fg.convertPathToPattern(basePath)}/**/*.${extensionsPattern}`
+      : `${basePath}/**/*.${extensionsPattern}`;
 
-    const modelFiles = await fg.async(pattern);
-    return ok(modelFiles);
-  } catch (error) {
-    return err(
-      new Error(
-        `Failed to scan models: ${error instanceof Error ? error.message : String(error)}`,
-      ),
-    );
-  }
+  return fg.globStream(pattern);
 }
 
 /**

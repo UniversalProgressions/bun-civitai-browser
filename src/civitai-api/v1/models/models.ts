@@ -17,6 +17,21 @@ import {
 } from "./shared-types";
 
 /**
+ * Model image information WITH id (specific to models endpoint)
+ * The models endpoint returns images with id field, unlike model-id and model-version endpoints
+ */
+export const modelImageWithIdSchema = type({
+  id: "number.integer",
+  url: "string",
+  nsfwLevel: "number.integer",
+  width: "number.integer",
+  height: "number.integer",
+  hash: "string",
+  type: "'image' | 'video'",
+});
+export type ModelImageWithId = typeof modelImageWithIdSchema.infer;
+
+/**
  * Model version schema for the models endpoint
  * Represents a version of a model in search results
  */
@@ -34,7 +49,7 @@ export const modelVersionSchema = type({
   stats: modelVersionStatsSchema,
   // covered: 'boolean', // have cover image or not
   files: modelFileSchema.array(),
-  images: modelImageSchema.array(),
+  images: modelImageWithIdSchema.array(),
 });
 export type ModelVersion = typeof modelVersionSchema.infer;
 

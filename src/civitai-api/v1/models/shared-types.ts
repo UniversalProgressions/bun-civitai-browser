@@ -33,9 +33,8 @@ export const modelFileSchema = type({
 });
 export type ModelFile = typeof modelFileSchema.infer;
 
-// Model image information
-export const modelImageSchema = type({
-  id: "number.integer | null", // model-id and model-versions/{id} endpoints don't include id field, but models/ endpoint does
+// Model image information WITHOUT id (used by model-id and model-version endpoints)
+export const modelImageWithoutIdSchema = type({
   url: "string",
   nsfwLevel: "number.integer",
   width: "number.integer",
@@ -43,6 +42,11 @@ export const modelImageSchema = type({
   hash: "string",
   type: "'image' | 'video'",
 });
+export type ModelImageWithoutId = typeof modelImageWithoutIdSchema.infer;
+
+// Model image information (backward compatible - id is nullable)
+// Note: The models endpoint uses its own modelImageWithIdSchema in models.ts
+export const modelImageSchema = modelImageWithoutIdSchema;
 export type ModelImage = typeof modelImageSchema.infer;
 
 // Model version statistics

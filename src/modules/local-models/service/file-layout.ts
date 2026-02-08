@@ -153,14 +153,12 @@ export class ModelVersionLayout {
   findMedia(mediaId: number): ModelImage {
     const img = find(this.modelVersion.images, function (img) {
       // Handle cases where id might be null by extracting from URL
-      if (img.id === null) {
-        const idResult = extractIdFromImageUrl(img.url);
-        if (idResult.isOk()) {
-          return idResult.value === mediaId;
-        }
-        return false;
+      // Note: ModelImage no longer has id field, extract from URL
+      const idResult = extractIdFromImageUrl(img.url);
+      if (idResult.isOk()) {
+        return idResult.value === mediaId;
       }
-      return img.id === mediaId;
+      return false;
     });
     if (img === undefined) {
       throw new Error(`model have no media with id: ${mediaId}`);

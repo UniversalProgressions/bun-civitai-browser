@@ -1,15 +1,14 @@
-import { prisma } from "../../../db/service";
-import { ModelsRequestSort } from "../../models/baseModels/misc";
+import { prisma } from "../service";
+import { ModelsRequestSort } from "#civitai-api/v1/models";
 import { findOrCreateOneCreator } from "./creator";
 import { findOrCreateOneModelType } from "./modelType";
-import type { ModelsRequestOpts, Model } from "../../models/models_endpoint";
+import type { ModelsRequestOptions, Model } from "#civitai-api/v1/models";
 import type {
   ModelOrderByWithRelationInput,
   ModelWhereInput,
-} from "../../../db/generated/models";
-import { Model as ModelTypeboxSchema } from "../../../db/generated/typebox/Model";
+} from "../generated/models";
+import { Model as ModelTypeboxSchema } from "../generated/typebox/Model";
 import { Static } from "elysia";
-import { extractFilenameFromUrl } from "../sharedUtils";
 
 export type ModelWithAllRelations = Static<typeof ModelTypeboxSchema>;
 
@@ -37,16 +36,13 @@ export async function findOrCreateOneModelId(modelId: Model) {
           create: { name: tag },
         })),
       },
-      previewFile: modelId.modelVersions[0]?.images[0]?.url
-        ? extractFilenameFromUrl(modelId.modelVersions[0]?.images[0]?.url)
-        : undefined,
     },
   });
   return record;
 }
 
 function processCursorPaginationFindMany(
-  params: ModelsRequestOpts,
+  params: ModelsRequestOptions,
 ): ModelWhereInput {
   return {
     name: {
@@ -92,7 +88,7 @@ function processSort(
   }
 }
 
-export async function cursorPaginationQuery(params: ModelsRequestOpts) {
+export async function cursorPaginationQuery(params: ModelsRequestOptions) {
   const [records, totalCount] = await prisma.$transaction([
     prisma.model.findMany({
       take: 20,
@@ -114,7 +110,7 @@ export async function cursorPaginationQuery(params: ModelsRequestOpts) {
 }
 
 export async function cursorPaginationNext(
-  params: ModelsRequestOpts,
+  params: ModelsRequestOptions,
   modelIdAsCursor: number,
 ) {
   const records = await prisma.model.findMany({
@@ -134,7 +130,7 @@ export async function cursorPaginationNext(
   return records;
 }
 
-export async function simplePagination(params: ModelsRequestOpts) {
+export async function simplePagination(params: ModelsRequestOptions) {
   // defaultPageSize
   if (params.limit === undefined) {
     params.limit = 20;

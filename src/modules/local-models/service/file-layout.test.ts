@@ -7,6 +7,7 @@ import type { Model } from "#civitai-api/v1/models/models";
 import { settingsService } from "#modules/settings/service";
 import fg from "fast-glob";
 import modelData from "./models_res.json" with { type: "json" };
+import { extractIdFromImageUrl } from "#civitai-api/v1/utils";
 
 // @ts-nocheck
 // Note: We need to adapt the test data to match the new Model type
@@ -42,7 +43,9 @@ describe("test layout class", () => {
 
   test("test get image path", () => {
     // New layout: {versionId}/media/{imageId}.xxx
-    const imageId = mimg.id !== null ? mimg.id : 0; // Handle null id case
+    // Extract image ID from URL since ModelImage no longer has id field
+    const idResult = extractIdFromImageUrl(mimg.url);
+    const imageId = idResult.isOk() ? idResult.value : 0;
     const filename = `${imageId}.${last(mimg.url.split("."))}`;
     expect(mvlayout.getMediaPath(imageId)).toBe(
       join(mvlayout.mediaDir, filename),

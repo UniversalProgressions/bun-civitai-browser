@@ -42,7 +42,7 @@ import {
   getFileType,
   extractFilenameFromUrl,
   replaceUrlParam,
-} from "#modules/civitai-deprecated/service/sharedUtils.js";
+} from "../../civitai-api/v1/utils.js";
 
 import {
   BaseModelsArray,
@@ -61,11 +61,9 @@ import { edenTreaty } from "../utils";
 // } from "#modules/civitai/models/models_endpoint";
 import type {
   Model,
-  ModelsRequestOptions
-} from "../../civitai-api/v1/models/index.js";
-import {
-  ExistedModelVersions
-} from "../../civitai-api/v1/models/index.js";
+  ModelsRequestOptions,
+} from "../../civitai-api/v1/models/index";
+import { ExistedModelVersions } from "../../civitai-api/v1/models/index";
 
 enum ModalWidthEnum {
   SearchPanel = 600,
@@ -113,7 +111,10 @@ function GalleryModal() {
 }
 
 function MediaPreview({ url }: { url: string }) {
-  const fileType = getFileType(extractFilenameFromUrl(url));
+  const filenameResult = extractFilenameFromUrl(url);
+  const fileType = getFileType(
+    filenameResult.isOk() ? filenameResult.value : "",
+  );
   if (fileType === "video") {
     return <video src={url} autoPlay loop muted></video>;
   } else if (fileType === "image") {
@@ -123,7 +124,11 @@ function MediaPreview({ url }: { url: string }) {
     // https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/833e5617-47d4-44d8-82c7-d169dc2908eb/original=false/93876235.jpeg
     return <img src={replaceUrlParam(url)} />;
   } else {
-    return <img alt={`unknown file type: ${extractFilenameFromUrl(url)}`} />;
+    return (
+      <img
+        alt={`unknown file type: ${filenameResult.isOk() ? filenameResult.value : "unknown"}`}
+      />
+    );
   }
 }
 
@@ -140,7 +145,7 @@ function SearchPanel() {
         value: tag,
       }));
     }
-    const response = await edenTreaty.civitai.db.tags.get({
+    const response = await edenTreaty.db.tags.get({
       query: { tagKeyword: keyword },
     });
     switch (response.status) {
@@ -312,84 +317,98 @@ function FloatingButtons() {
 
 function CivitaiPagination() {
   const [nonEffectiveSearchOpts, setNonEffectiveSearchOpts] = useAtom(
-    nonEffectiveSearchOptsAtom
+    nonEffectiveSearchOptsAtom,
   );
   const [modelsOnPage, setModelsOnPage] = useAtom(modelsOnPageAtom);
 
   const [models, setModels] = useAtom(modelsAtom);
   const [nextPageUrl, setNextPageUrl] = useAtom(nextPageUrlAtom);
+  const [isLoadingNextPage, setIsLoadingNextPage] = useState(false);
 
+  /**
+   * Loads the next page of models from the API
+   * Uses the nextPage URL provided by the API metadata
+   */
   async function loadNextPage() {
-    if (nextPageUrl) {
-      message.open({
-        type: "loading",
-        content: "Action in progress..",
-        duration: 0,
+    if (!nextPageUrl) {
+      // No next page URL available, show notification
+      notification.info({
+        message: "No more results",
+        description: "You have reached the end of the results.",
       });
-      // Dismiss manually and asynchronously
-      // setTimeout(messageApi.destroy, 2500);
-      try {
-        const { data, error, headers, response, status } =
-          await edenTreaty.civitai.api.v1.models.nextPage.get({
-            query: { nextPage: nextPageUrl },
-          });
-        if (error) {
-          throw error;
-        } else {
-          setModels((state) => {
-            state.push(...data.items);
-            return state;
-          });
-          if (data.metadata.nextPage) {
-            setNextPageUrl(data.metadata.nextPage);
-          } else {
-            notification.info({ title: "No more items to load." });
-          }
-        }
-      } catch (error) {
-        notification.error({
-          title: "Error fetching models",
-          description: String(error),
+      return;
+    }
+
+    if (isLoadingNextPage) {
+      // Prevent duplicate requests
+      return;
+    }
+
+    setIsLoadingNextPage(true);
+    message.open({
+      type: "loading",
+      content: "Loading more models...",
+      duration: 0,
+    });
+
+    try {
+      const { data, error, headers, response, status } =
+        await edenTreaty.civitai_api.v1.models["next-page"].post({
+          nextPage: nextPageUrl,
         });
+      if (error) {
         throw error;
-      } finally {
-        message.destroy();
+      } else {
+        // Add new models to the existing list
+        setModels((state) => {
+          const newModels = [...state, ...data.items];
+          return newModels;
+        });
+
+        // Update next page URL if available
+        if (data.metadata.nextPage) {
+          setNextPageUrl(data.metadata.nextPage);
+        } else {
+          // No more pages available
+          setNextPageUrl("");
+          notification.info({
+            message: "No more results",
+            description: "You have reached the end of the results.",
+          });
+        }
       }
+    } catch (error) {
+      console.error("Error fetching next page:", error);
+      notification.error({
+        title: "Error fetching models",
+        description: String(error),
+      });
+      throw error;
+    } finally {
+      setIsLoadingNextPage(false);
+      message.destroy();
     }
   }
+
   const debounceLoadNextPage = debounce(loadNextPage, 500);
-  interface PaginationParams {
+
+  /**
+   * Determines if the current page is the last page based on local data
+   * This is used for pagination UI, not for API pagination logic
+   */
+  function isLastLocalPage({
+    page,
+    limit,
+    total,
+  }: {
     page: number;
     limit: number;
     total: number;
-  }
-
-  const hasFetchedRef = useRef(false);
-
-  useEffect(() => {
-    if (hasFetchedRef.current) return;
-    hasFetchedRef.current = true;
-    try {
-      debounceLoadNextPage();
-    } catch (error) {
-      notification.error({
-        title: String(error),
-      });
-      console.error(error);
-    }
-  });
-
-  // useEffect(() => debounceLoadNextPage());
-
-  /**
-   * Safe version - Determines if the current page is the last page
-   * Includes more comprehensive edge case handling
-   */
-  function isLastPageSafe({ page, limit, total }: PaginationParams): boolean {
+  }): boolean {
     // Parameter validation
     if (!Number.isInteger(page) || page < 1) {
       throw new Error(
-        "Page number must be an integer greater than or equal to 1"
+        "Page number must be an integer greater than or equal to 1",
       );
     }
 
@@ -406,37 +425,50 @@ function CivitaiPagination() {
       return false;
     }
 
-    // Calculate total number of pages
+    // Calculate total number of pages based on local data
     const totalPages = Math.ceil(total / limit);
-
-    // console.log(`total page: ${totalPages}, current page: ${page}`);
     return page >= totalPages;
   }
 
+  /**
+   * Handles pagination change events
+   * When user reaches the last local page, automatically try to load more from API
+   */
+  const handlePaginationChange = (page: number, pageSize: number) => {
+    setNonEffectiveSearchOpts((prev) => ({
+      ...prev,
+      page,
+      limit: pageSize,
+    }));
+
+    // Update the displayed models for the current page
+    setModelsOnPage(models.slice((page - 1) * pageSize, page * pageSize));
+
+    // Check if user is on the last local page
+    const isLastPage = isLastLocalPage({
+      page,
+      limit: pageSize,
+      total: models.length,
+    });
+
+    // If user is on the last local page and there might be more data from API
+    if (isLastPage && nextPageUrl) {
+      // Auto-load next page from API
+      debounceLoadNextPage();
+    } else if (isLastPage && !nextPageUrl) {
+      // User is on the last page and no more data from API
+      notification.info({
+        message: "End of results",
+        description: "No more models available.",
+      });
+    }
+  };
+
   return (
     <Pagination
-      current={nonEffectiveSearchOpts.page ?? 1}
       pageSize={nonEffectiveSearchOpts.limit ?? defaultPageAndSize.limit}
       total={models.length}
-      onChange={(page, pageSize) => {
-        setNonEffectiveSearchOpts((prev) => ({
-          ...prev,
-          page,
-          limit: pageSize,
-        }));
-        setModelsOnPage(
-          models.slice(
-            // Start
-            (page - 1) * pageSize,
-            // End
-            page * pageSize
-          )
-        );
-        if (isLastPageSafe({ page, limit: pageSize, total: models.length })) {
-          // If it's the last page, we can fetch the next set of results
-          return debounceLoadNextPage(); // can't call such a function at here...
-        }
-      }}
+      onChange={handlePaginationChange}
       showSizeChanger
       showQuickJumper
       showTotal={(total) => `${total} items loaded!`}
@@ -448,13 +480,15 @@ function ModelCardContent({ data }: { data: Model }) {
   const [activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom);
   const [isDownloadButtonLoading, setIsDownloadButtonLoading] = useState(false);
   const [existedModelversions, setExistedModelversions] = useAtom(
-    civitaiExistedModelVersionsAtom
+    civitaiExistedModelVersionsAtom,
   );
 
   async function onDownloadClick(model: Model, versionId: number) {
     setIsDownloadButtonLoading(true);
     try {
-      const result = await edenTreaty.civitai.download.modelVersion.post({
+      const result = await edenTreaty.civitai_api.v1.download[
+        "model-version"
+      ].post({
         model,
         modelVersionId: versionId,
       });
@@ -600,8 +634,8 @@ function ModelCardContent({ data }: { data: Model }) {
                         });
                       }}
                       className="
-                        bg-blue-500 hover:bg-blue-700 text-white 
-                          font-bold p-1 rounded transition-all 
+                        bg-blue-500 hover:bg-blue-700 text-white
+                          font-bold p-1 rounded transition-all
                           duration-300 transform hover:scale-105
                           hover:cursor-pointer"
                     >
@@ -750,25 +784,107 @@ function CivitaiModelsGallery() {
   const [isGalleryLoading, setIsGalleryLoading] = useAtom(isGalleryLoadingAtom);
   const [searchOptions, setSearchOptions] = useAtom(searchOptsAtom);
   const [nonEffectiveSearchOpts, setNonEffectiveSearchOpts] = useAtom(
-    nonEffectiveSearchOptsAtom
+    nonEffectiveSearchOptsAtom,
   );
   const [modelsOnPage, setModelsOnPage] = useAtom(modelsOnPageAtom);
   const [models, setModels] = useAtom(modelsAtom);
   const [nextPageUrl, setNextPageUrl] = useAtom(nextPageUrlAtom);
   const [isError, setIsError] = useState(false);
   const [errorContent, setErrorContent] = useState(<></>);
+
+  // Track previous limit to detect changes
+  const prevLimitRef = useRef<number>(defaultPageAndSize.limit);
+  // Track initial mount to ensure first load
+  const isInitialMountRef = useRef(true);
+
+  // Define loadNextPage function here so it can be called from fetchModels
+  async function loadNextPage() {
+    if (!nextPageUrl) {
+      // No next page URL available, show notification
+      notification.info({
+        message: "No more results",
+        description: "You have reached the end of the results.",
+      });
+      return;
+    }
+
+    try {
+      const { data, error, headers, response, status } =
+        await edenTreaty.civitai_api.v1.models["next-page"].post({
+          nextPage: nextPageUrl,
+        });
+      if (error) {
+        throw error;
+      } else {
+        // Add new models to the existing list
+        setModels((state) => {
+          const newModels = [...state, ...data.items];
+          return newModels;
+        });
+
+        // Update next page URL if available
+        if (data.metadata.nextPage) {
+          setNextPageUrl(data.metadata.nextPage);
+        } else {
+          // No more pages available
+          setNextPageUrl("");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching next page:", error);
+      notification.error({
+        title: "Error fetching models",
+        description: String(error),
+      });
+      throw error;
+    }
+  }
+
+  // Helper function to load next page with a specific URL (used for auto-loading)
+  async function loadNextPageWithUrl(url: string) {
+    if (!url) {
+      return; // No URL, just return silently
+    }
+
+    try {
+      const { data, error, headers, response, status } =
+        await edenTreaty.civitai_api.v1.models["next-page"].post({
+          nextPage: url,
+        });
+      if (error) {
+        throw error;
+      } else {
+        // Add new models to the existing list
+        setModels((state) => {
+          const newModels = [...state, ...data.items];
+          return newModels;
+        });
+
+        // Update next page URL if available
+        if (data.metadata.nextPage) {
+          setNextPageUrl(data.metadata.nextPage);
+        } else {
+          // No more pages available
+          setNextPageUrl("");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching next page:", error);
+      // Don't show error notification for auto-load, it's not user-initiated
+    }
+  }
+
   async function fetchModels(searchOptions: ModelsRequestOptions) {
     setIsGalleryLoading(true);
     try {
       const { data, error, headers, response, status } =
-        await edenTreaty.civitai.api.v1.models.post(searchOptions);
+        await edenTreaty.civitai_api.v1.models.post(searchOptions);
       if (error) {
         setIsError(true);
         // need to write a more reliable error handling logic
-        console.log(`aaaa`);
         switch (error.status) {
-          case 409:
-            console.error(error.value.arkSummary);
+          case 422:
+            console.error(error.value.summary);
             notification.error({
               title: "Data Validation Error",
               description: error.value.message,
@@ -777,7 +893,7 @@ function CivitaiModelsGallery() {
               <Space orientation="vertical" align="center">
                 <Result
                   status="error"
-                  title={error.value.code}
+                  title="Validation Error"
                   subTitle={error.value.message}
                   extra={[
                     <Button type="primary" key="refresh page">
@@ -793,12 +909,12 @@ function CivitaiModelsGallery() {
                           fontSize: 16,
                         }}
                       >
-                        Ark summary:
+                        Validation summary:
                       </Text>
                     </Paragraph>
                     <Paragraph>
                       <CloseCircleOutlined />
-                      {error.value.arkSummary}
+                      {error.value.summary}
                     </Paragraph>
                     <Paragraph>
                       <Text
@@ -812,18 +928,12 @@ function CivitaiModelsGallery() {
                     </Paragraph>
                     <Paragraph>
                       <CloseCircleOutlined />
-                      {error.value.resData}
+                      {JSON.stringify(error.value.found)}
                     </Paragraph>
                   </div>
                 </Result>
-              </Space>
+              </Space>,
             );
-            break;
-          case 422:
-            // waiting to apply
-            break;
-          case 500:
-            // waiting to apply
             break;
           default:
             // waiting to apply
@@ -835,11 +945,24 @@ function CivitaiModelsGallery() {
           setModelsOnPage(data.items);
           return data.items;
         });
-        // setNextPageUrl(data.metadata.nextPage ?? ``);
+        // Update next page URL from API response
         if (data.metadata.nextPage) {
-          setNextPageUrl(data.metadata.nextPage);
+          const nextPageUrlFromApi = data.metadata.nextPage;
+          setNextPageUrl(nextPageUrlFromApi);
+
+          // Auto-load next page if first page is full (to ensure user has more content initially)
+          const currentLimit = searchOptions.limit || defaultPageAndSize.limit;
+          if (data.items.length === currentLimit) {
+            // Use setTimeout to avoid blocking UI and allow initial render
+            setTimeout(() => {
+              // Trigger next page load directly with the URL we just got
+              // Don't rely on the state update which might be async
+              loadNextPageWithUrl(nextPageUrlFromApi);
+            }, 500);
+          }
         } else {
-          notification.info({ title: "No more items to load." });
+          // No more pages available from API
+          setNextPageUrl("");
         }
       }
     } catch (error) {
@@ -847,6 +970,7 @@ function CivitaiModelsGallery() {
         title: "Fetching models failed.",
         description: `May you check your network?`,
       });
+      console.error(error);
       throw error;
     } finally {
       setIsGalleryLoading(false);
@@ -855,19 +979,38 @@ function CivitaiModelsGallery() {
   const debounceFetchModels = debounce(fetchModels, 500);
 
   useEffect(() => {
+    const currentLimit =
+      nonEffectiveSearchOpts.limit || defaultPageAndSize.limit;
+
+    // Always fetch on initial mount
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      debounceFetchModels({
+        ...searchOptions,
+        ...nonEffectiveSearchOpts,
+        // @ts-ignore remove page param to avoid Civitai API error
+        page: undefined,
+      });
+      return;
+    }
+
+    // If we're here, it means either searchOptions changed or limit changed
+    // Both cases require refetching data
+    prevLimitRef.current = currentLimit;
     debounceFetchModels({
       ...searchOptions,
       ...nonEffectiveSearchOpts,
-      page: 1,
+      // @ts-ignore remove page param to avoid Civitai API error
+      page: undefined,
     });
-  }, [searchOptions]);
+  }, [searchOptions, nonEffectiveSearchOpts.limit]);
 
   return isGalleryLoading ? (
     <div>Loading...</div>
   ) : isError ? (
-    <GalleryContent />
-  ) : (
     errorContent
+  ) : (
+    <GalleryContent />
   );
 }
 

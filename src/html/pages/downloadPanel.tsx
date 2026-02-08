@@ -23,20 +23,18 @@ import { type } from "arktype";
 import clipboard from "clipboardy";
 import { debounce } from "es-toolkit";
 import DOMPurify from "dompurify";
-import { type Model } from "#modules/civitai-deprecated/models/models_endpoint.js";
+import type { ExistedModelVersions, Model } from "#civitai-api/v1/models";
 import {
-  ExistedModelversions,
-  existedModelversions,
-  modelId_model,
-} from "#modules/civitai-deprecated/models/modelId_endpoint.js";
-import { model_types } from "#modules/civitai-deprecated/models/baseModels/misc.js";
+  existedModelVersionsSchema,
+  modelByIdSchema,
+} from "#civitai-api/v1/models";
 import { edenTreaty } from "../utils";
 import {
   replaceUrlParam,
   extractFilenameFromUrl,
   modelId2Model,
   removeFileExtension,
-} from "#modules/civitai-deprecated/service/sharedUtils.js";
+} from "#civitai-api/v1/utils";
 
 enum LoadingOptionsEnum {
   VersionId = "VersionId",
@@ -46,7 +44,7 @@ enum LoadingOptionsEnum {
 }
 
 const activeVersionIdAtom = atom<string>(``);
-const existedModelVersionsAtom = atom<ExistedModelversions>([]);
+const existedModelVersionsAtom = atom<ExistedModelVersions>([]);
 const selectedOptionAtom = atom<LoadingOptionsEnum>(
   LoadingOptionsEnum.VersionId
 );
@@ -64,7 +62,7 @@ function ModelCardContent({ data }: { data: Model }) {
   async function onDownloadClick(model: Model, versionId: number) {
     setIsDownloadButtonLoading(true);
     try {
-      const result = await edenTreaty.civitai.download.modelVersion.post({
+      const result = await edenTreaty.civitai_api.v1.download["model-version"].post({
         model,
         modelVersionId: versionId,
       });

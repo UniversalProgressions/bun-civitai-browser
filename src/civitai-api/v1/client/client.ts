@@ -1,23 +1,33 @@
-import ky, { type Options as KyOptions, type KyInstance } from 'ky';
-import { type Result, err, ok } from 'neverthrow';
-import { type } from 'arktype';
+import ky, { type Options as KyOptions, type KyInstance } from "ky";
+import { type Result, err, ok } from "neverthrow";
+import { type } from "arktype";
 
-import type { ClientConfig } from './config';
-import { mergeConfig } from './config';
-import type { CivitaiError, ValidationError } from './errors';
-import { createNetworkError, createBadRequestError, createUnauthorizedError, createNotFoundError, createValidationError } from './errors';
+import type { ClientConfig } from "./config";
+import { mergeConfig } from "./config";
+import type { CivitaiError, ValidationError } from "./errors";
+import {
+  createNetworkError,
+  createBadRequestError,
+  createUnauthorizedError,
+  createNotFoundError,
+  createValidationError,
+} from "./errors";
 
 // Import schema definitions
-import { modelsResponseSchema } from '../models/models';
-import { creatorsResponseSchema } from '../models/creators';
-import { modelVersionEndpointDataSchema } from '../models/model-version';
+import { modelsResponseSchema } from "../models/models";
+import { creatorsResponseSchema } from "../models/creators";
+import { modelVersionEndpointDataSchema } from "../models/model-version";
 
 /**
  * Civitai API Client Core Class
  * Provides basic HTTP request and error handling functionality
  */
 export class CivitaiClient {
-  private readonly config: ClientConfig & { baseUrl: string; timeout: number; validateResponses: boolean };
+  private readonly config: ClientConfig & {
+    baseUrl: string;
+    timeout: number;
+    validateResponses: boolean;
+  };
   private kyInstance: typeof ky;
 
   constructor(config: ClientConfig = {}) {
@@ -33,7 +43,7 @@ export class CivitaiClient {
       prefixUrl: this.config.baseUrl,
       timeout: this.config.timeout,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...this.config.headers,
       },
       hooks: {
@@ -41,7 +51,10 @@ export class CivitaiClient {
           (request) => {
             // Add API key authentication
             if (this.config.apiKey) {
-              request.headers.set('Authorization', `Bearer ${this.config.apiKey}`);
+              request.headers.set(
+                "Authorization",
+                `Bearer ${this.config.apiKey}`,
+              );
             }
           },
         ],
@@ -52,7 +65,9 @@ export class CivitaiClient {
     if (this.config.proxy) {
       // Ky uses fetch API, proxy needs to be configured via environment variables in Node.js
       // Here we only log a warning, actual proxy needs to be configured externally
-      console.warn('Proxy configuration is not directly supported by Ky. Please set HTTP_PROXY/HTTPS_PROXY environment variables.');
+      console.warn(
+        "Proxy configuration is not directly supported by Ky. Please set HTTP_PROXY/HTTPS_PROXY environment variables.",
+      );
     }
 
     return ky.extend(options);
@@ -64,12 +79,12 @@ export class CivitaiClient {
   async get<T>(
     path: string,
     options?: {
-      searchParams?: Record<string, string | number | boolean | undefined>;
+      searchParams?: URLSearchParams;
       headers?: Record<string, string>;
       validateResponse?: boolean;
-    }
+    },
   ): Promise<Result<T, CivitaiError>> {
-    return this.request<T>('GET', path, options);
+    return this.request<T>("GET", path, options);
   }
 
   /**
@@ -79,12 +94,12 @@ export class CivitaiClient {
     path: string,
     options?: {
       json?: unknown;
-      searchParams?: Record<string, string | number | boolean | undefined>;
+      searchParams?: URLSearchParams;
       headers?: Record<string, string>;
       validateResponse?: boolean;
-    }
+    },
   ): Promise<Result<T, CivitaiError>> {
-    return this.request<T>('POST', path, options);
+    return this.request<T>("POST", path, options);
   }
 
   /**
@@ -94,12 +109,12 @@ export class CivitaiClient {
     path: string,
     options?: {
       json?: unknown;
-      searchParams?: Record<string, string | number | boolean | undefined>;
+      searchParams?: URLSearchParams;
       headers?: Record<string, string>;
       validateResponse?: boolean;
-    }
+    },
   ): Promise<Result<T, CivitaiError>> {
-    return this.request<T>('PUT', path, options);
+    return this.request<T>("PUT", path, options);
   }
 
   /**
@@ -108,32 +123,32 @@ export class CivitaiClient {
   async delete<T>(
     path: string,
     options?: {
-      searchParams?: Record<string, string | number | boolean | undefined>;
+      searchParams?: URLSearchParams;
       headers?: Record<string, string>;
       validateResponse?: boolean;
-    }
+    },
   ): Promise<Result<T, CivitaiError>> {
-    return this.request<T>('DELETE', path, options);
+    return this.request<T>("DELETE", path, options);
   }
 
   /**
    * Generic request method
    */
   private async request<T>(
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    method: "GET" | "POST" | "PUT" | "DELETE",
     path: string,
     options?: {
       json?: unknown;
-      searchParams?: Record<string, string | number | boolean | undefined>;
+      searchParams?: URLSearchParams;
       headers?: Record<string, string>;
       validateResponse?: boolean;
-    }
+    },
   ): Promise<Result<T, CivitaiError>> {
     try {
       const kyOptions: KyOptions = {};
 
       if (options?.searchParams) {
-        kyOptions.searchParams = this.cleanSearchParams(options.searchParams);
+        kyOptions.searchParams = options.searchParams;
       }
 
       if (options?.headers) {
@@ -152,7 +167,8 @@ export class CivitaiClient {
       const data = await response.json();
 
       // Validate response (if enabled)
-      const shouldValidate = options?.validateResponse ?? this.config.validateResponses;
+      const shouldValidate =
+        options?.validateResponse ?? this.config.validateResponses;
       if (shouldValidate) {
         const validationResult = await this.validateResponse<T>(path, data);
         if (validationResult.isErr()) {
@@ -163,23 +179,8 @@ export class CivitaiClient {
 
       return ok(data as T);
     } catch (error) {
-      return err(this.handleRequestError(error));
+      return err(await this.handleRequestError(error));
     }
-  }
-
-  /**
-   * Clean search parameters, remove undefined values
-   */
-  private cleanSearchParams(params: Record<string, string | number | boolean | undefined>): Record<string, string> {
-    const cleaned: Record<string, string> = {};
-
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined) {
-        cleaned[key] = String(value);
-      }
-    }
-
-    return cleaned;
   }
 
   /**
@@ -189,15 +190,15 @@ export class CivitaiClient {
     // Define path patterns and their corresponding schemas
     const pathSchemaMap: Record<string, any> = {
       // Models endpoints
-      '/models': modelsResponseSchema,
-      '/models/': modelsResponseSchema, // For paths starting with /models/
-      
+      "/models": modelsResponseSchema,
+      "/models/": modelsResponseSchema, // For paths starting with /models/
+
       // Creators endpoints
-      '/creators': creatorsResponseSchema,
-      '/creators/': creatorsResponseSchema,
-      
+      "/creators": creatorsResponseSchema,
+      "/creators/": creatorsResponseSchema,
+
       // Model versions endpoints - pattern matching
-      '/model-versions/': modelVersionEndpointDataSchema,
+      "/model-versions/": modelVersionEndpointDataSchema,
     };
 
     // Check for exact match first
@@ -207,7 +208,7 @@ export class CivitaiClient {
 
     // Check for pattern matches
     for (const [pattern, schema] of Object.entries(pathSchemaMap)) {
-      if (pattern.endsWith('/') && path.startsWith(pattern)) {
+      if (pattern.endsWith("/") && path.startsWith(pattern)) {
         return schema;
       }
     }
@@ -219,11 +220,14 @@ export class CivitaiClient {
   /**
    * Validate response data using arktype schemas
    */
-  private async validateResponse<T>(path: string, data: unknown): Promise<Result<T, ValidationError>> {
+  private async validateResponse<T>(
+    path: string,
+    data: unknown,
+  ): Promise<Result<T, ValidationError>> {
     try {
       // Get schema for the path
       const schema = this.getSchemaForPath(path);
-      
+
       if (!schema) {
         // No schema defined for this path, skip validation
         return ok(data as T);
@@ -235,10 +239,12 @@ export class CivitaiClient {
       // Check if validation failed
       if (validationResult instanceof type.errors) {
         // Create validation error with arktype's detailed error information
-        return err(createValidationError(
-          `Response validation failed for path: ${path}`,
-          validationResult
-        ));
+        return err(
+          createValidationError(
+            `Response validation failed for path: ${path}`,
+            validationResult,
+          ),
+        );
       }
 
       // Validation successful, return validated data
@@ -249,23 +255,25 @@ export class CivitaiClient {
       const errorDetails = {
         message: error instanceof Error ? error.message : String(error),
         summary: `Unexpected validation error: ${error instanceof Error ? error.message : String(error)}`,
-        problems: []
+        problems: [],
       };
-      
-      return err(createValidationError(
-        `Unexpected error during validation for path ${path}: ${error instanceof Error ? error.message : String(error)}`,
-        errorDetails
-      ));
+
+      return err(
+        createValidationError(
+          `Unexpected error during validation for path ${path}: ${error instanceof Error ? error.message : String(error)}`,
+          errorDetails,
+        ),
+      );
     }
   }
 
   /**
    * Handle request error
    */
-  private handleRequestError(error: unknown): CivitaiError {
+  private async handleRequestError(error: unknown): Promise<CivitaiError> {
     if (error instanceof Error) {
       // Ky error
-      if ('response' in error) {
+      if ("response" in error) {
         const kyError = error as any;
         const response = kyError.response as Response | undefined;
 
@@ -273,55 +281,102 @@ export class CivitaiClient {
           const status = response.status;
           const statusText = response.statusText;
 
-          if (status === 400) {
-            // Bad Request error
-            return createBadRequestError(
-              `Bad Request: ${statusText}`,
-              { status, statusText }
+          try {
+            // Try to extract response body for more detailed error information
+            const responseBody = await response.text();
+            let errorDetails: any = { status, statusText };
+
+            try {
+              // Try to parse as JSON
+              const parsedBody = JSON.parse(responseBody);
+              errorDetails = { ...errorDetails, ...parsedBody };
+            } catch {
+              // If not JSON, include raw text
+              errorDetails.body = responseBody;
+            }
+
+            if (status === 400) {
+              // Bad Request error - include response body details
+              return createBadRequestError(
+                `Bad Request: ${statusText}`,
+                errorDetails,
+              );
+            }
+
+            if (status === 401) {
+              // Unauthorized error - missing or invalid HTTP Auth Header
+              return createUnauthorizedError(
+                `Unauthorized: ${statusText}. Please provide a valid API key.`,
+                {
+                  suggestion: "Add your API key to the client configuration",
+                  ...errorDetails,
+                },
+              );
+            }
+
+            if (status === 404) {
+              // Not Found error - resource does not exist
+              return createNotFoundError(
+                `Not Found: ${statusText}. The requested resource does not exist.`,
+                errorDetails,
+              );
+            }
+
+            // Other HTTP errors
+            return createNetworkError(
+              status,
+              `HTTP_${status}`,
+              `HTTP Error ${status}: ${statusText}`,
+              { ...error, responseBody },
+            );
+          } catch (bodyError) {
+            // If we can't read the response body, fall back to basic error
+            if (status === 400) {
+              return createBadRequestError(`Bad Request: ${statusText}`, {
+                status,
+                statusText,
+              });
+            }
+
+            if (status === 401) {
+              return createUnauthorizedError(
+                `Unauthorized: ${statusText}. Please provide a valid API key.`,
+                { suggestion: "Add your API key to the client configuration" },
+              );
+            }
+
+            if (status === 404) {
+              return createNotFoundError(
+                `Not Found: ${statusText}. The requested resource does not exist.`,
+                { status, statusText },
+              );
+            }
+
+            return createNetworkError(
+              status,
+              `HTTP_${status}`,
+              `HTTP Error ${status}: ${statusText}`,
+              error,
             );
           }
-
-          if (status === 401) {
-            // Unauthorized error - missing or invalid HTTP Auth Header
-            return createUnauthorizedError(
-              `Unauthorized: ${statusText}. Please provide a valid API key.`,
-              { suggestion: 'Add your API key to the client configuration' }
-            );
-          }
-
-          if (status === 404) {
-            // Not Found error - resource does not exist
-            return createNotFoundError(
-              `Not Found: ${statusText}. The requested resource does not exist.`,
-              { status, statusText }
-            );
-          }
-
-          // Other HTTP errors
-          return createNetworkError(
-            status,
-            `HTTP_${status}`,
-            `HTTP Error ${status}: ${statusText}`,
-            error
-          );
         }
       }
 
       // Network error (timeout, connection failure, etc.)
       return createNetworkError(
         0,
-        'NETWORK_ERROR',
+        "NETWORK_ERROR",
         `Network error: ${error.message}`,
-        error
+        error,
       );
     }
 
     // Unknown error
     return createNetworkError(
       0,
-      'UNKNOWN_ERROR',
-      'Unknown error occurred',
-      error
+      "UNKNOWN_ERROR",
+      "Unknown error occurred",
+      error,
     );
   }
 

@@ -74,10 +74,10 @@ export type ModelStats = typeof modelStatsSchema.infer;
 
 // Pagination metadata
 export const paginationMetadataSchema = type({
-  totalItems: "number.integer",
-  currentPage: "number.integer",
-  pageSize: "number.integer",
-  totalPages: "number.integer",
+  "totalItems?": "number.integer",
+  "currentPage?": "number.integer",
+  "pageSize?": "number.integer",
+  "totalPages?": "number.integer",
   "nextPage?": "string.url",
   "prevPage?": "string.url",
 });

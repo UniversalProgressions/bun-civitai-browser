@@ -13,7 +13,7 @@ describe("Civitai API Client Basic Usage", () => {
     // Create client with configuration from environment variables
     client = createCivitaiClient({
       apiKey: process.env.CIVITAI_API_KEY, // Read API key from environment variable
-      timeout: 30000, // 30 seconds timeout to avoid long waits
+      timeout: 6000, // 30 seconds timeout to avoid long waits
       validateResponses: false, // Do not validate responses (recommended to enable in production)
     });
   });
@@ -21,7 +21,7 @@ describe("Civitai API Client Basic Usage", () => {
   it("should create client with configuration", () => {
     const config = client.getConfig();
     expect(config).toBeDefined();
-    expect(config.timeout).toBe(30000);
+    expect(config.timeout).toBe(6000);
     expect(config.validateResponses).toBe(false);
     // API key may be undefined if not set in environment
     if (process.env.CIVITAI_API_KEY) {
@@ -34,7 +34,6 @@ describe("Civitai API Client Basic Usage", () => {
     // This is an API server issue, not a client issue
     const creatorsResult = await client.creators.list({
       limit: 3,
-      page: 1,
     });
 
     if (creatorsResult.isOk()) {
@@ -206,10 +205,10 @@ describe("Civitai API Client Basic Usage", () => {
           expect(Array.isArray(nextPage.items)).toBe(true);
           expect(nextPage.metadata).toBeDefined();
 
-          // Verify it's a different page
-          expect(nextPage.metadata.currentPage).toBe(
-            firstPage.metadata.currentPage + 1,
-          );
+          // Have noo use to verify it's a different page
+          // expect(nextPage.metadata.currentPage).toBe(
+          //   firstPage.metadata.currentPage + 1,
+          // );
 
           // Verify items are different (not guaranteed but likely)
           if (firstPage.items.length > 0 && nextPage.items.length > 0) {
@@ -228,16 +227,15 @@ describe("Civitai API Client Basic Usage", () => {
             );
           }
         } else {
-          // Log error but don't fail test
-          console.log(`Next page API error: ${nextPageResult.error.message}`);
+          throw new Error(
+            `Fetch next page API error: ${nextPageResult.error.message}`,
+          );
         }
       } else {
-        console.log("No next page available for testing");
-        // This is not an error - some queries might only have one page
+        throw new Error("No next page available from first page");
       }
     } else {
-      // Log error but don't fail test
-      console.log(`First page API error: ${firstPageResult.error.message}`);
+      throw new Error(`First page API error: ${firstPageResult.error.message}`);
     }
   }, 15000); // Increased timeout for pagination test
 });

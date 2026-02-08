@@ -91,7 +91,7 @@ export type ModelsResponse = typeof modelsResponseSchema.infer;
  */
 export const modelsRequestOptionsSchema = type({
   "limit?": "number.integer", // The number of results to be returned per page. This can be a number between 1 and 100. By default, each page will return 100 results
-  "page?": "number.integer", // The page from which to start fetching models
+  // "page?": "number.integer", // The page from which to start fetching models // 2026-2-8 "Cannot use page param with query search. Use cursor-based pagination."
   "query?": "string", // Search query to filter models by name
   "tag?": "string[]", // Search query to filter models by tag
   "username?": "string", // Search query to filter models by user
@@ -102,8 +102,8 @@ export const modelsRequestOptionsSchema = type({
   "favorites?": "boolean", // (AUTHED) Filter to favorites of the authenticated user (this requires an API token or session cookie)
   "hidden?": "boolean", // (AUTHED) Filter to hidden models of the authenticated user (this requires an API token or session cookie)
   "primaryFileOnly?": "boolean", // Only include the primary file for each model (This will use your preferred format options if you use an API token or session cookie)
-  "allowNoCredit?": "boolean", // Filter to models that require or don't require crediting the creator
-  "allowDerivatives?": "boolean", // Filter to models that allow or don't allow creating derivatives
+  // "allowNoCredit?": "boolean", // Filter to models that require or don't require crediting the creator
+  // "allowDerivatives?": "boolean", // Filter to models that allow or don't allow creating derivatives
   "allowDifferentLicenses?": "boolean", // Filter to models that allow or don't allow derivatives to have a different license
   "allowCommercialUse?": allowCommercialUseSchema.array(), // Filter to models based on their commercial permissions
   "nsfw?": "boolean", // If false, will return safer images and hide models that don't have safe images

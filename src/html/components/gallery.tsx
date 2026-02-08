@@ -10,14 +10,14 @@ import { useState } from "react";
 import {
   getFileType,
 } from "#modules/civitai-deprecated/service/sharedUtils.js";
-import { ModelImage } from "../../civitai-api/v1/models/index.js";
+import { ModelImageWithId } from "../../civitai-api/v1/models/index.js";
 
 function GalleryThumb({
   item,
   modalVisible,
   setModalVisible,
 }: {
-  item?: ModelImage;
+  item?: ModelImageWithId;
   modalVisible: boolean;
   setModalVisible: (visible: boolean) => void;
 }) {
@@ -42,7 +42,11 @@ function GalleryThumb({
   }
 }
 
-export default function Gallery({ mediaArray }: { mediaArray: string[] }) {
+export default function Gallery({
+  items,
+}: {
+  items: Array<ModelImageWithId>;
+}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -98,22 +102,15 @@ export default function Gallery({ mediaArray }: { mediaArray: string[] }) {
   return (
     <>
       <GalleryThumb
-        item={{
-          id: null,
-          url: mediaArray[0],
-          nsfwLevel: 0,
-          width: 0,
-          height: 0,
-          hash: '',
-          type: getFileType(
-            new URL(mediaArray[0]).searchParams.get("previewFile")!
-          ) as 'image' | 'video',
-        }}
+        item={items[0]}
         modalVisible
         setModalVisible={setModalVisible}
       />
       <Image.PreviewGroup
-        items={mediaArray}
+        items={items.map((item) => ({
+          src: item.url,
+          alt: "",
+        }))}
         preview={{
           open: modalVisible,
           onOpenChange: (value) => {

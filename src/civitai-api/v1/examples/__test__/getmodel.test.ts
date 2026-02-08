@@ -9,7 +9,7 @@ describe("Civitai API Client - getModel() method", () => {
     // Create client with configuration from environment variables
     client = createCivitaiClient({
       apiKey: process.env.CIVITAI_API_KEY,
-      timeout: 30000,
+      timeout: 6000,
       validateResponses: false,
     });
   });

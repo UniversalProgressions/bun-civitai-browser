@@ -1,6 +1,7 @@
-import type { Result } from 'neverthrow';
-import type { CivitaiClient } from '../client';
-import type { CivitaiError } from '../errors';
+import type { Result } from "neverthrow";
+import type { CivitaiClient } from "../client";
+import type { CivitaiError } from "../errors";
+import { obj2UrlSearchParams } from "../../utils";
 
 /**
  * Tags endpoint interface
@@ -9,7 +10,9 @@ export interface TagsEndpoint {
   /**
    * Get tags list
    */
-  list(options?: TagsRequestOptions): Promise<Result<TagsResponse, CivitaiError>>;
+  list(
+    options?: TagsRequestOptions,
+  ): Promise<Result<TagsResponse, CivitaiError>>;
 }
 
 /**
@@ -17,7 +20,7 @@ export interface TagsEndpoint {
  */
 export interface TagsRequestOptions {
   limit?: number;
-  page?: number;
+  // page?: number; // Civitai API does not accept page parameter with query search. Use cursor-based pagination.
   query?: string;
 }
 
@@ -51,9 +54,13 @@ export interface TagItem {
 export class TagsEndpointImpl implements TagsEndpoint {
   constructor(private readonly client: CivitaiClient) {}
 
-  async list(options?: TagsRequestOptions): Promise<Result<TagsResponse, CivitaiError>> {
-    return this.client.get<TagsResponse>('tags', {
-      searchParams: options as Record<string, string | number | boolean | undefined>,
+  async list(
+    options?: TagsRequestOptions,
+  ): Promise<Result<TagsResponse, CivitaiError>> {
+    const searchParams = options ? obj2UrlSearchParams(options) : undefined;
+
+    return this.client.get<TagsResponse>("tags", {
+      searchParams,
     });
   }
 }

@@ -3,7 +3,7 @@ import { SettingFilled } from "@ant-design/icons";
 import SettingsPanel from "./pages/settings";
 import LocalModelsGallery from "./pages/localModelsGallery";
 import DownloadPanel from "./pages/downloadPanel-deprecated";
-import CivitaiGallery from "./pages/civitaiModelsGallery-deprecated";
+import CivitaiGallery from "./pages/civitaiModelsGallery";
 import TestPage from "./pages/galleryTestPage";
 
 type MenuItem = Required<MenuProps>["items"][number];

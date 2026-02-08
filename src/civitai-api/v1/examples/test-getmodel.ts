@@ -7,7 +7,7 @@ async function testGetModel() {
   // Create client
   const client = createCivitaiClient({
     apiKey: process.env.CIVITAI_API_KEY,
-    timeout: 30000,
+    timeout: 6000,
     validateResponses: false,
   });
 

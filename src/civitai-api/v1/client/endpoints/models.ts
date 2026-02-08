@@ -9,7 +9,7 @@ import type {
   Model,
 } from "../../models/models";
 import type { ModelById } from "../../models/model-id";
-import { modelId2Model } from "../../utils";
+import { modelId2Model, obj2UrlSearchParams } from "../../utils";
 
 /**
  * Models endpoint interface
@@ -64,7 +64,27 @@ export class ModelsEndpointImpl implements ModelsEndpoint {
     if (!nextPageUrl || typeof nextPageUrl !== "string") {
       throw new Error("nextPageUrl must be a non-empty string");
     }
-    return this.client.get<ModelsResponse>(nextPageUrl);
+
+    // Extract relative path: if nextPageUrl is a full URL, extract the path part
+    let requestPath = nextPageUrl;
+    try {
+      const url = new URL(nextPageUrl);
+      // If it's a full URL and contains the baseUrl prefix, extract relative path
+      const config = this.client.getConfig();
+      const baseUrl = config.baseUrl;
+      if (baseUrl && nextPageUrl.startsWith(baseUrl)) {
+        requestPath = nextPageUrl.substring(baseUrl.length);
+        // Remove leading slash if present (ky doesn't like paths starting with / when using prefixUrl)
+        if (requestPath.startsWith("/")) {
+          requestPath = requestPath.substring(1);
+        }
+      }
+    } catch (error) {
+      // If URL parsing fails, it might already be a relative path, use as is
+      // Or the URL format is invalid, let ky handle the error
+    }
+
+    return this.client.get<ModelsResponse>(requestPath);
   }
 
   async list(
@@ -105,24 +125,7 @@ export class ModelsEndpointImpl implements ModelsEndpoint {
   /**
    * Prepare search parameters, handle array-type fields
    */
-  private prepareSearchParams(
-    options?: ModelsRequestOptions,
-  ): Record<string, string | number | boolean | undefined> {
-    if (!options) return {};
-
-    const result: Record<string, string | number | boolean | undefined> = {};
-
-    for (const [key, value] of Object.entries(options)) {
-      if (value === undefined) continue;
-
-      if (Array.isArray(value)) {
-        // Array-type parameters need to be converted to comma-separated strings
-        result[key] = value.join(",");
-      } else {
-        result[key] = value;
-      }
-    }
-
-    return result;
+  private prepareSearchParams(options?: ModelsRequestOptions) {
+    return obj2UrlSearchParams(options ?? {});
   }
 }

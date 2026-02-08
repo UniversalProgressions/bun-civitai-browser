@@ -25,6 +25,9 @@ import type { CivitaiError } from "../../civitai-api/v1/client/errors";
 import {
   isValidationError,
   isNetworkError,
+  isBadRequestError,
+  isUnauthorizedError,
+  isNotFoundError,
 } from "../../civitai-api/v1/client/errors";
 import { getSettings } from "../settings/service";
 import { Client } from "@gopeed/rest";
@@ -36,9 +39,9 @@ import { extractFilenameFromUrl } from "../../civitai-api/v1/utils";
 import { writeJsonFile } from "write-json-file";
 
 export const client = createCivitaiClient({
-  apiKey: process.env.CIVITAI_API_KEY, // Read API key from environment variable
+  apiKey: getSettings().civitai_api_token, // Read API key from environment variable
   timeout: 30000, // Reduced to 30 seconds timeout to avoid long waits
-  validateResponses: false, // Do not validate responses (recommended to enable in production)
+  validateResponses: true, // Do not validate responses (recommended to enable in production)
 });
 
 export class CivitaiApiError extends Error {
@@ -88,12 +91,25 @@ function handleCivitaiError(error: CivitaiError): never {
     );
   } else if (isNetworkError(error)) {
     throw new CivitaiApiError(error.message, error.status, error.originalError);
-  } else {
-    // Handle other error types (BAD_REQUEST, UNAUTHORIZED, NOT_FOUND)
+  } else if (isBadRequestError(error)) {
+    // For BadRequestError, extract the actual error details
     throw new CivitaiApiError(
       error.message,
-      "status" in error ? error.status : 500,
-      error,
+      error.status,
+      error.details, // Pass the actual details, not the entire error object
+    );
+  } else if (isUnauthorizedError(error)) {
+    throw new CivitaiApiError(error.message, error.status, error.details);
+  } else if (isNotFoundError(error)) {
+    throw new CivitaiApiError(error.message, error.status, error.details);
+  } else {
+    // Handle unknown error types - this should never happen with the current error types
+    // but we handle it defensively
+    const errorAsAny = error as any;
+    throw new CivitaiApiError(
+      errorAsAny.message || "Unknown Civitai API error",
+      "status" in errorAsAny ? errorAsAny.status : 500,
+      errorAsAny,
     );
   }
 }
@@ -123,13 +139,13 @@ export default new Elysia({ prefix: `/civitai_api` })
   .onError(({ code, error, status }) => {
     switch (code) {
       case "CivitaiApiError":
-        return status("Internal Server Error", {
+        return status(error.status || 500, {
           code: error.status,
           message: error.message,
           details: error.details,
         });
       case "CivitaiValidationError":
-        return status("Conflict", {
+        return status(409, {
           message: error.message,
           arkSummary: error.arkSummary,
           validationDetails: error.validationDetails,
@@ -142,11 +158,12 @@ export default new Elysia({ prefix: `/civitai_api` })
   })
   .use(
     new Elysia({ prefix: "/v1" })
-      // GET /v1/creators - List creators
-      .get(
+      // POST /v1/creators - List creators
+      // Using POST instead of GET to handle complex JSON query objects more conveniently
+      .post(
         "/creators",
-        async ({ query }) => {
-          const result = await client.creators.list(query);
+        async ({ body }) => {
+          const result = await client.creators.list(body);
           if (result.isOk()) {
             return result.value;
           } else {
@@ -154,15 +171,16 @@ export default new Elysia({ prefix: `/civitai_api` })
           }
         },
         {
-          query: creatorsRequestOptionsSchema,
+          body: creatorsRequestOptionsSchema,
           response: creatorsResponseSchema,
         },
       )
-      // GET /v1/models - List models
-      .get(
+      // POST /v1/models - List models
+      // Using POST instead of GET to handle complex JSON query objects more conveniently
+      .post(
         "/models",
-        async ({ query }) => {
-          const result = await client.models.list(query);
+        async ({ body }) => {
+          const result = await client.models.list(body);
           if (result.isOk()) {
             return result.value;
           } else {
@@ -170,15 +188,15 @@ export default new Elysia({ prefix: `/civitai_api` })
           }
         },
         {
-          query: modelsRequestOptionsSchema,
+          body: modelsRequestOptionsSchema,
           response: modelsResponseSchema,
         },
       )
       // GET /v1/models/next-page - Get next page of models using nextPage URL
-      .get(
+      .post(
         "/models/next-page",
-        async ({ query }) => {
-          const { nextPage } = query;
+        async ({ body }) => {
+          const { nextPage } = body;
           if (!nextPage || typeof nextPage !== "string") {
             throw new CivitaiApiError(
               "nextPage parameter is required and must be a string",
@@ -194,7 +212,7 @@ export default new Elysia({ prefix: `/civitai_api` })
           }
         },
         {
-          query: type({ nextPage: "string" }),
+          body: type({ nextPage: "string" }),
           response: modelsResponseSchema,
         },
       )

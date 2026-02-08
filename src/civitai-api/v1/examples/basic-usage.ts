@@ -12,7 +12,7 @@ async function main() {
   console.log("1. Creating client...");
   const client = createCivitaiClient({
     apiKey: process.env.CIVITAI_API_KEY, // Read API key from environment variable
-    timeout: 30000, // Reduced to 30 seconds timeout to avoid long waits
+    timeout: 6000, // Reduced to 30 seconds timeout to avoid long waits
     validateResponses: false, // Do not validate responses (recommended to enable in production)
   });
 
@@ -29,7 +29,6 @@ async function main() {
   try {
     const creatorsResult = await client.creators.list({
       limit: 3,
-      page: 1,
     });
 
     if (creatorsResult.isOk()) {

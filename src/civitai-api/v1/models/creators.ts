@@ -6,10 +6,10 @@ import { paginationMetadataSchema } from "./shared-types";
  * Represents a user/creator on the platform
  */
 export const creatorSchema = type({
-    username: "string | null",
-    "modelCount?": "number.integer",
-    "link?": "string.url",
-    image: "string | null",
+  username: "string | null",
+  "modelCount?": "number.integer",
+  "link?": "string.url",
+  image: "string | null",
 });
 export type Creator = typeof creatorSchema.infer;
 
@@ -17,8 +17,8 @@ export type Creator = typeof creatorSchema.infer;
  * Response schema for the creators endpoint
  */
 export const creatorsResponseSchema = type({
-    items: creatorSchema.array(),
-    metadata: paginationMetadataSchema,
+  items: creatorSchema.array(),
+  metadata: paginationMetadataSchema,
 });
 export type CreatorsResponse = typeof creatorsResponseSchema.infer;
 
@@ -26,8 +26,8 @@ export type CreatorsResponse = typeof creatorsResponseSchema.infer;
  * Request options for the creators endpoint
  */
 export const creatorsRequestOptionsSchema = type({
-    "limit?": "number.integer",
-    "page?": "number.integer",
-    "query?": "string",
+  "limit?": "number.integer",
+  // "page?": "number.integer", // Civitai API does not accept page parameter with query search. Use cursor-based pagination.
+  "query?": "string",
 });
 export type CreatorsRequestOptions = typeof creatorsRequestOptionsSchema.infer;

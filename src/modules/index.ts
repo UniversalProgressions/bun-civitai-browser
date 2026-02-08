@@ -7,6 +7,7 @@ import SettingsRouter from "./settings";
 import CivitAIRouter from "./civitai-deprecated/index/index";
 import CivitaiV1Router from "./civitai";
 import LocalModelsRouter from "./local-models";
+import DbRouter from "./db";
 
 export const app = new Elysia()
   .use(html())
@@ -15,6 +16,7 @@ export const app = new Elysia()
   .use(staticPlugin({ prefix: "/", assets: "public" }))
   .use(SettingsRouter)
   .use(CivitaiV1Router)
-  .use(LocalModelsRouter);
+  .use(LocalModelsRouter)
+  .use(DbRouter);
 // .use(CivitAIRouter);
 export type App = typeof app;

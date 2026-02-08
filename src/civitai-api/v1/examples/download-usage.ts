@@ -18,7 +18,7 @@ async function main() {
   const apiKey = process.env.CIVITAI_API_KEY;
   const client = createCivitaiClient({
     apiKey,
-    timeout: 30000,
+    timeout: 6000,
     validateResponses: false,
   });
 
@@ -131,5 +131,3 @@ export async function demonstrateErrorHandling() {
 if (import.meta.main) {
   main().catch(console.error);
 }
-
-export default main;

@@ -12,7 +12,7 @@ describe("civitai download function test.", () => {
     const gopeed = getGopeedClient();
     const result = await gopeed.createTask({
       req: { url: `http://127.0.0.1:3000/civitai/local/media/57320036.jpeg` },
-      opt: { path: `C:\\Users\\APboi\\Downloads\\test` },
+      opts: { path: `C:\\Users\\APboi\\Downloads\\test` },
     });
     expect(result).toBeTypeOf("string");
   });

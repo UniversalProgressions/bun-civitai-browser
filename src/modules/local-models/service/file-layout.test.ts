@@ -1,9 +1,9 @@
 import { ModelLayout } from "./file-layout";
 import { describe, test, expect } from "bun:test";
 import { join } from "node:path";
-import sanitize from "sanitize-basename";
+import filenamify from "filenamify";
 import { last } from "es-toolkit/compat";
-import type { Model, ModelsResponse } from "#civitai-api/v1/models/models";
+import type { Model } from "#civitai-api/v1/models/models";
 import { settingsService } from "#modules/settings/service";
 import fg from "fast-glob";
 import modelData from "./models_res.json" with { type: "json" };
@@ -36,7 +36,7 @@ describe("test layout class", () => {
   test("test get file path", () => {
     // New layout: {versionId}/files/{fileName}.xxx (no fileId_ prefix)
     expect(mvlayout.getFilePath(mfile.id)).toBe(
-      join(mvlayout.filesDir, sanitize(mfile.name)),
+      join(mvlayout.filesDir, filenamify(mfile.name, { replacement: "_" })),
     );
   });
 

@@ -1,5 +1,6 @@
 import { normalize, join } from "node:path";
-import sanitize from "sanitize-basename";
+import isValidFilename from "valid-filename";
+import filenamify from "filenamify";
 import { find } from "es-toolkit/compat";
 import type {
   Model,
@@ -9,12 +10,10 @@ import type {
   ModelFile,
   ModelImage,
 } from "../../../civitai-api/v1/models/shared-types";
-import { modelTypesSchema } from "../../../civitai-api/v1/models/base-models/misc";
 import { settingsService } from "../../settings/service";
 import {
   extractFilenameFromUrl,
   extractIdFromImageUrl,
-  removeFileExtension,
 } from "../../../civitai-api/v1/utils";
 
 /**
@@ -136,7 +135,10 @@ export class ModelVersionLayout {
 
   getFileName(fileId: number): string {
     const modelFile = this.findFile(fileId);
-    return sanitize(modelFile.name);
+    if (isValidFilename(modelFile.name)) {
+      return modelFile.name;
+    }
+    return filenamify(modelFile.name, { replacement: "_" });
   }
 
   getFileDirPath(): string {

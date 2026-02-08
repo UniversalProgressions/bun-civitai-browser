@@ -7,31 +7,37 @@ export interface ClientConfig {
    * Used for authenticated requests
    */
   apiKey?: string;
-  
+
+  /**
+   * Download token for resolving file download URLs (optional)
+   * If not provided, apiKey will be used as download token
+   */
+  downloadToken?: string;
+
   /**
    * API base URL (optional)
    * Default: 'https://civitai.com/api/v1'
    */
   baseUrl?: string;
-  
+
   /**
    * Request timeout in milliseconds
    * Default: 30000 (30 seconds)
    */
   timeout?: number;
-  
+
   /**
    * Custom request headers
    */
   headers?: Record<string, string>;
-  
+
   /**
    * Proxy configuration
    * Can be string format 'http://host:port'
    * or object format { host: string, port: number }
    */
   proxy?: string | { host: string; port: number };
-  
+
   /**
    * Whether to enable response validation
    * Default: false
@@ -42,8 +48,10 @@ export interface ClientConfig {
 /**
  * Default configuration
  */
-export const DEFAULT_CONFIG: Required<Pick<ClientConfig, 'baseUrl' | 'timeout' | 'validateResponses'>> = {
-  baseUrl: 'https://civitai.com/api/v1',
+export const DEFAULT_CONFIG: Required<
+  Pick<ClientConfig, "baseUrl" | "timeout" | "validateResponses">
+> = {
+  baseUrl: "https://civitai.com/api/v1",
   timeout: 30000,
   validateResponses: false,
 };
@@ -51,7 +59,13 @@ export const DEFAULT_CONFIG: Required<Pick<ClientConfig, 'baseUrl' | 'timeout' |
 /**
  * Merge user configuration with default configuration
  */
-export function mergeConfig(userConfig: ClientConfig = {}): ClientConfig & { baseUrl: string; timeout: number; validateResponses: boolean } {
+export function mergeConfig(
+  userConfig: ClientConfig = {},
+): ClientConfig & {
+  baseUrl: string;
+  timeout: number;
+  validateResponses: boolean;
+} {
   return {
     ...DEFAULT_CONFIG,
     ...userConfig,
@@ -61,15 +75,17 @@ export function mergeConfig(userConfig: ClientConfig = {}): ClientConfig & { bas
 /**
  * Helper function to create proxy agent
  */
-export function createProxyAgent(proxy: string | { host: string; port: number }) {
-  if (typeof proxy === 'string') {
+export function createProxyAgent(
+  proxy: string | { host: string; port: number },
+) {
+  if (typeof proxy === "string") {
     // Parse string format proxy
     try {
       const url = new URL(proxy);
       return {
         host: url.hostname,
-        port: parseInt(url.port) || (url.protocol === 'https:' ? 443 : 80),
-        protocol: url.protocol.replace(':', ''),
+        port: parseInt(url.port) || (url.protocol === "https:" ? 443 : 80),
+        protocol: url.protocol.replace(":", ""),
       };
     } catch {
       throw new Error(`Invalid proxy URL: ${proxy}`);
@@ -79,7 +95,7 @@ export function createProxyAgent(proxy: string | { host: string; port: number })
     return {
       host: proxy.host,
       port: proxy.port,
-      protocol: 'http',
+      protocol: "http",
     };
   }
 }

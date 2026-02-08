@@ -26,7 +26,6 @@ export const ModelVersionRelations = t.Object({
     nsfwLevel: t.Integer(),
     createdAt: t.Date(),
     updatedAt: t.Date(),
-    previewFile: __nullable__(t.String()),
   }),
   baseModel: t.Object({ id: t.Integer(), name: t.String() }),
   baseModelType: __nullable__(

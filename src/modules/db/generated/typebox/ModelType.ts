@@ -17,7 +17,6 @@ export const ModelTypeRelations = t.Object({
       nsfwLevel: t.Integer(),
       createdAt: t.Date(),
       updatedAt: t.Date(),
-      previewFile: __nullable__(t.String()),
     }),
     { additionalProperties: true },
   ),

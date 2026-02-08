@@ -46,6 +46,7 @@
     "prisma-adapter-bun-sqlite": "^0.6.7",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "sanitize-basename": "^2.0.2",
     "tailwindcss": "^4.1.18",
     "valid-filename": "^4.0.0",
     "write-json-file": "^7.0.0"

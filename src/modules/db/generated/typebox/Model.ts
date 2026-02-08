@@ -13,7 +13,6 @@ export const ModelPlain = t.Object({
   nsfwLevel: t.Integer(),
   createdAt: t.Date(),
   updatedAt: t.Date(),
-  previewFile: __nullable__(t.String()),
 });
 
 export const ModelRelations = t.Object({
@@ -49,14 +48,12 @@ export const ModelPlainInputCreate = t.Object({
   name: t.String(),
   nsfw: t.Boolean(),
   nsfwLevel: t.Integer(),
-  previewFile: t.Optional(__nullable__(t.String())),
 });
 
 export const ModelPlainInputUpdate = t.Object({
   name: t.Optional(t.String()),
   nsfw: t.Optional(t.Boolean()),
   nsfwLevel: t.Optional(t.Integer()),
-  previewFile: t.Optional(__nullable__(t.String())),
 });
 
 export const ModelRelationsInputCreate = t.Object({
@@ -160,7 +157,6 @@ export const ModelWhere = t.Partial(
           nsfwLevel: t.Integer(),
           createdAt: t.Date(),
           updatedAt: t.Date(),
-          previewFile: t.String(),
         },
         { additionalProperties: true },
       ),
@@ -197,7 +193,6 @@ export const ModelWhereUnique = t.Recursive(
             nsfwLevel: t.Integer(),
             createdAt: t.Date(),
             updatedAt: t.Date(),
-            previewFile: t.String(),
           }),
         ),
       ],
@@ -218,7 +213,6 @@ export const ModelSelect = t.Partial(
     tags: t.Boolean(),
     createdAt: t.Boolean(),
     updatedAt: t.Boolean(),
-    previewFile: t.Boolean(),
     creator: t.Boolean(),
     type: t.Boolean(),
     _count: t.Boolean(),
@@ -259,9 +253,6 @@ export const ModelOrderBy = t.Partial(
       additionalProperties: true,
     }),
     updatedAt: t.Union([t.Literal("asc"), t.Literal("desc")], {
-      additionalProperties: true,
-    }),
-    previewFile: t.Union([t.Literal("asc"), t.Literal("desc")], {
       additionalProperties: true,
     }),
   }),

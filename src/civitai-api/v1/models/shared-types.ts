@@ -55,7 +55,7 @@ export const modelVersionStatsSchema = type({
   "ratingCount?": "number.integer",
   "rating?": "number",
   thumbsUpCount: "number.integer",
-  "thumbsDownCount?": "number.integer",
+  thumbsDownCount: "number.integer",
 });
 export type ModelVersionStats = typeof modelVersionStatsSchema.infer;
 
@@ -64,7 +64,7 @@ export const modelStatsSchema = type({
   downloadCount: "number.integer",
   "favoriteCount?": "number.integer",
   thumbsUpCount: "number.integer",
-  thumbsDownCount: "number.integer",
+  "thumbsDownCount?": "number.integer",
   commentCount: "number.integer",
   "ratingCount?": "number.integer",
   "rating?": "number",

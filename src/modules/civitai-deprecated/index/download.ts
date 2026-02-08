@@ -48,6 +48,7 @@ export function getGopeedClient() {
   return client;
 }
 
+// combine civitai token to model file download url, used for request civitai api to get response with real download url
 function makeModelFileDownloadUrl(url: string, token: string) {
   console.log(
     `this is the url I get from trpc: ${url}\n this is the token: ${token}`,
@@ -135,6 +136,7 @@ const controller = new Elysia({ prefix: `/download` })
       for (let index = 0; index < modelVersion.files.length; index++) {
         const file = modelVersion.files[index];
         const res = await requester.get(
+          //
           makeModelFileDownloadUrl(
             file.downloadUrl,
             settings.civitai_api_token,
@@ -144,6 +146,7 @@ const controller = new Elysia({ prefix: `/download` })
           },
         );
         if (res.ok) {
+          // use resolved real download url to create gopeed download task
           modelFileDownloadTasks.push({
             req: { url: res.url },
             opts: {
@@ -206,6 +209,7 @@ const controller = new Elysia({ prefix: `/download` })
         );
       }
       // 4. upsert model info to db
+      // @ts-ignore 'video' and 'image' isn't assignable to string
       const records = await upsertOneModelVersion(model, modelVersion);
       // 5. return tasks info
 

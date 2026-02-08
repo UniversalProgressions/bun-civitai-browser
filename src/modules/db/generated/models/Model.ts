@@ -49,7 +49,6 @@ export type ModelMinAggregateOutputType = {
   nsfwLevel: number | null
   createdAt: Date | null
   updatedAt: Date | null
-  previewFile: string | null
 }
 
 export type ModelMaxAggregateOutputType = {
@@ -61,7 +60,6 @@ export type ModelMaxAggregateOutputType = {
   nsfwLevel: number | null
   createdAt: Date | null
   updatedAt: Date | null
-  previewFile: string | null
 }
 
 export type ModelCountAggregateOutputType = {
@@ -73,7 +71,6 @@ export type ModelCountAggregateOutputType = {
   nsfwLevel: number
   createdAt: number
   updatedAt: number
-  previewFile: number
   _all: number
 }
 
@@ -101,7 +98,6 @@ export type ModelMinAggregateInputType = {
   nsfwLevel?: true
   createdAt?: true
   updatedAt?: true
-  previewFile?: true
 }
 
 export type ModelMaxAggregateInputType = {
@@ -113,7 +109,6 @@ export type ModelMaxAggregateInputType = {
   nsfwLevel?: true
   createdAt?: true
   updatedAt?: true
-  previewFile?: true
 }
 
 export type ModelCountAggregateInputType = {
@@ -125,7 +120,6 @@ export type ModelCountAggregateInputType = {
   nsfwLevel?: true
   createdAt?: true
   updatedAt?: true
-  previewFile?: true
   _all?: true
 }
 
@@ -224,7 +218,6 @@ export type ModelGroupByOutputType = {
   nsfwLevel: number
   createdAt: Date
   updatedAt: Date
-  previewFile: string | null
   _count: ModelCountAggregateOutputType | null
   _avg: ModelAvgAggregateOutputType | null
   _sum: ModelSumAggregateOutputType | null
@@ -259,7 +252,6 @@ export type ModelWhereInput = {
   nsfwLevel?: Prisma.IntFilter<"Model"> | number
   createdAt?: Prisma.DateTimeFilter<"Model"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Model"> | Date | string
-  previewFile?: Prisma.StringNullableFilter<"Model"> | string | null
   modelVersions?: Prisma.ModelVersionListRelationFilter
   tags?: Prisma.TagListRelationFilter
   creator?: Prisma.XOR<Prisma.CreatorNullableScalarRelationFilter, Prisma.CreatorWhereInput> | null
@@ -275,7 +267,6 @@ export type ModelOrderByWithRelationInput = {
   nsfwLevel?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  previewFile?: Prisma.SortOrderInput | Prisma.SortOrder
   modelVersions?: Prisma.ModelVersionOrderByRelationAggregateInput
   tags?: Prisma.TagOrderByRelationAggregateInput
   creator?: Prisma.CreatorOrderByWithRelationInput
@@ -294,7 +285,6 @@ export type ModelWhereUniqueInput = Prisma.AtLeast<{
   nsfwLevel?: Prisma.IntFilter<"Model"> | number
   createdAt?: Prisma.DateTimeFilter<"Model"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Model"> | Date | string
-  previewFile?: Prisma.StringNullableFilter<"Model"> | string | null
   modelVersions?: Prisma.ModelVersionListRelationFilter
   tags?: Prisma.TagListRelationFilter
   creator?: Prisma.XOR<Prisma.CreatorNullableScalarRelationFilter, Prisma.CreatorWhereInput> | null
@@ -310,7 +300,6 @@ export type ModelOrderByWithAggregationInput = {
   nsfwLevel?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  previewFile?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ModelCountOrderByAggregateInput
   _avg?: Prisma.ModelAvgOrderByAggregateInput
   _max?: Prisma.ModelMaxOrderByAggregateInput
@@ -330,7 +319,6 @@ export type ModelScalarWhereWithAggregatesInput = {
   nsfwLevel?: Prisma.IntWithAggregatesFilter<"Model"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Model"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Model"> | Date | string
-  previewFile?: Prisma.StringNullableWithAggregatesFilter<"Model"> | string | null
 }
 
 export type ModelCreateInput = {
@@ -340,7 +328,6 @@ export type ModelCreateInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
   modelVersions?: Prisma.ModelVersionCreateNestedManyWithoutModelInput
   tags?: Prisma.TagCreateNestedManyWithoutModelsInput
   creator?: Prisma.CreatorCreateNestedOneWithoutModelsInput
@@ -356,7 +343,6 @@ export type ModelUncheckedCreateInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
   modelVersions?: Prisma.ModelVersionUncheckedCreateNestedManyWithoutModelInput
   tags?: Prisma.TagUncheckedCreateNestedManyWithoutModelsInput
 }
@@ -368,7 +354,6 @@ export type ModelUpdateInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelVersions?: Prisma.ModelVersionUpdateManyWithoutModelNestedInput
   tags?: Prisma.TagUpdateManyWithoutModelsNestedInput
   creator?: Prisma.CreatorUpdateOneWithoutModelsNestedInput
@@ -384,7 +369,6 @@ export type ModelUncheckedUpdateInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelVersions?: Prisma.ModelVersionUncheckedUpdateManyWithoutModelNestedInput
   tags?: Prisma.TagUncheckedUpdateManyWithoutModelsNestedInput
 }
@@ -398,7 +382,6 @@ export type ModelCreateManyInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
 }
 
 export type ModelUpdateManyMutationInput = {
@@ -408,7 +391,6 @@ export type ModelUpdateManyMutationInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ModelUncheckedUpdateManyInput = {
@@ -420,7 +402,6 @@ export type ModelUncheckedUpdateManyInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ModelListRelationFilter = {
@@ -442,7 +423,6 @@ export type ModelCountOrderByAggregateInput = {
   nsfwLevel?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  previewFile?: Prisma.SortOrder
 }
 
 export type ModelAvgOrderByAggregateInput = {
@@ -461,7 +441,6 @@ export type ModelMaxOrderByAggregateInput = {
   nsfwLevel?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  previewFile?: Prisma.SortOrder
 }
 
 export type ModelMinOrderByAggregateInput = {
@@ -473,7 +452,6 @@ export type ModelMinOrderByAggregateInput = {
   nsfwLevel?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  previewFile?: Prisma.SortOrder
 }
 
 export type ModelSumOrderByAggregateInput = {
@@ -647,7 +625,6 @@ export type ModelCreateWithoutCreatorInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
   modelVersions?: Prisma.ModelVersionCreateNestedManyWithoutModelInput
   tags?: Prisma.TagCreateNestedManyWithoutModelsInput
   type: Prisma.ModelTypeCreateNestedOneWithoutModelsInput
@@ -661,7 +638,6 @@ export type ModelUncheckedCreateWithoutCreatorInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
   modelVersions?: Prisma.ModelVersionUncheckedCreateNestedManyWithoutModelInput
   tags?: Prisma.TagUncheckedCreateNestedManyWithoutModelsInput
 }
@@ -703,7 +679,6 @@ export type ModelScalarWhereInput = {
   nsfwLevel?: Prisma.IntFilter<"Model"> | number
   createdAt?: Prisma.DateTimeFilter<"Model"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Model"> | Date | string
-  previewFile?: Prisma.StringNullableFilter<"Model"> | string | null
 }
 
 export type ModelCreateWithoutTypeInput = {
@@ -713,7 +688,6 @@ export type ModelCreateWithoutTypeInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
   modelVersions?: Prisma.ModelVersionCreateNestedManyWithoutModelInput
   tags?: Prisma.TagCreateNestedManyWithoutModelsInput
   creator?: Prisma.CreatorCreateNestedOneWithoutModelsInput
@@ -727,7 +701,6 @@ export type ModelUncheckedCreateWithoutTypeInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
   modelVersions?: Prisma.ModelVersionUncheckedCreateNestedManyWithoutModelInput
   tags?: Prisma.TagUncheckedCreateNestedManyWithoutModelsInput
 }
@@ -764,7 +737,6 @@ export type ModelCreateWithoutTagsInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
   modelVersions?: Prisma.ModelVersionCreateNestedManyWithoutModelInput
   creator?: Prisma.CreatorCreateNestedOneWithoutModelsInput
   type: Prisma.ModelTypeCreateNestedOneWithoutModelsInput
@@ -779,7 +751,6 @@ export type ModelUncheckedCreateWithoutTagsInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
   modelVersions?: Prisma.ModelVersionUncheckedCreateNestedManyWithoutModelInput
 }
 
@@ -811,7 +782,6 @@ export type ModelCreateWithoutModelVersionsInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
   tags?: Prisma.TagCreateNestedManyWithoutModelsInput
   creator?: Prisma.CreatorCreateNestedOneWithoutModelsInput
   type: Prisma.ModelTypeCreateNestedOneWithoutModelsInput
@@ -826,7 +796,6 @@ export type ModelUncheckedCreateWithoutModelVersionsInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
   tags?: Prisma.TagUncheckedCreateNestedManyWithoutModelsInput
 }
 
@@ -853,7 +822,6 @@ export type ModelUpdateWithoutModelVersionsInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.TagUpdateManyWithoutModelsNestedInput
   creator?: Prisma.CreatorUpdateOneWithoutModelsNestedInput
   type?: Prisma.ModelTypeUpdateOneRequiredWithoutModelsNestedInput
@@ -868,7 +836,6 @@ export type ModelUncheckedUpdateWithoutModelVersionsInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.TagUncheckedUpdateManyWithoutModelsNestedInput
 }
 
@@ -880,7 +847,6 @@ export type ModelCreateManyCreatorInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
 }
 
 export type ModelUpdateWithoutCreatorInput = {
@@ -890,7 +856,6 @@ export type ModelUpdateWithoutCreatorInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelVersions?: Prisma.ModelVersionUpdateManyWithoutModelNestedInput
   tags?: Prisma.TagUpdateManyWithoutModelsNestedInput
   type?: Prisma.ModelTypeUpdateOneRequiredWithoutModelsNestedInput
@@ -904,7 +869,6 @@ export type ModelUncheckedUpdateWithoutCreatorInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelVersions?: Prisma.ModelVersionUncheckedUpdateManyWithoutModelNestedInput
   tags?: Prisma.TagUncheckedUpdateManyWithoutModelsNestedInput
 }
@@ -917,7 +881,6 @@ export type ModelUncheckedUpdateManyWithoutCreatorInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ModelCreateManyTypeInput = {
@@ -928,7 +891,6 @@ export type ModelCreateManyTypeInput = {
   nsfwLevel: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  previewFile?: string | null
 }
 
 export type ModelUpdateWithoutTypeInput = {
@@ -938,7 +900,6 @@ export type ModelUpdateWithoutTypeInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelVersions?: Prisma.ModelVersionUpdateManyWithoutModelNestedInput
   tags?: Prisma.TagUpdateManyWithoutModelsNestedInput
   creator?: Prisma.CreatorUpdateOneWithoutModelsNestedInput
@@ -952,7 +913,6 @@ export type ModelUncheckedUpdateWithoutTypeInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelVersions?: Prisma.ModelVersionUncheckedUpdateManyWithoutModelNestedInput
   tags?: Prisma.TagUncheckedUpdateManyWithoutModelsNestedInput
 }
@@ -965,7 +925,6 @@ export type ModelUncheckedUpdateManyWithoutTypeInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ModelUpdateWithoutTagsInput = {
@@ -975,7 +934,6 @@ export type ModelUpdateWithoutTagsInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelVersions?: Prisma.ModelVersionUpdateManyWithoutModelNestedInput
   creator?: Prisma.CreatorUpdateOneWithoutModelsNestedInput
   type?: Prisma.ModelTypeUpdateOneRequiredWithoutModelsNestedInput
@@ -990,7 +948,6 @@ export type ModelUncheckedUpdateWithoutTagsInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelVersions?: Prisma.ModelVersionUncheckedUpdateManyWithoutModelNestedInput
 }
 
@@ -1003,7 +960,6 @@ export type ModelUncheckedUpdateManyWithoutTagsInput = {
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  previewFile?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -1055,7 +1011,6 @@ export type ModelSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   nsfwLevel?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  previewFile?: boolean
   modelVersions?: boolean | Prisma.Model$modelVersionsArgs<ExtArgs>
   tags?: boolean | Prisma.Model$tagsArgs<ExtArgs>
   creator?: boolean | Prisma.Model$creatorArgs<ExtArgs>
@@ -1072,7 +1027,6 @@ export type ModelSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   nsfwLevel?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  previewFile?: boolean
   creator?: boolean | Prisma.Model$creatorArgs<ExtArgs>
   type?: boolean | Prisma.ModelTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["model"]>
@@ -1086,7 +1040,6 @@ export type ModelSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   nsfwLevel?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  previewFile?: boolean
   creator?: boolean | Prisma.Model$creatorArgs<ExtArgs>
   type?: boolean | Prisma.ModelTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["model"]>
@@ -1100,10 +1053,9 @@ export type ModelSelectScalar = {
   nsfwLevel?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  previewFile?: boolean
 }
 
-export type ModelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "creatorId" | "typeId" | "nsfw" | "nsfwLevel" | "createdAt" | "updatedAt" | "previewFile", ExtArgs["result"]["model"]>
+export type ModelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "creatorId" | "typeId" | "nsfw" | "nsfwLevel" | "createdAt" | "updatedAt", ExtArgs["result"]["model"]>
 export type ModelInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   modelVersions?: boolean | Prisma.Model$modelVersionsArgs<ExtArgs>
   tags?: boolean | Prisma.Model$tagsArgs<ExtArgs>
@@ -1137,7 +1089,6 @@ export type $ModelPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     nsfwLevel: number
     createdAt: Date
     updatedAt: Date
-    previewFile: string | null
   }, ExtArgs["result"]["model"]>
   composites: {}
 }
@@ -1573,7 +1524,6 @@ export interface ModelFieldRefs {
   readonly nsfwLevel: Prisma.FieldRef<"Model", 'Int'>
   readonly createdAt: Prisma.FieldRef<"Model", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Model", 'DateTime'>
-  readonly previewFile: Prisma.FieldRef<"Model", 'String'>
 }
     
 

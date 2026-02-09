@@ -31,6 +31,13 @@ const ShadowHTML: React.FC<ShadowHTMLProps> = ({ html, style }) => {
 
     // 创建一个容器用于存放 raw HTML
     const wrapper = document.createElement("div");
+    // Add inline styles to prevent content from breaking boundaries
+    wrapper.style.cssText = `
+      max-width: 100%;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      box-sizing: border-box;
+    `;
     wrapper.innerHTML = html;
     shadow.appendChild(wrapper);
   }, [html, style]);

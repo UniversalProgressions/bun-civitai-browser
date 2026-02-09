@@ -6,7 +6,6 @@ import {
   Descriptions,
   type DescriptionsProps,
   Flex,
-  Image,
   Input,
   List,
   notification,
@@ -17,24 +16,16 @@ import {
   Tabs,
   Tag,
 } from "antd";
-import { useState } from "react";
+import React, { useState } from "react";
 import { atom, useAtom } from "jotai";
-import { type } from "arktype";
 import clipboard from "clipboardy";
 import { debounce } from "es-toolkit";
 import DOMPurify from "dompurify";
 import type { ExistedModelVersions, Model } from "#civitai-api/v1/models";
-import {
-  existedModelVersionsSchema,
-  modelByIdSchema,
-} from "#civitai-api/v1/models";
 import { edenTreaty } from "../utils";
-import {
-  replaceUrlParam,
-  extractFilenameFromUrl,
-  modelId2Model,
-  removeFileExtension,
-} from "#civitai-api/v1/utils";
+import { replaceUrlParam, removeFileExtension } from "#civitai-api/v1/utils";
+import Gallery from "../components/gallery";
+import ShadowHTML from "../components/shadowHTML";
 
 enum LoadingOptionsEnum {
   VersionId = "VersionId",
@@ -46,32 +37,35 @@ enum LoadingOptionsEnum {
 const activeVersionIdAtom = atom<string>(``);
 const existedModelVersionsAtom = atom<ExistedModelVersions>([]);
 const selectedOptionAtom = atom<LoadingOptionsEnum>(
-  LoadingOptionsEnum.VersionId
+  LoadingOptionsEnum.VersionId,
 );
 const inputValueAtom = atom<string>(``);
 const loadingAtom = atom<boolean>(false);
-const modelContentAtom = atom(<></>);
+const modelContentAtom = atom<React.ReactNode>(null);
 
 function ModelCardContent({ data }: { data: Model }) {
   const [activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom);
   const [isDownloadButtonLoading, setIsDownloadButtonLoading] = useState(false);
-  const [existedModelversions, setExistedModelversions] = useAtom(
-    existedModelVersionsAtom
+  const [existedModelVersions, setExistedModelVersions] = useAtom(
+    existedModelVersionsAtom,
   );
 
   async function onDownloadClick(model: Model, versionId: number) {
     setIsDownloadButtonLoading(true);
     try {
-      const result = await edenTreaty.civitai_api.v1.download["model-version"].post({
+      const result = await edenTreaty.civitai_api.v1.download[
+        "model-version"
+      ].post({
         model,
         modelVersionId: versionId,
       });
       notification.success({
-        title: "Download started",
+        message: "Download started successfully",
+        description: `Model: ${model.name}, Version: ${versionId}`,
       });
     } catch (error) {
       notification.error({
-        title: "Download failed",
+        message: "Download failed",
         description:
           error instanceof Error ? error.message : JSON.stringify(error),
       });
@@ -90,29 +84,39 @@ function ModelCardContent({ data }: { data: Model }) {
         items={data?.modelVersions.map((v) => {
           const leftSide = (
             <>
-              <Space align="center" orientation="vertical">
-                {v.images[0]?.url ? (
-                  <Image.PreviewGroup
-                    items={v.images.map((i) => replaceUrlParam(i.url))}
-                  >
-                    <Image
-                      width={200}
-                      src={replaceUrlParam(v.images[0].url)}
-                      alt="No previews"
-                    />
-                  </Image.PreviewGroup>
+              <Space align="center" orientation="vertical" size="middle">
+                {v.images.length > 0 ? (
+                  <Gallery
+                    items={v.images.map((img) => ({
+                      ...img,
+                      url: replaceUrlParam(img.url),
+                    }))}
+                  />
                 ) : (
-                  <img title="Have no preview" />
+                  <div
+                    style={{
+                      width: 200,
+                      height: 200,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#f0f0f0",
+                      border: "1px dashed #d9d9d9",
+                      borderRadius: "8px",
+                    }}
+                    title="No preview available"
+                  >
+                    <span style={{ color: "#999" }}>No preview</span>
+                  </div>
                 )}
                 <Button
                   type="primary"
                   block
                   onClick={() => onDownloadClick(data, v.id)}
                   disabled={
-                    existedModelversions.find((obj) => obj.versionId === v.id)
-                      ?.filesOnDisk.length === v.files.length
-                      ? true
-                      : false
+                    existedModelVersions.find(
+                      (obj: any) => obj.versionId === v.id,
+                    )?.filesOnDisk.length === v.files.length
                   }
                   loading={isDownloadButtonLoading}
                 >
@@ -157,8 +161,8 @@ function ModelCardContent({ data }: { data: Model }) {
                         <List.Item>
                           <Row>
                             <Col span={18}>
-                              {existedModelversions
-                                .find((obj) => obj.versionId === v.id)
+                              {existedModelVersions
+                                .find((obj: any) => obj.versionId === v.id)
                                 ?.filesOnDisk.includes(file.id) ? (
                                 <Tag color="green">onDisk</Tag>
                               ) : undefined}
@@ -167,20 +171,15 @@ function ModelCardContent({ data }: { data: Model }) {
                             <Col span={6}>
                               <Button
                                 onClick={async () => {
-                                  // const loraString = `<lora:${
-                                  //   modelVersion.files[index].id
-                                  // }_${
-                                  //   removeFileExtension(
-                                  //     modelVersion.files[index].name,
-                                  //   )
-                                  // }:1>`;
-                                  await clipboard.write(file.name);
+                                  const loraString = `<lora:${file.id}_${removeFileExtension(file.name)}:1>`;
+                                  await clipboard.write(loraString);
                                   notification.success({
-                                    title: `${file.name} copied to clipboard`,
+                                    title: "Lora string copied to clipboard",
+                                    description: loraString,
                                   });
                                 }}
                               >
-                                Copy Filename
+                                Copy Lora String
                               </Button>
                             </Col>
                           </Row>
@@ -224,28 +223,216 @@ function ModelCardContent({ data }: { data: Model }) {
               label: "Model Description",
               span: "filled",
               children: data.description ? (
-                <div
-                  className="bg-gray-300"
-                  dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(data.description),
-                  }}
+                <ShadowHTML
+                  html={DOMPurify.sanitize(data.description)}
+                  style={`
+                    body {
+                      margin: 0;
+                      padding: 12px;
+                      background: #f8f9fa;
+                      color: #212529;
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                      line-height: 1.5;
+                      max-width: 100%;
+                      box-sizing: border-box;
+                      overflow-x: auto;
+                      overflow-wrap: break-word;
+                      word-break: break-word;
+                    }
+                    * {
+                      box-sizing: border-box;
+                    }
+                    h1, h2, h3, h4, h5, h6 {
+                      margin-top: 1em;
+                      margin-bottom: 0.5em;
+                      font-weight: 600;
+                      line-height: 1.2;
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                    }
+                    p {
+                      margin: 0 0 1em;
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                    }
+                    ul, ol {
+                      margin: 0 0 1em;
+                      padding-left: 2em;
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                    }
+                    li {
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                    }
+                    a {
+                      color: #0d6efd;
+                      text-decoration: none;
+                      overflow-wrap: break-word;
+                      word-break: break-all;
+                    }
+                    a:hover {
+                      text-decoration: underline;
+                    }
+                    img {
+                      max-width: 100%;
+                      height: auto;
+                      border-radius: 4px;
+                      display: block;
+                    }
+                    code {
+                      background: #e9ecef;
+                      padding: 2px 6px;
+                      border-radius: 3px;
+                      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+                      font-size: 0.9em;
+                      max-width: 100%;
+                      overflow-x: auto;
+                      display: inline-block;
+                      word-break: break-all;
+                    }
+                    pre {
+                      background: #e9ecef;
+                      padding: 12px;
+                      border-radius: 6px;
+                      overflow: auto;
+                      max-width: 100%;
+                    }
+                    blockquote {
+                      border-left: 4px solid #dee2e6;
+                      margin: 0 0 1em;
+                      padding-left: 1em;
+                      color: #6c757d;
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                    }
+                    table {
+                      max-width: 100%;
+                      overflow-x: auto;
+                      display: block;
+                      border-collapse: collapse;
+                    }
+                    th, td {
+                      padding: 8px;
+                      border: 1px solid #dee2e6;
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                    }
+                    iframe, video, audio {
+                      max-width: 100%;
+                      display: block;
+                    }
+                  `}
                 />
               ) : undefined,
-              // data.description,
             },
             {
               key: 10,
               label: "Model Version Description",
               span: "filled",
               children: v.description ? (
-                <div
-                  className="bg-gray-300"
-                  dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(v.description),
-                  }}
+                <ShadowHTML
+                  html={DOMPurify.sanitize(v.description)}
+                  style={`
+                    body {
+                      margin: 0;
+                      padding: 12px;
+                      background: #f8f9fa;
+                      color: #212529;
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                      line-height: 1.5;
+                      max-width: 100%;
+                      box-sizing: border-box;
+                      overflow-x: auto;
+                      overflow-wrap: break-word;
+                      word-break: break-word;
+                    }
+                    * {
+                      box-sizing: border-box;
+                    }
+                    h1, h2, h3, h4, h5, h6 {
+                      margin-top: 1em;
+                      margin-bottom: 0.5em;
+                      font-weight: 600;
+                      line-height: 1.2;
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                    }
+                    p {
+                      margin: 0 0 1em;
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                    }
+                    ul, ol {
+                      margin: 0 0 1em;
+                      padding-left: 2em;
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                    }
+                    li {
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                    }
+                    a {
+                      color: #0d6efd;
+                      text-decoration: none;
+                      overflow-wrap: break-word;
+                      word-break: break-all;
+                    }
+                    a:hover {
+                      text-decoration: underline;
+                    }
+                    img {
+                      max-width: 100%;
+                      height: auto;
+                      border-radius: 4px;
+                      display: block;
+                    }
+                    code {
+                      background: #e9ecef;
+                      padding: 2px 6px;
+                      border-radius: 3px;
+                      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+                      font-size: 0.9em;
+                      max-width: 100%;
+                      overflow-x: auto;
+                      display: inline-block;
+                      word-break: break-all;
+                    }
+                    pre {
+                      background: #e9ecef;
+                      padding: 12px;
+                      border-radius: 6px;
+                      overflow: auto;
+                      max-width: 100%;
+                    }
+                    blockquote {
+                      border-left: 4px solid #dee2e6;
+                      margin: 0 0 1em;
+                      padding-left: 1em;
+                      color: #6c757d;
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                    }
+                    table {
+                      max-width: 100%;
+                      overflow-x: auto;
+                      display: block;
+                      border-collapse: collapse;
+                    }
+                    th, td {
+                      padding: 8px;
+                      border: 1px solid #dee2e6;
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                    }
+                    iframe, video, audio {
+                      max-width: 100%;
+                      display: block;
+                    }
+                  `}
                 />
               ) : undefined,
-              // v.description
             },
           ];
           const rightSide = (
@@ -298,77 +485,96 @@ function InputBar() {
   const [inputValue, setInputValue] = useAtom(inputValueAtom);
   const [loading, setLoading] = useAtom(loadingAtom);
   const [modelContent, setModelContent] = useAtom(modelContentAtom);
-  const [existedModelversions, setExistedModelversions] = useAtom(
-    existedModelVersionsAtom
+  const [existedModelVersions, setExistedModelVersions] = useAtom(
+    existedModelVersionsAtom,
   );
 
+  const handleApiError = (error: any) => {
+    if (error?.status === 422) {
+      setModelContent(
+        <Alert
+          type="error"
+          title={error.value.message}
+          description={error.value.summary}
+        />,
+      );
+    } else {
+      setModelContent(
+        <Alert
+          type="error"
+          title="API Error"
+          description={error instanceof Error ? error.message : String(error)}
+        />,
+      );
+    }
+    throw error;
+  };
+
+  const handleApiSuccess = (data: any) => {
+    setModelContent(<ModelCardContent data={data} />);
+    setActiveVersionId(data.modelVersions[0].id.toString());
+  };
+
   async function loadModelInfo() {
+    // Validate input
+    const parsedId = Number.parseInt(inputValue);
+    if (isNaN(parsedId) && selectedOption !== LoadingOptionsEnum.Url) {
+      setModelContent(
+        <Alert
+          type="error"
+          title="Invalid input"
+          description="Please enter a valid number"
+        />,
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       switch (selectedOption) {
-        case LoadingOptionsEnum.VersionId:
-          {
-            const { data, error, headers, response, status } =
-              await edenTreaty.civitai.api.v1.loadModelInfoByVersionId.post({
-                modelVersionId: Number.parseInt(inputValue),
-              });
-            if (error) {
-              switch (error.status) {
-                case 422:
-                  setModelContent(
-                    <Alert
-                      type="error"
-                      title={error.value.message}
-                      description={error.value.summary}
-                    />
-                  );
-                  throw error;
-                default:
-                  setModelContent(<Alert type="error" title={String(error)} />);
-                  throw error;
-              }
-            } else {
-              if (data.existedModelversions) {
-                setExistedModelversions(data.existedModelversions);
-              }
-              setModelContent(<ModelCardContent data={data.model} />);
-              setActiveVersionId(data.model.modelVersions[0].id.toString());
-            }
+        case LoadingOptionsEnum.VersionId: {
+          const { data, error } = await edenTreaty.civitai_api.v1.download[
+            "get-info"
+          ]["by-version-id"].post({ id: parsedId });
+          if (error) {
+            handleApiError(error);
+          } else {
+            handleApiSuccess(data);
           }
           break;
-        case LoadingOptionsEnum.ModelId:
-          {
-            const { data, error, headers, response, status } =
-              await edenTreaty.civitai.api.v1.loadModelInfoById.post({
-                modelId: Number.parseInt(inputValue),
-              });
-            if (error) {
-              switch (error.status) {
-                case 422:
-                  setModelContent(
-                    <Alert
-                      type="error"
-                      title={error.value.message}
-                      description={error.value.summary}
-                    />
-                  );
-                  throw error;
-                default:
-                  setModelContent(<Alert type="error" title={String(error)} />);
-                  throw error;
-              }
-            } else {
-              if (data.existedModelversions) {
-                setExistedModelversions(data.existedModelversions);
-              }
-              setModelContent(<ModelCardContent data={data.model} />);
-              setActiveVersionId(data.model.modelVersions[0].id.toString());
-            }
+        }
+        case LoadingOptionsEnum.ModelId: {
+          const { data, error } = await edenTreaty.civitai_api.v1.download[
+            "get-info"
+          ]["by-id"].post({ id: parsedId });
+          if (error) {
+            handleApiError(error);
+          } else {
+            handleApiSuccess(data);
           }
           break;
+        }
+        case LoadingOptionsEnum.Url: {
+          setModelContent(
+            <Alert
+              type="warning"
+              title="URL option not yet implemented"
+              description="This feature is coming soon"
+            />,
+          );
+          break;
+        }
+        default:
+          setModelContent(
+            <Alert
+              type="error"
+              title="Invalid option"
+              description={`Unknown option: ${selectedOption}`}
+            />,
+          );
       }
     } catch (error) {
-      throw error;
+      handleApiError(error);
     } finally {
       setLoading(false);
     }

@@ -11,15 +11,6 @@ import {
 } from "../../civitai-api/v1/models/models";
 import { modelByIdSchema } from "../../civitai-api/v1/models/model-id";
 import { modelVersionEndpointDataSchema } from "../../civitai-api/v1/models/model-version";
-import type {
-  ModelsResponse,
-  ModelById,
-  CreatorsResponse,
-  CreatorsRequestOptions,
-  ModelVersionEndpointData,
-  Model,
-} from "../../civitai-api/v1/models";
-import { modelId2Model } from "../../civitai-api/v1/utils";
 import { createCivitaiClient } from "../../civitai-api/v1";
 import type { CivitaiError } from "../../civitai-api/v1/client/errors";
 import {
@@ -433,6 +424,41 @@ export default new Elysia({ prefix: `/civitai_api` })
             modelfileTasksId: t.Array(t.String()),
             mediaTaskIds: t.Array(t.String()),
           }),
+        },
+      )
+      // GET /v1/model-versions/by-id/:id - Get model version by model ID
+      .post(
+        "/download/get-info/by-id",
+        async ({ body }) => {
+          const model = await client.models.getModel(body.id);
+          if (model.isOk()) {
+            return model.value;
+          } else {
+            handleCivitaiError(model.error);
+          }
+        },
+        {
+          body: type({ id: "number" }),
+          response: modelSchema,
+        },
+      )
+      // GET /v1/model-versions/by-version-id/:id - Get model version by model version ID
+      .post(
+        "/download/get-info/by-version-id",
+        async ({ body }) => {
+          const mv = await client.modelVersions.getById(body.id);
+          if (mv.isErr()) {
+            handleCivitaiError(mv.error);
+          }
+          const model = await client.models.getModel(mv.value.modelId);
+          if (model.isErr()) {
+            handleCivitaiError(model.error);
+          }
+          return model.value;
+        },
+        {
+          body: type({ id: "number" }),
+          response: modelSchema,
         },
       )
       // GET /v1/tags - List tags

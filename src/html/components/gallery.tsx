@@ -7,10 +7,8 @@ import {
   ZoomOutOutlined,
 } from "@ant-design/icons";
 import { useState } from "react";
-import {
-  getFileType,
-} from "#modules/civitai-deprecated/service/sharedUtils.js";
-import { ModelImageWithId } from "../../civitai-api/v1/models/index.js";
+import { getFileType } from "../../civitai-api/v1/";
+import { ModelImageWithId } from "../../civitai-api/v1/models";
 
 function GalleryThumb({
   item,
@@ -42,11 +40,7 @@ function GalleryThumb({
   }
 }
 
-export default function Gallery({
-  items,
-}: {
-  items: Array<ModelImageWithId>;
-}) {
+export default function Gallery({ items }: { items: Array<ModelImageWithId> }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -135,7 +129,7 @@ export default function Gallery({
                 onZoomIn,
                 onReset,
               },
-            }
+            },
           ) => {
             return (
               <Space size={12} className="toolbar-wrapper">
@@ -167,7 +161,7 @@ export default function Gallery({
             console.log(info);
             const urlobj = new URL(info.image.url);
             const fileType = getFileType(
-              urlobj.searchParams.get("previewFile")!
+              urlobj.searchParams.get("previewFile")!,
             );
             console.log(fileType);
             // Build transform string including flip, rotate, and our custom scale/position
@@ -175,16 +169,11 @@ export default function Gallery({
             if (flipX) flipTransforms.push("scaleX(-1)");
             if (flipY) flipTransforms.push("scaleY(-1)");
             const flipTransform = flipTransforms.join(" ");
-            const rotateTransform =
-              rotate !== 0 ? `rotate(${rotate}deg)` : "";
+            const rotateTransform = rotate !== 0 ? `rotate(${rotate}deg)` : "";
             const customTransform = `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`;
 
             // Combine transforms - order matters: flip -> rotate -> scale/translate
-            const transform = [
-              flipTransform,
-              rotateTransform,
-              customTransform,
-            ]
+            const transform = [flipTransform, rotateTransform, customTransform]
               .filter(Boolean)
               .join(" ");
 

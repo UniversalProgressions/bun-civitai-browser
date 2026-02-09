@@ -169,8 +169,10 @@ describe("Civitai V1 Router", () => {
       expect(error).toBeDefined();
       // The error status might be 422 (validation) instead of 409 (conflict)
       // This depends on how the handler processes the error
+      // @ts-ignore - Ignore TS error for test
       expect(error?.status).toBeOneOf([409, 422]);
       expect(error?.value).toHaveProperty("message");
+      // @ts-ignore - Ignore TS error for test
       if (error?.status === 409) {
         expect(error?.value).toHaveProperty("arkSummary");
       }
@@ -199,8 +201,10 @@ describe("Civitai V1 Router", () => {
       expect(error).toBeDefined();
       // The error might be 422 (validation) due to response schema mismatch
       // or 500 (internal server error) from the handler
+      // @ts-ignore - Ignore TS error for test
       expect(error?.status).toBeOneOf([422, 500]);
       expect(error?.value).toHaveProperty("message");
+      // @ts-ignore - Ignore TS error for test
       if (error?.status === 500) {
         expect(error?.value).toHaveProperty("details");
       }

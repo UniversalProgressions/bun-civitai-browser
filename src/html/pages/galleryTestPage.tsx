@@ -1,4 +1,4 @@
-import MediaGallery from "../components/gallery-deprecated";
+import MediaGallery from "../components/gallery";
 import { GalleryContent } from "./localModelsGallery";
 import { Image } from "antd";
 import {
@@ -474,8 +474,8 @@ function LocalModelCardContentLeftSide({
             mediaArray={modelVersion.images.map(
               (i) =>
                 `${location.origin}/civitai/local/media/preview?previewFile=${extractFilenameFromUrl(
-                  i.url
-                )}`
+                  i.url,
+                )}`,
             )}
           />
         ) : (

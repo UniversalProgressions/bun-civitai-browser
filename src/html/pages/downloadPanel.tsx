@@ -75,157 +75,159 @@ function ModelCardContent({ data }: { data: Model }) {
     }
   }
 
+  // https://blog.csdn.net/weixin_42579348/article/details/124397538 Antd Tabs longer than window problem.
   return (
-    <>
-      <Tabs
-        defaultActiveKey="1"
-        tabPlacement="top"
-        onChange={(id) => setActiveVersionId(id)}
-        items={data?.modelVersions.map((v) => {
-          const leftSide = (
-            <>
-              <Space align="center" orientation="vertical" size="middle">
-                {v.images.length > 0 ? (
-                  <Gallery
-                    items={v.images.map((img) => ({
-                      ...img,
-                      url: replaceUrlParam(img.url),
-                    }))}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: 200,
-                      height: 200,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: "#f0f0f0",
-                      border: "1px dashed #d9d9d9",
-                      borderRadius: "8px",
-                    }}
-                    title="No preview available"
-                  >
-                    <span style={{ color: "#999" }}>No preview</span>
-                  </div>
-                )}
-                <Button
-                  type="primary"
-                  block
-                  onClick={() => onDownloadClick(data, v.id)}
-                  disabled={
-                    existedModelVersions.find(
-                      (obj: any) => obj.versionId === v.id,
-                    )?.filesOnDisk.length === v.files.length
-                  }
-                  loading={isDownloadButtonLoading}
-                >
-                  Download
-                </Button>
-              </Space>
-            </>
-          );
-          const descriptionItems: DescriptionsProps["items"] = [
-            {
-              key: v.id,
-              label: "Version ID",
-              children: v.id,
-            },
-            {
-              key: v.baseModel,
-              label: "Base Model",
-              children: v.baseModel,
-            },
-            {
-              key: 3,
-              label: "Model Type",
-              children: data.type,
-            },
-            {
-              key: 4,
-              label: "Publish Date",
-              span: "filled",
-              children: v.publishedAt?.toString() ?? "Null",
-            },
-
-            {
-              key: 7,
-              label: `Model Files`,
-              span: `filled`,
-              children:
-                v.files.length > 0 ? (
-                  <>
-                    <List
-                      dataSource={v.files}
-                      renderItem={(file) => (
-                        <List.Item>
-                          <Row>
-                            <Col span={18}>
-                              {existedModelVersions
-                                .find((obj: any) => obj.versionId === v.id)
-                                ?.filesOnDisk.includes(file.id) ? (
-                                <Tag color="green">onDisk</Tag>
-                              ) : undefined}
-                              {file.name}
-                            </Col>
-                            <Col span={6}>
-                              <Button
-                                onClick={async () => {
-                                  const loraString = `<lora:${file.id}_${removeFileExtension(file.name)}:1>`;
-                                  await clipboard.write(loraString);
-                                  notification.success({
-                                    title: "Lora string copied to clipboard",
-                                    description: loraString,
-                                  });
-                                }}
-                              >
-                                Copy Lora String
-                              </Button>
-                            </Col>
-                          </Row>
-                        </List.Item>
-                      )}
+    <div style={{ position: "relative" }}>
+      <div style={{ position: "absolute", width: "100%" }}>
+        <Tabs
+          defaultActiveKey="1"
+          tabPlacement="top"
+          onChange={(id) => setActiveVersionId(id)}
+          items={data?.modelVersions.map((v) => {
+            const leftSide = (
+              <>
+                <Space align="center" orientation="vertical" size="middle">
+                  {v.images.length > 0 ? (
+                    <Gallery
+                      items={v.images.map((img) => ({
+                        ...img,
+                        url: replaceUrlParam(img.url),
+                      }))}
                     />
-                  </>
-                ) : (
-                  `have no files`
-                ),
-            },
-            {
-              key: 8,
-              label: "Tags",
-              span: "filled",
-              children: v.trainedWords ? (
-                <Flex wrap gap="small">
-                  {v.trainedWords.map((tagStr, index) => (
+                  ) : (
                     <div
-                      key={index}
-                      onClick={async () => {
-                        await clipboard.write(tagStr);
-                        return notification.success({
-                          title: "Copied to clipboard",
-                        });
+                      style={{
+                        width: 200,
+                        height: 200,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: "#f0f0f0",
+                        border: "1px dashed #d9d9d9",
+                        borderRadius: "8px",
                       }}
-                      className="
+                      title="No preview available"
+                    >
+                      <span style={{ color: "#999" }}>No preview</span>
+                    </div>
+                  )}
+                  <Button
+                    type="primary"
+                    block
+                    onClick={() => onDownloadClick(data, v.id)}
+                    disabled={
+                      existedModelVersions.find(
+                        (obj: any) => obj.versionId === v.id,
+                      )?.filesOnDisk.length === v.files.length
+                    }
+                    loading={isDownloadButtonLoading}
+                  >
+                    Download
+                  </Button>
+                </Space>
+              </>
+            );
+            const descriptionItems: DescriptionsProps["items"] = [
+              {
+                key: v.id,
+                label: "Version ID",
+                children: v.id,
+              },
+              {
+                key: v.baseModel,
+                label: "Base Model",
+                children: v.baseModel,
+              },
+              {
+                key: 3,
+                label: "Model Type",
+                children: data.type,
+              },
+              {
+                key: 4,
+                label: "Publish Date",
+                span: "filled",
+                children: v.publishedAt?.toString() ?? "Null",
+              },
+
+              {
+                key: 7,
+                label: `Model Files`,
+                span: `filled`,
+                children:
+                  v.files.length > 0 ? (
+                    <>
+                      <List
+                        dataSource={v.files}
+                        renderItem={(file) => (
+                          <List.Item>
+                            <Row>
+                              <Col span={18}>
+                                {existedModelVersions
+                                  .find((obj: any) => obj.versionId === v.id)
+                                  ?.filesOnDisk.includes(file.id) ? (
+                                  <Tag color="green">onDisk</Tag>
+                                ) : undefined}
+                                {file.name}
+                              </Col>
+                              <Col span={6}>
+                                <Button
+                                  onClick={async () => {
+                                    const loraString = `<lora:${file.id}_${removeFileExtension(file.name)}:1>`;
+                                    await clipboard.write(loraString);
+                                    notification.success({
+                                      title: "Lora string copied to clipboard",
+                                      description: loraString,
+                                    });
+                                  }}
+                                >
+                                  Copy Lora String
+                                </Button>
+                              </Col>
+                            </Row>
+                          </List.Item>
+                        )}
+                      />
+                    </>
+                  ) : (
+                    `have no files`
+                  ),
+              },
+              {
+                key: 8,
+                label: "Tags",
+                span: "filled",
+                children: v.trainedWords ? (
+                  <Flex wrap gap="small">
+                    {v.trainedWords.map((tagStr, index) => (
+                      <div
+                        key={index}
+                        onClick={async () => {
+                          await clipboard.write(tagStr);
+                          return notification.success({
+                            title: "Copied to clipboard",
+                          });
+                        }}
+                        className="
                         bg-blue-500 hover:bg-blue-700 text-white 
                           font-bold p-1 rounded transition-all 
                           duration-300 transform hover:scale-105
                           hover:cursor-pointer"
-                    >
-                      {tagStr}
-                    </div>
-                  ))}
-                </Flex>
-              ) : undefined,
-            },
-            {
-              key: 9,
-              label: "Model Description",
-              span: "filled",
-              children: data.description ? (
-                <ShadowHTML
-                  html={DOMPurify.sanitize(data.description)}
-                  style={`
+                      >
+                        {tagStr}
+                      </div>
+                    ))}
+                  </Flex>
+                ) : undefined,
+              },
+              {
+                key: 9,
+                label: "Model Description",
+                span: "filled",
+                children: data.description ? (
+                  <ShadowHTML
+                    html={DOMPurify.sanitize(data.description)}
+                    style={`
                     body {
                       margin: 0;
                       padding: 12px;
@@ -323,17 +325,17 @@ function ModelCardContent({ data }: { data: Model }) {
                       display: block;
                     }
                   `}
-                />
-              ) : undefined,
-            },
-            {
-              key: 10,
-              label: "Model Version Description",
-              span: "filled",
-              children: v.description ? (
-                <ShadowHTML
-                  html={DOMPurify.sanitize(v.description)}
-                  style={`
+                  />
+                ) : undefined,
+              },
+              {
+                key: 10,
+                label: "Model Version Description",
+                span: "filled",
+                children: v.description ? (
+                  <ShadowHTML
+                    html={DOMPurify.sanitize(v.description)}
+                    style={`
                     body {
                       margin: 0;
                       padding: 12px;
@@ -431,51 +433,52 @@ function ModelCardContent({ data }: { data: Model }) {
                       display: block;
                     }
                   `}
-                />
-              ) : undefined,
-            },
-          ];
-          const rightSide = (
-            <>
-              <Space orientation="vertical">
-                <Descriptions
-                  title="Model Version Details"
-                  layout="vertical"
-                  items={descriptionItems}
-                ></Descriptions>
-              </Space>
-            </>
-          );
-          return {
-            label: v.name,
-            key: v.id.toString(),
-            children: (
-              <Card>
-                <Space align="center" orientation="vertical">
-                  <div>
-                    <a
-                      className="clickable-title"
-                      target="_blank"
-                      href={`https://civitai.com/models/${data.id}?modelVersionId=${v.id}`}
-                    >
-                      {data.name}
-                    </a>
-                  </div>
-                  <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
-                    <Col sm={8} lg={6}>
-                      {leftSide}
-                    </Col>
-                    <Col sm={16} lg={18}>
-                      {rightSide}
-                    </Col>
-                  </Row>
+                  />
+                ) : undefined,
+              },
+            ];
+            const rightSide = (
+              <>
+                <Space orientation="vertical">
+                  <Descriptions
+                    title="Model Version Details"
+                    layout="vertical"
+                    items={descriptionItems}
+                  ></Descriptions>
                 </Space>
-              </Card>
-            ),
-          };
-        })}
-      />
-    </>
+              </>
+            );
+            return {
+              label: v.name,
+              key: v.id.toString(),
+              children: (
+                <Card>
+                  <Space align="center" orientation="vertical">
+                    <div>
+                      <a
+                        className="clickable-title"
+                        target="_blank"
+                        href={`https://civitai.com/models/${data.id}?modelVersionId=${v.id}`}
+                      >
+                        {data.name}
+                      </a>
+                    </div>
+                    <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+                      <Col sm={8} lg={6}>
+                        {leftSide}
+                      </Col>
+                      <Col sm={16} lg={18}>
+                        {rightSide}
+                      </Col>
+                    </Row>
+                  </Space>
+                </Card>
+              ),
+            };
+          })}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -617,12 +620,16 @@ function App() {
   const [loading, setLoading] = useAtom(loadingAtom);
   return (
     <>
-      <Space orientation="vertical" align="center" className="w-full">
+      <Space
+        orientation="vertical"
+        align="center"
+        className="w-full max-w-full"
+      >
         <InputBar />
-        <div className="p-2">
-          {loading ? <div>loading...</div> : modelContent}
-        </div>
       </Space>
+      <div className="p-2">
+        {loading ? <div>loading...</div> : modelContent}
+      </div>
     </>
   );
 }

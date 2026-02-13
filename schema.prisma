@@ -98,23 +98,23 @@ model BaseModelType {
 }
 
 model ModelVersion {
-  id              Int       @id
+  id              Int      @id
   modelId         Int
   name            String
   baseModelId     Int
   baseModelTypeId Int?
-  publishedAt     DateTime?
   nsfwLevel       Int
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   model         Model               @relation(fields: [modelId], references: [id], onDelete: Cascade)
   baseModel     BaseModel           @relation(fields: [baseModelId], references: [id])
   baseModelType BaseModelType?      @relation(fields: [baseModelTypeId], references: [id])
   files         ModelVersionFile[]
   images        ModelVersionImage[]
+  downloads     GopeedTask[]
 
-  @@index([modelId, name, baseModelId, baseModelTypeId, publishedAt, nsfwLevel])
+  @@index([modelId, name, baseModelId, baseModelTypeId, nsfwLevel])
 }
 
 model ModelVersionFile {
@@ -139,4 +139,18 @@ model ModelVersionImage {
 
   modelVersionId Int
   modelVersion   ModelVersion @relation(fields: [modelVersionId], references: [id], onDelete: Cascade)
+}
+
+model GopeedTask {
+  id         String  @id
+  isFinished Boolean
+  // Civitai file or media (image) id.
+  fileId     Int     @unique
+  // It's used to distinguish weather it's a model file or media(images) for locating exact data in json.
+  isMedia    Boolean
+
+  modelVersionId Int          @unique
+  modelVersion   ModelVersion @relation(fields: [modelVersionId], references: [id], onDelete: Cascade)
+
+  @@index([id, fileId])
 }

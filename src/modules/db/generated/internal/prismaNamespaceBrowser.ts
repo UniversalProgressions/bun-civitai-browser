@@ -59,7 +59,8 @@ export const ModelName = {
   BaseModelType: 'BaseModelType',
   ModelVersion: 'ModelVersion',
   ModelVersionFile: 'ModelVersionFile',
-  ModelVersionImage: 'ModelVersionImage'
+  ModelVersionImage: 'ModelVersionImage',
+  GopeedTask: 'GopeedTask'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -138,7 +139,6 @@ export const ModelVersionScalarFieldEnum = {
   name: 'name',
   baseModelId: 'baseModelId',
   baseModelTypeId: 'baseModelTypeId',
-  publishedAt: 'publishedAt',
   nsfwLevel: 'nsfwLevel',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -171,6 +171,17 @@ export const ModelVersionImageScalarFieldEnum = {
 } as const
 
 export type ModelVersionImageScalarFieldEnum = (typeof ModelVersionImageScalarFieldEnum)[keyof typeof ModelVersionImageScalarFieldEnum]
+
+
+export const GopeedTaskScalarFieldEnum = {
+  id: 'id',
+  isFinished: 'isFinished',
+  fileId: 'fileId',
+  isMedia: 'isMedia',
+  modelVersionId: 'modelVersionId'
+} as const
+
+export type GopeedTaskScalarFieldEnum = (typeof GopeedTaskScalarFieldEnum)[keyof typeof GopeedTaskScalarFieldEnum]
 
 
 export const SortOrder = {

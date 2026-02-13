@@ -10,7 +10,6 @@ export const ModelVersionPlain = t.Object({
   name: t.String(),
   baseModelId: t.Integer(),
   baseModelTypeId: __nullable__(t.Integer()),
-  publishedAt: __nullable__(t.Date()),
   nsfwLevel: t.Integer(),
   createdAt: t.Date(),
   updatedAt: t.Date(),
@@ -55,17 +54,25 @@ export const ModelVersionRelations = t.Object({
     }),
     { additionalProperties: true },
   ),
+  downloads: t.Array(
+    t.Object({
+      id: t.String(),
+      isFinished: t.Boolean(),
+      fileId: t.Integer(),
+      isMedia: t.Boolean(),
+      modelVersionId: t.Integer(),
+    }),
+    { additionalProperties: true },
+  ),
 });
 
 export const ModelVersionPlainInputCreate = t.Object({
   name: t.String(),
-  publishedAt: t.Optional(__nullable__(t.Date())),
   nsfwLevel: t.Integer(),
 });
 
 export const ModelVersionPlainInputUpdate = t.Object({
   name: t.Optional(t.String()),
-  publishedAt: t.Optional(__nullable__(t.Date())),
   nsfwLevel: t.Optional(t.Integer()),
 });
 
@@ -102,6 +109,16 @@ export const ModelVersionRelationsInputCreate = t.Object({
       connect: t.Array(
         t.Object({
           id: t.Integer(),
+        }),
+        { additionalProperties: true },
+      ),
+    }),
+  ),
+  downloads: t.Optional(
+    t.Object({
+      connect: t.Array(
+        t.Object({
+          id: t.String(),
         }),
         { additionalProperties: true },
       ),
@@ -161,6 +178,22 @@ export const ModelVersionRelationsInputUpdate = t.Partial(
         ),
       }),
     ),
+    downloads: t.Partial(
+      t.Object({
+        connect: t.Array(
+          t.Object({
+            id: t.String(),
+          }),
+          { additionalProperties: true },
+        ),
+        disconnect: t.Array(
+          t.Object({
+            id: t.String(),
+          }),
+          { additionalProperties: true },
+        ),
+      }),
+    ),
   }),
 );
 
@@ -177,7 +210,6 @@ export const ModelVersionWhere = t.Partial(
           name: t.String(),
           baseModelId: t.Integer(),
           baseModelTypeId: t.Integer(),
-          publishedAt: t.Date(),
           nsfwLevel: t.Integer(),
           createdAt: t.Date(),
           updatedAt: t.Date(),
@@ -214,7 +246,6 @@ export const ModelVersionWhereUnique = t.Recursive(
             name: t.String(),
             baseModelId: t.Integer(),
             baseModelTypeId: t.Integer(),
-            publishedAt: t.Date(),
             nsfwLevel: t.Integer(),
             createdAt: t.Date(),
             updatedAt: t.Date(),
@@ -233,7 +264,6 @@ export const ModelVersionSelect = t.Partial(
     name: t.Boolean(),
     baseModelId: t.Boolean(),
     baseModelTypeId: t.Boolean(),
-    publishedAt: t.Boolean(),
     nsfwLevel: t.Boolean(),
     createdAt: t.Boolean(),
     updatedAt: t.Boolean(),
@@ -242,6 +272,7 @@ export const ModelVersionSelect = t.Partial(
     baseModelType: t.Boolean(),
     files: t.Boolean(),
     images: t.Boolean(),
+    downloads: t.Boolean(),
     _count: t.Boolean(),
   }),
 );
@@ -253,6 +284,7 @@ export const ModelVersionInclude = t.Partial(
     baseModelType: t.Boolean(),
     files: t.Boolean(),
     images: t.Boolean(),
+    downloads: t.Boolean(),
     _count: t.Boolean(),
   }),
 );
@@ -272,9 +304,6 @@ export const ModelVersionOrderBy = t.Partial(
       additionalProperties: true,
     }),
     baseModelTypeId: t.Union([t.Literal("asc"), t.Literal("desc")], {
-      additionalProperties: true,
-    }),
-    publishedAt: t.Union([t.Literal("asc"), t.Literal("desc")], {
       additionalProperties: true,
     }),
     nsfwLevel: t.Union([t.Literal("asc"), t.Literal("desc")], {

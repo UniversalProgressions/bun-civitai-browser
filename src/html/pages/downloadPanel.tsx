@@ -16,7 +16,8 @@ import {
   Tabs,
   Tag,
 } from "antd";
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import { atom, useAtom } from "jotai";
 import clipboard from "clipboardy";
 import { debounce } from "es-toolkit";
@@ -44,32 +45,59 @@ const loadingAtom = atom<boolean>(false);
 const modelContentAtom = atom<React.ReactNode>(null);
 
 function ModelCardContent({ data }: { data: Model }) {
-  const [activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom);
+  const [_activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom);
   const [isDownloadButtonLoading, setIsDownloadButtonLoading] = useState(false);
-  const [existedModelVersions, setExistedModelVersions] = useAtom(
+  const [existedModelVersions, _setExistedModelVersions] = useAtom(
     existedModelVersionsAtom,
   );
 
   async function onDownloadClick(model: Model, versionId: number) {
     setIsDownloadButtonLoading(true);
     try {
-      const result = await edenTreaty.civitai_api.v1.download[
+      const { data, error } = await edenTreaty.civitai_api.v1.download[
         "model-version"
       ].post({
         model,
         modelVersionId: versionId,
       });
-      notification.success({
-        message: "Download started successfully",
-        description: `Model: ${model.name}, Version: ${versionId}`,
-      });
+
+      if (error) {
+        // Elysia returns error in the error field with structure { status, value: { message, ... } }
+        const errorMessage =
+          error.value?.message || "Failed to start download task";
+        notification.error({
+          message: "Download failed",
+          description: errorMessage,
+        });
+        console.error("Download API error:", error);
+      } else {
+        // Check if tasks were actually created
+        const hasTasks =
+          data &&
+          ((data.modelfileTasksId && data.modelfileTasksId.length > 0) ||
+            (data.mediaTaskIds && data.mediaTaskIds.length > 0));
+
+        if (hasTasks) {
+          notification.success({
+            message: "Download started successfully",
+            description: `Model: ${model.name}, Version: ${versionId}`,
+          });
+        } else {
+          notification.warning({
+            message: "No download tasks created",
+            description:
+              "All files may already exist on disk or no files to download",
+          });
+        }
+      }
     } catch (error) {
+      // Network error or other exceptions
       notification.error({
         message: "Download failed",
         description:
           error instanceof Error ? error.message : JSON.stringify(error),
       });
-      console.error(error);
+      console.error("Download error:", error);
     } finally {
       setIsDownloadButtonLoading(false);
     }
@@ -116,9 +144,8 @@ function ModelCardContent({ data }: { data: Model }) {
                     block
                     onClick={() => onDownloadClick(data, v.id)}
                     disabled={
-                      existedModelVersions.find(
-                        (obj: any) => obj.versionId === v.id,
-                      )?.filesOnDisk.length === v.files.length
+                      existedModelVersions.find((obj) => obj.versionId === v.id)
+                        ?.filesOnDisk.length === v.files.length
                     }
                     loading={isDownloadButtonLoading}
                   >
@@ -156,39 +183,40 @@ function ModelCardContent({ data }: { data: Model }) {
                 span: `filled`,
                 children:
                   v.files.length > 0 ? (
-                    <>
-                      <List
-                        dataSource={v.files}
-                        renderItem={(file) => (
-                          <List.Item>
-                            <Row>
-                              <Col span={18}>
-                                {existedModelVersions
-                                  .find((obj: any) => obj.versionId === v.id)
-                                  ?.filesOnDisk.includes(file.id) ? (
-                                  <Tag color="green">onDisk</Tag>
-                                ) : undefined}
-                                {file.name}
-                              </Col>
-                              <Col span={6}>
-                                <Button
-                                  onClick={async () => {
-                                    const loraString = `<lora:${file.id}_${removeFileExtension(file.name)}:1>`;
-                                    await clipboard.write(loraString);
-                                    notification.success({
-                                      title: "Lora string copied to clipboard",
-                                      description: loraString,
-                                    });
-                                  }}
-                                >
-                                  Copy Lora String
-                                </Button>
-                              </Col>
-                            </Row>
-                          </List.Item>
-                        )}
-                      />
-                    </>
+                    <List
+                      dataSource={v.files}
+                      renderItem={(file) => (
+                        <List.Item>
+                          <Row>
+                            <Col span={18}>
+                              {existedModelVersions
+                                .find(
+                                  (obj: ExistedModelVersions[number]) =>
+                                    obj.versionId === v.id,
+                                )
+                                ?.filesOnDisk.includes(file.id) ? (
+                                <Tag color="green">onDisk</Tag>
+                              ) : undefined}
+                              {file.name}
+                            </Col>
+                            <Col span={6}>
+                              <Button
+                                onClick={async () => {
+                                  const loraString = `<lora:${file.id}_${removeFileExtension(file.name)}:1>`;
+                                  await clipboard.write(loraString);
+                                  notification.success({
+                                    title: "Lora string copied to clipboard",
+                                    description: loraString,
+                                  });
+                                }}
+                              >
+                                Copy Lora String
+                              </Button>
+                            </Col>
+                          </Row>
+                        </List.Item>
+                      )}
+                    />
                   ) : (
                     `have no files`
                   ),
@@ -199,9 +227,9 @@ function ModelCardContent({ data }: { data: Model }) {
                 span: "filled",
                 children: v.trainedWords ? (
                   <Flex wrap gap="small">
-                    {v.trainedWords.map((tagStr, index) => (
-                      <div
-                        key={index}
+                    {v.trainedWords.map((tagStr) => (
+                      <Button
+                        key={tagStr}
                         onClick={async () => {
                           await clipboard.write(tagStr);
                           return notification.success({
@@ -213,9 +241,11 @@ function ModelCardContent({ data }: { data: Model }) {
                           font-bold p-1 rounded transition-all 
                           duration-300 transform hover:scale-105
                           hover:cursor-pointer"
+                        size="small"
+                        type="text"
                       >
                         {tagStr}
-                      </div>
+                      </Button>
                     ))}
                   </Flex>
                 ) : undefined,
@@ -225,107 +255,7 @@ function ModelCardContent({ data }: { data: Model }) {
                 label: "Model Description",
                 span: "filled",
                 children: data.description ? (
-                  <ShadowHTML
-                    html={DOMPurify.sanitize(data.description)}
-                    style={`
-                    body {
-                      margin: 0;
-                      padding: 12px;
-                      background: #f8f9fa;
-                      color: #212529;
-                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                      line-height: 1.5;
-                      max-width: 100%;
-                      box-sizing: border-box;
-                      overflow-x: auto;
-                      overflow-wrap: break-word;
-                      word-break: break-word;
-                    }
-                    * {
-                      box-sizing: border-box;
-                    }
-                    h1, h2, h3, h4, h5, h6 {
-                      margin-top: 1em;
-                      margin-bottom: 0.5em;
-                      font-weight: 600;
-                      line-height: 1.2;
-                      max-width: 100%;
-                      overflow-wrap: break-word;
-                    }
-                    p {
-                      margin: 0 0 1em;
-                      max-width: 100%;
-                      overflow-wrap: break-word;
-                    }
-                    ul, ol {
-                      margin: 0 0 1em;
-                      padding-left: 2em;
-                      max-width: 100%;
-                      overflow-wrap: break-word;
-                    }
-                    li {
-                      max-width: 100%;
-                      overflow-wrap: break-word;
-                    }
-                    a {
-                      color: #0d6efd;
-                      text-decoration: none;
-                      overflow-wrap: break-word;
-                      word-break: break-all;
-                    }
-                    a:hover {
-                      text-decoration: underline;
-                    }
-                    img {
-                      max-width: 100%;
-                      height: auto;
-                      border-radius: 4px;
-                      display: block;
-                    }
-                    code {
-                      background: #e9ecef;
-                      padding: 2px 6px;
-                      border-radius: 3px;
-                      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-                      font-size: 0.9em;
-                      max-width: 100%;
-                      overflow-x: auto;
-                      display: inline-block;
-                      word-break: break-all;
-                    }
-                    pre {
-                      background: #e9ecef;
-                      padding: 12px;
-                      border-radius: 6px;
-                      overflow: auto;
-                      max-width: 100%;
-                    }
-                    blockquote {
-                      border-left: 4px solid #dee2e6;
-                      margin: 0 0 1em;
-                      padding-left: 1em;
-                      color: #6c757d;
-                      max-width: 100%;
-                      overflow-wrap: break-word;
-                    }
-                    table {
-                      max-width: 100%;
-                      overflow-x: auto;
-                      display: block;
-                      border-collapse: collapse;
-                    }
-                    th, td {
-                      padding: 8px;
-                      border: 1px solid #dee2e6;
-                      max-width: 100%;
-                      overflow-wrap: break-word;
-                    }
-                    iframe, video, audio {
-                      max-width: 100%;
-                      display: block;
-                    }
-                  `}
-                  />
+                  <ShadowHTML html={DOMPurify.sanitize(data.description)} />
                 ) : undefined,
               },
               {
@@ -333,107 +263,7 @@ function ModelCardContent({ data }: { data: Model }) {
                 label: "Model Version Description",
                 span: "filled",
                 children: v.description ? (
-                  <ShadowHTML
-                    html={DOMPurify.sanitize(v.description)}
-                    style={`
-                    body {
-                      margin: 0;
-                      padding: 12px;
-                      background: #f8f9fa;
-                      color: #212529;
-                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                      line-height: 1.5;
-                      max-width: 100%;
-                      box-sizing: border-box;
-                      overflow-x: auto;
-                      overflow-wrap: break-word;
-                      word-break: break-word;
-                    }
-                    * {
-                      box-sizing: border-box;
-                    }
-                    h1, h2, h3, h4, h5, h6 {
-                      margin-top: 1em;
-                      margin-bottom: 0.5em;
-                      font-weight: 600;
-                      line-height: 1.2;
-                      max-width: 100%;
-                      overflow-wrap: break-word;
-                    }
-                    p {
-                      margin: 0 0 1em;
-                      max-width: 100%;
-                      overflow-wrap: break-word;
-                    }
-                    ul, ol {
-                      margin: 0 0 1em;
-                      padding-left: 2em;
-                      max-width: 100%;
-                      overflow-wrap: break-word;
-                    }
-                    li {
-                      max-width: 100%;
-                      overflow-wrap: break-word;
-                    }
-                    a {
-                      color: #0d6efd;
-                      text-decoration: none;
-                      overflow-wrap: break-word;
-                      word-break: break-all;
-                    }
-                    a:hover {
-                      text-decoration: underline;
-                    }
-                    img {
-                      max-width: 100%;
-                      height: auto;
-                      border-radius: 4px;
-                      display: block;
-                    }
-                    code {
-                      background: #e9ecef;
-                      padding: 2px 6px;
-                      border-radius: 3px;
-                      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-                      font-size: 0.9em;
-                      max-width: 100%;
-                      overflow-x: auto;
-                      display: inline-block;
-                      word-break: break-all;
-                    }
-                    pre {
-                      background: #e9ecef;
-                      padding: 12px;
-                      border-radius: 6px;
-                      overflow: auto;
-                      max-width: 100%;
-                    }
-                    blockquote {
-                      border-left: 4px solid #dee2e6;
-                      margin: 0 0 1em;
-                      padding-left: 1em;
-                      color: #6c757d;
-                      max-width: 100%;
-                      overflow-wrap: break-word;
-                    }
-                    table {
-                      max-width: 100%;
-                      overflow-x: auto;
-                      display: block;
-                      border-collapse: collapse;
-                    }
-                    th, td {
-                      padding: 8px;
-                      border: 1px solid #dee2e6;
-                      max-width: 100%;
-                      overflow-wrap: break-word;
-                    }
-                    iframe, video, audio {
-                      max-width: 100%;
-                      display: block;
-                    }
-                  `}
-                  />
+                  <ShadowHTML html={DOMPurify.sanitize(v.description)} />
                 ) : undefined,
               },
             ];
@@ -484,21 +314,28 @@ function ModelCardContent({ data }: { data: Model }) {
 
 function InputBar() {
   const [selectedOption, setSelectedOption] = useAtom(selectedOptionAtom); // 当前选中的加载选项
-  const [activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom); // 当前激活的模型版本ID
+  const [_activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom); // 当前激活的模型版本ID
   const [inputValue, setInputValue] = useAtom(inputValueAtom);
-  const [loading, setLoading] = useAtom(loadingAtom);
-  const [modelContent, setModelContent] = useAtom(modelContentAtom);
-  const [existedModelVersions, setExistedModelVersions] = useAtom(
+  const [_loading, setLoading] = useAtom(loadingAtom);
+  const [_modelContent, setModelContent] = useAtom(modelContentAtom);
+  const [_existedModelVersions, _setExistedModelVersions] = useAtom(
     existedModelVersionsAtom,
   );
 
-  const handleApiError = (error: any) => {
-    if (error?.status === 422) {
+  const handleApiError = (error: unknown) => {
+    // Type guard to check if error has status property
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      (error as { status?: unknown }).status === 422
+    ) {
+      const err = error as { value?: { message?: string; summary?: string } };
       setModelContent(
         <Alert
           type="error"
-          title={error.value.message}
-          description={error.value.summary}
+          title={err.value?.message || "Validation Error"}
+          description={err.value?.summary || "Invalid input"}
         />,
       );
     } else {
@@ -513,15 +350,15 @@ function InputBar() {
     throw error;
   };
 
-  const handleApiSuccess = (data: any) => {
+  const handleApiSuccess = (data: Model) => {
     setModelContent(<ModelCardContent data={data} />);
     setActiveVersionId(data.modelVersions[0].id.toString());
   };
 
   async function loadModelInfo() {
     // Validate input
-    const parsedId = Number.parseInt(inputValue);
-    if (isNaN(parsedId) && selectedOption !== LoadingOptionsEnum.Url) {
+    const parsedId = Number.parseInt(inputValue, 10);
+    if (Number.isNaN(parsedId) && selectedOption !== LoadingOptionsEnum.Url) {
       setModelContent(
         <Alert
           type="error"
@@ -598,26 +435,24 @@ function InputBar() {
     },
   ];
   return (
-    <>
-      <Space.Compact>
-        <Select
-          defaultValue={LoadingOptionsEnum.VersionId}
-          options={loadingOptions}
-          onChange={(value) => setSelectedOption(value as LoadingOptionsEnum)}
-        />
-        <Input
-          defaultValue={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Please input corresponding value according to the option on the left."
-          onPressEnter={debounceLoadModelInfo}
-        />
-      </Space.Compact>
-    </>
+    <Space.Compact>
+      <Select
+        defaultValue={LoadingOptionsEnum.VersionId}
+        options={loadingOptions}
+        onChange={(value) => setSelectedOption(value as LoadingOptionsEnum)}
+      />
+      <Input
+        defaultValue={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        placeholder="Please input corresponding value according to the option on the left."
+        onPressEnter={debounceLoadModelInfo}
+      />
+    </Space.Compact>
   );
 }
 function App() {
-  const [modelContent, setModelContent] = useAtom(modelContentAtom);
-  const [loading, setLoading] = useAtom(loadingAtom);
+  const [modelContent, _setModelContent] = useAtom(modelContentAtom);
+  const [loading, _setLoading] = useAtom(loadingAtom);
   return (
     <>
       <Space

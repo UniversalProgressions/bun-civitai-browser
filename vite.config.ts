@@ -14,10 +14,19 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/settings": "http://127.0.0.1:3000",
-      "/civitai_api": "http://127.0.0.1:3000",
+      "/settings": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/civitai_api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
+
   plugins: [
     // tsconfigPaths(),
     react({ babel: { babelrc: true, configFile: true } }),

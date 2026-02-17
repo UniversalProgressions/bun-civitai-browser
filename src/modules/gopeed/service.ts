@@ -121,20 +121,20 @@ export const createGopeedTaskEffect = (
   );
 };
 
-// 兼容性函数：将Effect转换为Promise<Result>
+// Compatibility function: converts Effect to Promise<Result>
 export const createGopeedTask = (
   client: Client,
   taskOpts: CreateTaskWithRequest,
   fileId: number,
 ): Promise<Result<string, GopeedServiceError | ApiError>> => {
-  // 注意：这里简化处理，实际需要更完整的实现
-  // 为了保持兼容性，这里先抛出一个错误，提示使用新API
+  // Note: Simplified handling here, actual implementation requires more completeness
+  // For compatibility, throws an error first to prompt using the new API
   return Promise.resolve(
     err(new GopeedServiceError("Please use createGopeedTaskEffect instead")),
   );
 };
 
-// Effect版本的createMediaTask
+// Effect version of createMediaTask
 export const createMediaTaskEffect = (
   settings: Settings,
   type: ModelTypes,
@@ -208,7 +208,7 @@ export const createMediaTaskEffect = (
   );
 };
 
-// Effect版本的createFileTask
+// Effect version of createFileTask
 export const createFileTaskEffect = (
   settings: Settings,
   type: ModelTypes,
@@ -268,7 +268,7 @@ export const createFileTaskEffect = (
   );
 };
 
-// Effect版本的简单方法
+// Effect version of simple methods
 export const getTaskEffect = (taskId: string) =>
   pipe(
     GopeedClient,
@@ -316,7 +316,7 @@ export const deleteTaskEffect = (taskId: string, force: boolean = false) =>
     Effect.map(() => true as const),
   );
 
-// 修复checkTaskExists中的类型问题
+// Fix type issues in checkTaskExists
 const checkTaskExists = (fileId: number, isMedia: boolean) => {
   const modelName = isMedia ? "modelVersionImage" : "modelVersionFile";
   return pipe(

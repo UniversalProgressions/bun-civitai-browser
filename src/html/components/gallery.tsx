@@ -7,16 +7,14 @@ import {
   ZoomOutOutlined,
 } from "@ant-design/icons";
 import { useState } from "react";
-import { getFileType } from "../../civitai-api/v1/";
-import { ModelImageWithId } from "../../civitai-api/v1/models";
+import { getFileType } from "../../civitai-api/v1/utils";
+import type { ModelImageWithId } from "../../civitai-api/v1/models";
 
 function GalleryThumb({
   item,
-  modalVisible,
   setModalVisible,
 }: {
   item?: ModelImageWithId;
-  modalVisible: boolean;
   setModalVisible: (visible: boolean) => void;
 }) {
   if (item === undefined) {
@@ -27,15 +25,27 @@ function GalleryThumb({
     );
   } else if (item.type === "image") {
     return (
-      <div onClick={() => setModalVisible(true)}>
-        <img src={item.url} />
-      </div>
+      <button
+        type="button"
+        onClick={() => setModalVisible(true)}
+        style={{ all: "unset", cursor: "pointer" }}
+        aria-label="View image preview"
+      >
+        <img src={item.url} alt="" />
+      </button>
     );
   } else {
     return (
-      <div onClick={() => setModalVisible(true)}>
-        <video src={item.url} autoPlay loop muted></video>
-      </div>
+      <button
+        type="button"
+        onClick={() => setModalVisible(true)}
+        style={{ all: "unset", cursor: "pointer" }}
+        aria-label="View video preview"
+      >
+        <video src={item.url} autoPlay loop muted>
+          <track kind="captions" src="" label="English" />
+        </video>
+      </button>
     );
   }
 }
@@ -95,11 +105,7 @@ export default function Gallery({ items }: { items: Array<ModelImageWithId> }) {
   };
   return (
     <>
-      <GalleryThumb
-        item={items[0]}
-        modalVisible
-        setModalVisible={setModalVisible}
-      />
+      <GalleryThumb item={items[0]} setModalVisible={setModalVisible} />
       <Image.PreviewGroup
         items={items.map((item) => ({
           src: item.url,
@@ -110,27 +116,7 @@ export default function Gallery({ items }: { items: Array<ModelImageWithId> }) {
           onOpenChange: (value) => {
             setModalVisible(value);
           },
-          actionsRender: (
-            _,
-            {
-              current,
-              icons,
-              image,
-              total,
-              transform: { flipX, flipY, rotate, x, y },
-              actions: {
-                onClose,
-                onActive,
-                onFlipY,
-                onFlipX,
-                onRotateLeft,
-                onRotateRight,
-                onZoomOut,
-                onZoomIn,
-                onReset,
-              },
-            },
-          ) => {
+          actionsRender: (_, { current, total, actions: { onActive } }) => {
             return (
               <Space size={12} className="toolbar-wrapper">
                 <LeftOutlined
@@ -160,10 +146,11 @@ export default function Gallery({ items }: { items: Array<ModelImageWithId> }) {
             // const { alt, height, url, width } = info.image;
             console.log(info);
             const urlobj = new URL(info.image.url);
-            const fileType = getFileType(
-              urlobj.searchParams.get("previewFile")!,
-            );
-            console.log(fileType);
+            // Extract filename from URL pathname
+            const pathParts = urlobj.pathname.split("/");
+            const filename = pathParts[pathParts.length - 1];
+            const fileType = getFileType(filename || "");
+            console.log(fileType, filename);
             // Build transform string including flip, rotate, and our custom scale/position
             const flipTransforms = [];
             if (flipX) flipTransforms.push("scaleX(-1)");
@@ -181,6 +168,8 @@ export default function Gallery({ items }: { items: Array<ModelImageWithId> }) {
               <div className="relative w-full max-w-4xl rounded-lg bg-gray-100 dark:bg-gray-800">
                 <div
                   className="flex items-center justify-center cursor-move"
+                  role="application"
+                  aria-label="Image viewer with drag and zoom controls"
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
@@ -207,7 +196,9 @@ export default function Gallery({ items }: { items: Array<ModelImageWithId> }) {
                       className="max-w-full max-h-[80vh] object-contain select-none"
                       controls
                       draggable="false"
-                    />
+                    >
+                      <track kind="captions" src="" label="English" />
+                    </video>
                   )}
                 </div>
               </div>

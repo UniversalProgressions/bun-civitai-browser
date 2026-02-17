@@ -324,37 +324,24 @@ export default new Elysia({ prefix: `/civitai_api` })
 
           for (let index = 0; index < modelVersion.files.length; index++) {
             const file = modelVersion.files[index];
-            const result = await client.modelVersions.resolveFileDownloadUrl(
-              file.downloadUrl,
-              settings.civitai_api_token,
-            );
-
-            if (result.isOk()) {
-              // Use resolved real download url to create gopeed download task
-              modelFileDownloadTasks.push({
-                req: { url: result.value },
-                opts: {
-                  name: mvlayout.getFileName(file.id),
-                  path: mvlayout.getFileDirPath(),
+            // Directly use file.downloadUrl with Authorization header
+            modelFileDownloadTasks.push({
+              req: {
+                url: file.downloadUrl,
+                extra: {
+                  header: {
+                    Authorization: `Bearer ${settings.civitai_api_token}`,
+                  },
                 },
-              });
-            } else {
-              // Handle errors from resolveFileDownloadUrl
-              const error = result.error;
-              if (error.type === "UNAUTHORIZED") {
-                throw new CivitaiApiError(
-                  `Unauthorized to access model file download url: ${file.downloadUrl},\nmay you have to purchase the model on civitai.`,
-                  401,
-                  error,
-                );
-              } else {
-                throw new CivitaiApiError(
-                  `Failed to resolve model file download url: ${file.downloadUrl},\nplease try again later.`,
-                  "status" in error ? error.status : 500,
-                  error,
-                );
-              }
-            }
+                labels: {
+                  CivitAI: `Model File`,
+                },
+              },
+              opts: {
+                name: mvlayout.getFileName(file.id),
+                path: mvlayout.getFileDirPath(),
+              },
+            });
           }
 
           // Download Start
@@ -388,17 +375,33 @@ export default new Elysia({ prefix: `/civitai_api` })
             const media = modelVersion.images[index];
             const filenameResult = extractFilenameFromUrl(media.url);
             if (filenameResult.isOk()) {
-              if (
-                await Bun.file(join(mediaDir, filenameResult.value)).exists()
-              ) {
+              const filename = filenameResult.value;
+              const filePath = join(mediaDir, filename);
+
+              // Skip if file already exists
+              if (await Bun.file(filePath).exists()) {
                 continue;
               }
-              mediaTaskIds.push(
-                await gopeed.createTask({
-                  req: { url: media.url },
-                  opts: { path: mediaDir },
-                }),
-              );
+
+              // Create media download task with Authorization header
+              const task = await gopeed.createTask({
+                req: {
+                  url: media.url,
+                  extra: {
+                    header: {
+                      Authorization: `Bearer ${settings.civitai_api_token}`,
+                    },
+                  },
+                  labels: {
+                    CivitAI: `Media`,
+                  },
+                },
+                opts: {
+                  name: filename,
+                  path: mediaDir,
+                },
+              });
+              mediaTaskIds.push(task);
             } else {
               // Log error but continue with other media files
               console.error(

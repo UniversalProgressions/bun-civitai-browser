@@ -3,6 +3,7 @@ import { SettingFilled } from "@ant-design/icons";
 import SettingsPanel from "./pages/settings";
 // import LocalModelsGallery from "./pages/localModelsGallery";
 import DownloadPanel from "./pages/downloadPanel";
+import DownloadManager from "./pages/downloadManager";
 import CivitaiGallery from "./pages/civitaiModelsGallery";
 // import TestPage from "./pages/galleryTestPage";
 
@@ -13,6 +14,7 @@ enum MenuItemKeys {
   Local = `Local`,
   CivitAI = `CivitAI`,
   Download = `Download`,
+  DownloadManager = `DownloadManager`,
 }
 
 function GalleryContent() {
@@ -36,6 +38,11 @@ function GalleryContent() {
       label: MenuItemKeys.Download,
       key: MenuItemKeys.Download,
       children: <DownloadPanel />,
+    },
+    {
+      label: MenuItemKeys.DownloadManager,
+      key: MenuItemKeys.DownloadManager,
+      children: <DownloadManager />,
     },
     {
       label: MenuItemKeys.Settings,

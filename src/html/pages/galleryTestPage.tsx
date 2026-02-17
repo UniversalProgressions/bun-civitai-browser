@@ -7,7 +7,7 @@ import {
   type ModelsRequestOpts,
   type ModelVersion,
 } from "../../modules/civitai-deprecated/models/models_endpoint";
-import { extractFilenameFromUrl } from "#modules/civitai-deprecated/service/sharedUtils.js";
+import { extractFilenameFromUrl } from "../../modules/civitai-deprecated/service/sharedUtils.js";
 
 const modelData = model.assert({
   id: 2092400,

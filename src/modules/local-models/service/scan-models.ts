@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { Result, ok, err } from "neverthrow";
 import fg from "fast-glob";
-import { settingsService } from "#modules/settings/service";
+import { settingsService } from "../../settings/service";
 import { ModelLayout } from "./file-layout";
 import type { Model } from "#civitai-api/v1/models/models";
 import type { ExistedModelVersions } from "#civitai-api/v1/models/model-id";

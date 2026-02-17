@@ -6,6 +6,11 @@
       "#modules/*": ["./src/modules/*"],
       "#civitai-api/*": ["./src/civitai-api/*"]
     },
+    "plugins": [
+      {
+        "name": "@effect/language-service"
+      }
+    ],
     "target": "esnext",
     "jsx": "preserve",
     "module": "esnext",

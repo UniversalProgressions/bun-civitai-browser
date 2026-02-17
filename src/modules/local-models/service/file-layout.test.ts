@@ -4,7 +4,7 @@ import { join } from "node:path";
 import filenamify from "filenamify";
 import { last } from "es-toolkit/compat";
 import type { Model } from "#civitai-api/v1/models/models";
-import { settingsService } from "#modules/settings/service";
+import { settingsService } from "../../settings/service";
 import fg from "fast-glob";
 import modelData from "./models_res.json" with { type: "json" };
 import { extractIdFromImageUrl } from "#civitai-api/v1/utils";

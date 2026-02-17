@@ -9,8 +9,8 @@ import {
 } from "bun:test";
 import { treaty } from "@elysiajs/eden";
 import CivitaiV1Router from "./index";
-import type { App } from "#modules/index";
-import { getSettings } from "#modules/settings/service";
+import type { App } from "../index";
+import { getSettings } from "../settings/service";
 import { createCivitaiClient } from "#civitai-api/v1";
 import type { CivitaiError } from "#civitai-api/v1/client/errors";
 import {

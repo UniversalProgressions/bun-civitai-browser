@@ -155,13 +155,16 @@ bun run prisma:reset    # Reset database (development only)
 - Improve download reliability with retry logic and resume capability
 - Enhance local model scanning performance and accuracy
 - Add keyboard shortcuts and accessibility improvements
+- Support batch operations (bulk download, delete, etc.)
 
 ### Medium-term Goals (3-6 Months)
-- Develop model comparison and diff tools
-- Implement automated metadata updates and synchronization
+- Cross-platform desktop application packaging
+- Advanced analytics and statistics features (privacy-focused personal usage tracking)
 
 ### Long-term Vision (6+ Months)
-- **Advanced Analytics**: Usage statistics for personal tracking (privacy-focused)
+- Continuous optimization of core functionality performance and user experience
+- Extended support for more model formats
+- Enhanced offline capabilities and workflow integration
 
 ## 9. Success Metrics & Evaluation
 

@@ -1,6 +1,6 @@
 {
   // The path to the `bun` executable.
-//   "bun.runtime": "/path/to/bun",
+  //   "bun.runtime": "/path/to/bun",
 
   // If support for Bun should be added to the default "JavaScript Debug Terminal".
   "bun.debugTerminal.enabled": true,
@@ -16,6 +16,7 @@
 
   "editor.tabSize": 2,
   "editor.formatOnSave": true,
+  "editor.defaultFormatter": "biomejs.biome",
   "Codegeex.RepoIndex": true,
   "Codegeex.CompletionDelay": 2,
   "Codegeex.CommitMessage.LanguagePreference": "English",

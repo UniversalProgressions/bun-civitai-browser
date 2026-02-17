@@ -12,30 +12,34 @@ import { Static } from "elysia";
 
 export type ModelWithAllRelations = Static<typeof ModelTypeboxSchema>;
 
-export async function findOrCreateOneModelId(modelId: Model) {
-  const creatorRecord = modelId.creator
-    ? await findOrCreateOneCreator(modelId.creator)
+export async function findOrCreateOneModel(model: Model) {
+  model.modelVersions = []; // These data will stored inside modelVersion.json field
+  const creatorRecord = model.creator
+    ? await findOrCreateOneCreator(model.creator)
     : undefined;
-  const modelTypeRecord = await findOrCreateOneModelType(modelId.type);
+  const modelTypeRecord = await findOrCreateOneModelType(model.type);
 
   const record = await prisma.model.upsert({
     where: {
-      id: modelId.id,
+      id: model.id,
     },
-    update: {},
+    update: {
+      json: model,
+    },
     create: {
-      id: modelId.id,
-      name: modelId.name,
+      id: model.id,
+      name: model.name,
       creatorId: creatorRecord ? creatorRecord.id : undefined,
       typeId: modelTypeRecord.id,
-      nsfw: modelId.nsfw,
-      nsfwLevel: modelId.nsfwLevel,
+      nsfw: model.nsfw,
+      nsfwLevel: model.nsfwLevel,
       tags: {
-        connectOrCreate: modelId.tags.map((tag) => ({
+        connectOrCreate: model.tags.map((tag) => ({
           where: { name: tag },
           create: { name: tag },
         })),
       },
+      json: model,
     },
   });
   return record;

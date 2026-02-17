@@ -44,7 +44,7 @@ import { type ModelWithAllRelations } from "../../modules/civitai-deprecated/ser
 import {
   extractFilenameFromUrl,
   getFileType,
-} from "#modules/civitai-deprecated/service/sharedUtils.js";
+} from "../../modules/civitai-deprecated/service/sharedUtils.js";
 import { DefaultOptionType } from "antd/es/select";
 import ShadowHTML from "../components/shadowHTML";
 import React from "react";
@@ -520,8 +520,8 @@ function LocalModelCardContentLeftSide({
             mediaArray={modelVersion.images.map(
               (i) =>
                 `${location.origin}/civitai/local/media/preview?previewFile=${extractFilenameFromUrl(
-                  i.url
-                )}`
+                  i.url,
+                )}`,
             )}
           />
         ) : (

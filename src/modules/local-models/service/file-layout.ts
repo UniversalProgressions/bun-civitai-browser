@@ -124,9 +124,7 @@ export class ModelVersionLayout {
   }
 
   findFile(fileId: number): ModelFile {
-    const file = find(this.modelVersion.files, function (file) {
-      return file.id === fileId;
-    });
+    const file = find(this.modelVersion.files, (file) => file.id === fileId);
     if (file === undefined) {
       throw new Error(`model have no file id: ${fileId}`);
     }
@@ -151,7 +149,7 @@ export class ModelVersionLayout {
   }
 
   findMedia(mediaId: number): ModelImage {
-    const img = find(this.modelVersion.images, function (img) {
+    const img = find(this.modelVersion.images, (img) => {
       // Handle cases where id might be null by extracting from URL
       // Note: ModelImage no longer has id field, extract from URL
       const idResult = extractIdFromImageUrl(img.url);
@@ -193,9 +191,10 @@ export class ModelLayout {
   }
 
   findModelVersion(modelVersionId: number): ModelVersion {
-    const modelVersion = find(this.model.modelVersions, function (mv) {
-      return mv.id === modelVersionId;
-    });
+    const modelVersion = find(
+      this.model.modelVersions,
+      (mv) => mv.id === modelVersionId,
+    );
     if (modelVersion === undefined) {
       throw new Error(`model have no version id: ${modelVersionId}`);
     }

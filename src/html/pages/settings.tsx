@@ -1,8 +1,6 @@
 import { Button, Form, Input, Alert, Row, Col, notification } from "antd";
 import { edenTreaty } from "../utils";
-import {
-  type Settings,
-} from "../../modules/settings/model";
+import { type Settings } from "../../modules/settings/model";
 import { useState, useEffect } from "react";
 
 /**
@@ -13,7 +11,7 @@ import { useState, useEffect } from "react";
 function SettingsPage() {
   // Form instance for better state management and readability
   const [form] = Form.useForm();
-  
+
   // Component state - grouped for clarity
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -26,38 +24,42 @@ function SettingsPage() {
       try {
         setLoading(true);
         const response = await edenTreaty.settings.api.settings.get();
-        
+
         if (response.error) {
-          setError(`Failed to load settings: ${JSON.stringify(response.error)}`);
+          setError(
+            `Failed to load settings: ${JSON.stringify(response.error)}`,
+          );
           return;
         }
-        
+
         const settingsData = response.data;
         const isSetupRequired = settingsData === null;
-        
+
         // Update form with loaded values or empty values for initial setup
         if (settingsData) {
           form.setFieldsValue({
             civitai_api_token: settingsData.civitai_api_token,
             basePath: settingsData.basePath,
-            http_proxy: settingsData.http_proxy || '',
+            http_proxy: settingsData.http_proxy || "",
             gopeed_api_host: settingsData.gopeed_api_host,
-            gopeed_api_token: settingsData.gopeed_api_token || ''
+            gopeed_api_token: settingsData.gopeed_api_token || "",
           });
         } else {
           // Initial setup - set empty values
           form.setFieldsValue({
-            civitai_api_token: '',
-            basePath: '',
-            http_proxy: '',
-            gopeed_api_host: '',
-            gopeed_api_token: ''
+            civitai_api_token: "",
+            basePath: "",
+            http_proxy: "",
+            gopeed_api_host: "",
+            gopeed_api_token: "",
           });
         }
-        
+
         setIsInitialSetup(isSetupRequired);
       } catch (err) {
-        setError("An error has occurred: Can't communicate with server, maybe it's not even running yet.");
+        setError(
+          "An error has occurred: Can't communicate with server, maybe it's not even running yet.",
+        );
         console.error("Error loading settings:", err);
       } finally {
         setLoading(false);
@@ -71,19 +73,20 @@ function SettingsPage() {
   const handleSubmit = async (values: Settings) => {
     try {
       setSubmitting(true);
-      
+
       // Convert form values to Settings object
       const updatedSettings: Settings = {
         civitai_api_token: values.civitai_api_token,
         basePath: values.basePath,
         http_proxy: values.http_proxy || undefined,
         gopeed_api_host: values.gopeed_api_host,
-        gopeed_api_token: values.gopeed_api_token || undefined
+        gopeed_api_token: values.gopeed_api_token || undefined,
       };
 
       // Send update to server
-      const response = await edenTreaty.settings.api.settings.post(updatedSettings);
-      
+      const response =
+        await edenTreaty.settings.api.settings.post(updatedSettings);
+
       if (response.error) {
         console.error("Failed to save settings:", response.error);
         notification.error({
@@ -93,19 +96,18 @@ function SettingsPage() {
         });
         return;
       }
-      
+
       // Success handling
       notification.success({
         message: "Settings Saved",
         description: "Your settings have been successfully saved.",
         duration: 3,
       });
-      
+
       // Update initial setup flag if this was the first setup
       if (isInitialSetup) {
         setIsInitialSetup(false);
       }
-      
     } catch (error) {
       console.error("Error saving settings:", error);
       notification.error({
@@ -135,55 +137,50 @@ function SettingsPage() {
 
   // Show error state
   if (error) {
-    return <Alert 
-      type="error" 
-      title="Error" 
-      description={error}
-      showIcon
-    />;
+    return <Alert type="error" title="Error" description={error} showIcon />;
   }
 
   // Responsive form layout configuration
   const formItemLayout = {
     // Responsive label column configuration
     labelCol: {
-      xs: { span: 24 },    // Mobile: full width
-      sm: { span: 24 },    // Small tablet: full width  
-      md: { span: 8 },     // Medium: 8/24
-      lg: { span: 6 },     // Large: 6/24
-      xl: { span: 6 },     // Extra large: 6/24
+      xs: { span: 24 }, // Mobile: full width
+      sm: { span: 24 }, // Small tablet: full width
+      md: { span: 8 }, // Medium: 8/24
+      lg: { span: 6 }, // Large: 6/24
+      xl: { span: 6 }, // Extra large: 6/24
     },
     // Responsive wrapper column configuration
     wrapperCol: {
-      xs: { span: 24 },    // Mobile: full width
-      sm: { span: 24 },    // Small tablet: full width
-      md: { span: 16 },    // Medium: 16/24
-      lg: { span: 18 },    // Large: 18/24
-      xl: { span: 18 },    // Extra large: 18/24
+      xs: { span: 24 }, // Mobile: full width
+      sm: { span: 24 }, // Small tablet: full width
+      md: { span: 16 }, // Medium: 16/24
+      lg: { span: 18 }, // Large: 18/24
+      xl: { span: 18 }, // Extra large: 18/24
     },
   };
 
   // Responsive button layout
   const buttonLayout = {
     wrapperCol: {
-      xs: { span: 24, offset: 0 },    // Mobile: full width, no offset
-      sm: { span: 24, offset: 0 },    // Small tablet: full width, no offset
-      md: { span: 16, offset: 8 },    // Medium: offset to align with input fields
-      lg: { span: 18, offset: 6 },    // Large: offset to align with input fields
-      xl: { span: 18, offset: 6 },    // Extra large: offset to align with input fields
+      xs: { span: 24, offset: 0 }, // Mobile: full width, no offset
+      sm: { span: 24, offset: 0 }, // Small tablet: full width, no offset
+      md: { span: 16, offset: 8 }, // Medium: offset to align with input fields
+      lg: { span: 18, offset: 6 }, // Large: offset to align with input fields
+      xl: { span: 18, offset: 6 }, // Extra large: offset to align with input fields
     },
   };
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div style={{ padding: "24px" }}>
       {isInitialSetup && (
         <Row justify="center">
-          <Col 
-            xs={24}      // Mobile: full width
-            sm={24}      // Small tablet: full width
-            md={20}      // Medium: 20/24
-            lg={18}      // Large: 18/24
-            xl={16}      // Extra large: 16/24
+          <Col
+            xs={24} // Mobile: full width
+            sm={24} // Small tablet: full width
+            md={20} // Medium: 20/24
+            lg={18} // Large: 18/24
+            xl={16} // Extra large: 16/24
           >
             <Alert
               type="info"
@@ -195,14 +192,14 @@ function SettingsPage() {
           </Col>
         </Row>
       )}
-      
+
       <Row justify="center">
-        <Col 
-          xs={24}      // Mobile: full width
-          sm={24}      // Small tablet: full width
-          md={20}      // Medium: 20/24
-          lg={18}      // Large: 18/24
-          xl={16}      // Extra large: 16/24
+        <Col
+          xs={24} // Mobile: full width
+          sm={24} // Small tablet: full width
+          md={20} // Medium: 20/24
+          lg={18} // Large: 18/24
+          xl={16} // Extra large: 16/24
         >
           <Form
             form={form}
@@ -225,46 +222,45 @@ function SettingsPage() {
               ]}
               labelAlign="left"
             >
-              <Input 
-                placeholder="Enter your CivitAI API key" 
-                size="large"
-              />
+              <Input placeholder="Enter your CivitAI API key" size="large" />
             </Form.Item>
-            
+
             <Form.Item
               label="Models saving location"
               name="basePath"
               rules={[
                 {
                   required: true,
-                  message: "Please input the location of where your models will be saved at.",
+                  message:
+                    "Please input the location of where your models will be saved at.",
                 },
               ]}
               labelAlign="left"
             >
-              <Input 
-                placeholder="Enter the path where models will be saved" 
+              <Input
+                placeholder="Enter the path where models will be saved"
                 size="large"
               />
             </Form.Item>
-            
+
             <Form.Item
               label="Proxy"
               name="http_proxy"
               rules={[
                 {
                   required: false,
-                  message: "You could set your proxy address for downloading at here. (optional)",
+                  message:
+                    "You could set your proxy address for downloading at here. (optional)",
                 },
               ]}
               labelAlign="left"
             >
-              <Input 
-                placeholder="Optional proxy address (e.g., http://proxy.example.com:8080)" 
+              <Input
+                placeholder="Optional proxy address (e.g., http://proxy.example.com:8080)"
                 size="large"
               />
             </Form.Item>
-            
+
             <Form.Item
               label="GopeedAPI Host"
               name="gopeed_api_host"
@@ -276,12 +272,12 @@ function SettingsPage() {
               ]}
               labelAlign="left"
             >
-              <Input 
-                placeholder="Enter GopeedAPI host address (e.g., http://localhost:9999)" 
+              <Input
+                placeholder="Enter GopeedAPI host address (e.g., http://localhost:9999)"
                 size="large"
               />
             </Form.Item>
-            
+
             <Form.Item
               label="GopeedAPI Token"
               name="gopeed_api_token"
@@ -293,24 +289,25 @@ function SettingsPage() {
               ]}
               labelAlign="left"
             >
-              <Input 
-                placeholder="Optional GopeedAPI token" 
-                size="large"
-              />
+              <Input placeholder="Optional GopeedAPI token" size="large" />
             </Form.Item>
-            
+
             <Form.Item {...buttonLayout}>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 htmlType="submit"
                 loading={submitting}
                 disabled={submitting}
                 size="large"
                 style={{
-                  marginTop: '16px'
+                  marginTop: "16px",
                 }}
               >
-                {isInitialSetup ? "Complete Setup" : (submitting ? "Saving..." : "Save Settings")}
+                {isInitialSetup
+                  ? "Complete Setup"
+                  : submitting
+                    ? "Saving..."
+                    : "Save Settings"}
               </Button>
             </Form.Item>
           </Form>
@@ -321,5 +318,3 @@ function SettingsPage() {
 }
 
 export default SettingsPage;
-
-

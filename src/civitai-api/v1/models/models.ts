@@ -91,7 +91,7 @@ export type ModelsResponse = typeof modelsResponseSchema.infer;
  */
 export const modelsRequestOptionsSchema = type({
   "limit?": "number.integer", // The number of results to be returned per page. This can be a number between 1 and 100. By default, each page will return 100 results
-  // "page?": "number.integer", // The page from which to start fetching models // 2026-2-8 "Cannot use page param with query search. Use cursor-based pagination."
+  "page?": "number.integer", // The page from which to start fetching models // 2026-2-8 "Cannot use page param with query search. Use cursor-based pagination."
   "query?": "string", // Search query to filter models by name
   "tag?": "string[]", // Search query to filter models by tag
   "username?": "string", // Search query to filter models by user

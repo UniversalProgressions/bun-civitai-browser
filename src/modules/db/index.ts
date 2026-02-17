@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { type } from "arktype";
-import { prisma } from "#modules/db/service";
+import { prisma } from "./service";
 
 const dbController = new Elysia({ prefix: "/db" }).get(
   `/tags`,
@@ -17,7 +17,7 @@ const dbController = new Elysia({ prefix: "/db" }).get(
   {
     query: type({ tagKeyword: "string" }),
     response: type("string[]"),
-  }
+  },
 );
 
 export default dbController;

@@ -62,8 +62,3 @@ export type ModelVersionFile = Prisma.ModelVersionFileModel
  * 
  */
 export type ModelVersionImage = Prisma.ModelVersionImageModel
-/**
- * Model GopeedTask
- * 
- */
-export type GopeedTask = Prisma.GopeedTaskModel

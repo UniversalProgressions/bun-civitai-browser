@@ -50,6 +50,9 @@ export type ModelVersionImageMinAggregateOutputType = {
   height: number | null
   hash: string | null
   type: string | null
+  gopeedTaskId: string | null
+  gopeedTaskFinished: boolean | null
+  gopeedTaskDeleted: boolean | null
   modelVersionId: number | null
 }
 
@@ -61,6 +64,9 @@ export type ModelVersionImageMaxAggregateOutputType = {
   height: number | null
   hash: string | null
   type: string | null
+  gopeedTaskId: string | null
+  gopeedTaskFinished: boolean | null
+  gopeedTaskDeleted: boolean | null
   modelVersionId: number | null
 }
 
@@ -72,6 +78,9 @@ export type ModelVersionImageCountAggregateOutputType = {
   height: number
   hash: number
   type: number
+  gopeedTaskId: number
+  gopeedTaskFinished: number
+  gopeedTaskDeleted: number
   modelVersionId: number
   _all: number
 }
@@ -101,6 +110,9 @@ export type ModelVersionImageMinAggregateInputType = {
   height?: true
   hash?: true
   type?: true
+  gopeedTaskId?: true
+  gopeedTaskFinished?: true
+  gopeedTaskDeleted?: true
   modelVersionId?: true
 }
 
@@ -112,6 +124,9 @@ export type ModelVersionImageMaxAggregateInputType = {
   height?: true
   hash?: true
   type?: true
+  gopeedTaskId?: true
+  gopeedTaskFinished?: true
+  gopeedTaskDeleted?: true
   modelVersionId?: true
 }
 
@@ -123,6 +138,9 @@ export type ModelVersionImageCountAggregateInputType = {
   height?: true
   hash?: true
   type?: true
+  gopeedTaskId?: true
+  gopeedTaskFinished?: true
+  gopeedTaskDeleted?: true
   modelVersionId?: true
   _all?: true
 }
@@ -221,6 +239,9 @@ export type ModelVersionImageGroupByOutputType = {
   height: number
   hash: string
   type: string
+  gopeedTaskId: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted: boolean
   modelVersionId: number
   _count: ModelVersionImageCountAggregateOutputType | null
   _avg: ModelVersionImageAvgAggregateOutputType | null
@@ -255,6 +276,9 @@ export type ModelVersionImageWhereInput = {
   height?: Prisma.IntFilter<"ModelVersionImage"> | number
   hash?: Prisma.StringFilter<"ModelVersionImage"> | string
   type?: Prisma.StringFilter<"ModelVersionImage"> | string
+  gopeedTaskId?: Prisma.StringNullableFilter<"ModelVersionImage"> | string | null
+  gopeedTaskFinished?: Prisma.BoolFilter<"ModelVersionImage"> | boolean
+  gopeedTaskDeleted?: Prisma.BoolFilter<"ModelVersionImage"> | boolean
   modelVersionId?: Prisma.IntFilter<"ModelVersionImage"> | number
   modelVersion?: Prisma.XOR<Prisma.ModelVersionScalarRelationFilter, Prisma.ModelVersionWhereInput>
 }
@@ -267,12 +291,16 @@ export type ModelVersionImageOrderByWithRelationInput = {
   height?: Prisma.SortOrder
   hash?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  gopeedTaskId?: Prisma.SortOrderInput | Prisma.SortOrder
+  gopeedTaskFinished?: Prisma.SortOrder
+  gopeedTaskDeleted?: Prisma.SortOrder
   modelVersionId?: Prisma.SortOrder
   modelVersion?: Prisma.ModelVersionOrderByWithRelationInput
 }
 
 export type ModelVersionImageWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  gopeedTaskId?: string
   AND?: Prisma.ModelVersionImageWhereInput | Prisma.ModelVersionImageWhereInput[]
   OR?: Prisma.ModelVersionImageWhereInput[]
   NOT?: Prisma.ModelVersionImageWhereInput | Prisma.ModelVersionImageWhereInput[]
@@ -282,9 +310,11 @@ export type ModelVersionImageWhereUniqueInput = Prisma.AtLeast<{
   height?: Prisma.IntFilter<"ModelVersionImage"> | number
   hash?: Prisma.StringFilter<"ModelVersionImage"> | string
   type?: Prisma.StringFilter<"ModelVersionImage"> | string
+  gopeedTaskFinished?: Prisma.BoolFilter<"ModelVersionImage"> | boolean
+  gopeedTaskDeleted?: Prisma.BoolFilter<"ModelVersionImage"> | boolean
   modelVersionId?: Prisma.IntFilter<"ModelVersionImage"> | number
   modelVersion?: Prisma.XOR<Prisma.ModelVersionScalarRelationFilter, Prisma.ModelVersionWhereInput>
-}, "id">
+}, "id" | "gopeedTaskId">
 
 export type ModelVersionImageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -294,6 +324,9 @@ export type ModelVersionImageOrderByWithAggregationInput = {
   height?: Prisma.SortOrder
   hash?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  gopeedTaskId?: Prisma.SortOrderInput | Prisma.SortOrder
+  gopeedTaskFinished?: Prisma.SortOrder
+  gopeedTaskDeleted?: Prisma.SortOrder
   modelVersionId?: Prisma.SortOrder
   _count?: Prisma.ModelVersionImageCountOrderByAggregateInput
   _avg?: Prisma.ModelVersionImageAvgOrderByAggregateInput
@@ -313,6 +346,9 @@ export type ModelVersionImageScalarWhereWithAggregatesInput = {
   height?: Prisma.IntWithAggregatesFilter<"ModelVersionImage"> | number
   hash?: Prisma.StringWithAggregatesFilter<"ModelVersionImage"> | string
   type?: Prisma.StringWithAggregatesFilter<"ModelVersionImage"> | string
+  gopeedTaskId?: Prisma.StringNullableWithAggregatesFilter<"ModelVersionImage"> | string | null
+  gopeedTaskFinished?: Prisma.BoolWithAggregatesFilter<"ModelVersionImage"> | boolean
+  gopeedTaskDeleted?: Prisma.BoolWithAggregatesFilter<"ModelVersionImage"> | boolean
   modelVersionId?: Prisma.IntWithAggregatesFilter<"ModelVersionImage"> | number
 }
 
@@ -324,6 +360,9 @@ export type ModelVersionImageCreateInput = {
   height: number
   hash: string
   type: string
+  gopeedTaskId?: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted?: boolean
   modelVersion: Prisma.ModelVersionCreateNestedOneWithoutImagesInput
 }
 
@@ -335,6 +374,9 @@ export type ModelVersionImageUncheckedCreateInput = {
   height: number
   hash: string
   type: string
+  gopeedTaskId?: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted?: boolean
   modelVersionId: number
 }
 
@@ -346,6 +388,9 @@ export type ModelVersionImageUpdateInput = {
   height?: Prisma.IntFieldUpdateOperationsInput | number
   hash?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   modelVersion?: Prisma.ModelVersionUpdateOneRequiredWithoutImagesNestedInput
 }
 
@@ -357,6 +402,9 @@ export type ModelVersionImageUncheckedUpdateInput = {
   height?: Prisma.IntFieldUpdateOperationsInput | number
   hash?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   modelVersionId?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -368,6 +416,9 @@ export type ModelVersionImageCreateManyInput = {
   height: number
   hash: string
   type: string
+  gopeedTaskId?: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted?: boolean
   modelVersionId: number
 }
 
@@ -379,6 +430,9 @@ export type ModelVersionImageUpdateManyMutationInput = {
   height?: Prisma.IntFieldUpdateOperationsInput | number
   hash?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type ModelVersionImageUncheckedUpdateManyInput = {
@@ -389,6 +443,9 @@ export type ModelVersionImageUncheckedUpdateManyInput = {
   height?: Prisma.IntFieldUpdateOperationsInput | number
   hash?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   modelVersionId?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -410,6 +467,9 @@ export type ModelVersionImageCountOrderByAggregateInput = {
   height?: Prisma.SortOrder
   hash?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  gopeedTaskId?: Prisma.SortOrder
+  gopeedTaskFinished?: Prisma.SortOrder
+  gopeedTaskDeleted?: Prisma.SortOrder
   modelVersionId?: Prisma.SortOrder
 }
 
@@ -429,6 +489,9 @@ export type ModelVersionImageMaxOrderByAggregateInput = {
   height?: Prisma.SortOrder
   hash?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  gopeedTaskId?: Prisma.SortOrder
+  gopeedTaskFinished?: Prisma.SortOrder
+  gopeedTaskDeleted?: Prisma.SortOrder
   modelVersionId?: Prisma.SortOrder
 }
 
@@ -440,6 +503,9 @@ export type ModelVersionImageMinOrderByAggregateInput = {
   height?: Prisma.SortOrder
   hash?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  gopeedTaskId?: Prisma.SortOrder
+  gopeedTaskFinished?: Prisma.SortOrder
+  gopeedTaskDeleted?: Prisma.SortOrder
   modelVersionId?: Prisma.SortOrder
 }
 
@@ -501,6 +567,9 @@ export type ModelVersionImageCreateWithoutModelVersionInput = {
   height: number
   hash: string
   type: string
+  gopeedTaskId?: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted?: boolean
 }
 
 export type ModelVersionImageUncheckedCreateWithoutModelVersionInput = {
@@ -511,6 +580,9 @@ export type ModelVersionImageUncheckedCreateWithoutModelVersionInput = {
   height: number
   hash: string
   type: string
+  gopeedTaskId?: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted?: boolean
 }
 
 export type ModelVersionImageCreateOrConnectWithoutModelVersionInput = {
@@ -549,6 +621,9 @@ export type ModelVersionImageScalarWhereInput = {
   height?: Prisma.IntFilter<"ModelVersionImage"> | number
   hash?: Prisma.StringFilter<"ModelVersionImage"> | string
   type?: Prisma.StringFilter<"ModelVersionImage"> | string
+  gopeedTaskId?: Prisma.StringNullableFilter<"ModelVersionImage"> | string | null
+  gopeedTaskFinished?: Prisma.BoolFilter<"ModelVersionImage"> | boolean
+  gopeedTaskDeleted?: Prisma.BoolFilter<"ModelVersionImage"> | boolean
   modelVersionId?: Prisma.IntFilter<"ModelVersionImage"> | number
 }
 
@@ -560,6 +635,9 @@ export type ModelVersionImageCreateManyModelVersionInput = {
   height: number
   hash: string
   type: string
+  gopeedTaskId?: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted?: boolean
 }
 
 export type ModelVersionImageUpdateWithoutModelVersionInput = {
@@ -570,6 +648,9 @@ export type ModelVersionImageUpdateWithoutModelVersionInput = {
   height?: Prisma.IntFieldUpdateOperationsInput | number
   hash?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type ModelVersionImageUncheckedUpdateWithoutModelVersionInput = {
@@ -580,6 +661,9 @@ export type ModelVersionImageUncheckedUpdateWithoutModelVersionInput = {
   height?: Prisma.IntFieldUpdateOperationsInput | number
   hash?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type ModelVersionImageUncheckedUpdateManyWithoutModelVersionInput = {
@@ -590,6 +674,9 @@ export type ModelVersionImageUncheckedUpdateManyWithoutModelVersionInput = {
   height?: Prisma.IntFieldUpdateOperationsInput | number
   hash?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 
@@ -602,6 +689,9 @@ export type ModelVersionImageSelect<ExtArgs extends runtime.Types.Extensions.Int
   height?: boolean
   hash?: boolean
   type?: boolean
+  gopeedTaskId?: boolean
+  gopeedTaskFinished?: boolean
+  gopeedTaskDeleted?: boolean
   modelVersionId?: boolean
   modelVersion?: boolean | Prisma.ModelVersionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["modelVersionImage"]>
@@ -614,6 +704,9 @@ export type ModelVersionImageSelectCreateManyAndReturn<ExtArgs extends runtime.T
   height?: boolean
   hash?: boolean
   type?: boolean
+  gopeedTaskId?: boolean
+  gopeedTaskFinished?: boolean
+  gopeedTaskDeleted?: boolean
   modelVersionId?: boolean
   modelVersion?: boolean | Prisma.ModelVersionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["modelVersionImage"]>
@@ -626,6 +719,9 @@ export type ModelVersionImageSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   height?: boolean
   hash?: boolean
   type?: boolean
+  gopeedTaskId?: boolean
+  gopeedTaskFinished?: boolean
+  gopeedTaskDeleted?: boolean
   modelVersionId?: boolean
   modelVersion?: boolean | Prisma.ModelVersionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["modelVersionImage"]>
@@ -638,10 +734,13 @@ export type ModelVersionImageSelectScalar = {
   height?: boolean
   hash?: boolean
   type?: boolean
+  gopeedTaskId?: boolean
+  gopeedTaskFinished?: boolean
+  gopeedTaskDeleted?: boolean
   modelVersionId?: boolean
 }
 
-export type ModelVersionImageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "url" | "nsfwLevel" | "width" | "height" | "hash" | "type" | "modelVersionId", ExtArgs["result"]["modelVersionImage"]>
+export type ModelVersionImageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "url" | "nsfwLevel" | "width" | "height" | "hash" | "type" | "gopeedTaskId" | "gopeedTaskFinished" | "gopeedTaskDeleted" | "modelVersionId", ExtArgs["result"]["modelVersionImage"]>
 export type ModelVersionImageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   modelVersion?: boolean | Prisma.ModelVersionDefaultArgs<ExtArgs>
 }
@@ -665,6 +764,9 @@ export type $ModelVersionImagePayload<ExtArgs extends runtime.Types.Extensions.I
     height: number
     hash: string
     type: string
+    gopeedTaskId: string | null
+    gopeedTaskFinished: boolean
+    gopeedTaskDeleted: boolean
     modelVersionId: number
   }, ExtArgs["result"]["modelVersionImage"]>
   composites: {}
@@ -1097,6 +1199,9 @@ export interface ModelVersionImageFieldRefs {
   readonly height: Prisma.FieldRef<"ModelVersionImage", 'Int'>
   readonly hash: Prisma.FieldRef<"ModelVersionImage", 'String'>
   readonly type: Prisma.FieldRef<"ModelVersionImage", 'String'>
+  readonly gopeedTaskId: Prisma.FieldRef<"ModelVersionImage", 'String'>
+  readonly gopeedTaskFinished: Prisma.FieldRef<"ModelVersionImage", 'Boolean'>
+  readonly gopeedTaskDeleted: Prisma.FieldRef<"ModelVersionImage", 'Boolean'>
   readonly modelVersionId: Prisma.FieldRef<"ModelVersionImage", 'Int'>
 }
     

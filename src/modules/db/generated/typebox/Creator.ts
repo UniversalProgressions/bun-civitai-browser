@@ -20,6 +20,7 @@ export const CreatorRelations = t.Object({
       typeId: t.Integer(),
       nsfw: t.Boolean(),
       nsfwLevel: t.Integer(),
+      json: t.Any(),
       createdAt: t.Date(),
       updatedAt: t.Date(),
     }),

@@ -1,21 +1,22 @@
 import { prisma } from "../service";
 import { modelVersionSchema, modelSchema } from "#civitai-api/v1/models";
 import type { Model, ModelVersion, ModelTypes } from "#civitai-api/v1/models";
-import { getSettings } from "#modules/settings/service";
+import { getSettings } from "../../settings/service";
 import { findOrCreateOneBaseModel } from "./baseModel";
 import { findOrCreateOneBaseModelType } from "./baseModelType";
-import { findOrCreateOneModelId } from "./modelId";
+import { findOrCreateOneModel } from "./model";
 import { normalize, sep } from "node:path";
-import { scanModelsStream } from "#modules/local-models/service/scan-models";
+import { scanModelsStream } from "../../local-models/service/scan-models";
 import {
   getModelIdApiInfoJsonPath,
   getModelVersionApiInfoJsonPath,
-} from "#modules/local-models/service/file-layout";
+} from "../../local-models/service/file-layout";
 import { type } from "arktype";
+import { isEqual } from "es-toolkit";
 import { extractIdFromImageUrl } from "#civitai-api/v1/utils";
 
 export async function upsertOneModelVersion(
-  modelId: Model,
+  model: Model,
   modelVersion: ModelVersion,
 ) {
   const baseModelRecord = await findOrCreateOneBaseModel(
@@ -27,7 +28,7 @@ export async function upsertOneModelVersion(
         baseModelRecord.id,
       )
     : undefined;
-  const modelIdRecord = await findOrCreateOneModelId(modelId);
+  const modelIdRecord = await findOrCreateOneModel(model);
 
   const record = await prisma.modelVersion.upsert({
     where: {
@@ -37,8 +38,8 @@ export async function upsertOneModelVersion(
       name: modelVersion.name,
       baseModelId: baseModelRecord.id,
       baseModelTypeId: baseModelTypeRecord ? baseModelTypeRecord.id : undefined,
-      publishedAt: modelVersion.publishedAt ?? undefined,
       nsfwLevel: modelVersion.nsfwLevel,
+      json: modelVersion,
     },
     create: {
       id: modelVersion.id,
@@ -46,7 +47,6 @@ export async function upsertOneModelVersion(
       name: modelVersion.name,
       baseModelId: baseModelRecord.id,
       baseModelTypeId: baseModelTypeRecord ? baseModelTypeRecord.id : undefined,
-      publishedAt: modelVersion.publishedAt ?? undefined,
       nsfwLevel: modelVersion.nsfwLevel,
       images: {
         connectOrCreate: modelVersion.images.map((image) => {
@@ -69,6 +69,9 @@ export async function upsertOneModelVersion(
               height: image.height,
               hash: image.hash,
               type: image.type,
+              gopeedTaskId: null,
+              gopeedTaskFinished: false,
+              gopeedTaskDeleted: false,
             },
           };
         }),
@@ -82,9 +85,13 @@ export async function upsertOneModelVersion(
             name: file.name,
             type: file.type,
             downloadUrl: file.downloadUrl,
+            gopeedTaskId: null,
+            gopeedTaskFinished: false,
+            gopeedTaskDeleted: false,
           },
         })),
       },
+      json: modelVersion,
     },
   });
 

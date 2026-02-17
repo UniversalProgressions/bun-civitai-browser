@@ -17,6 +17,14 @@ import type { Settings } from "../settings/model";
 import { getMediaDir } from "../local-models/service/file-layout";
 import { Data, Context, Effect, pipe } from "effect";
 
+// Enum representing the 4 possible states of a Gopeed download task
+export enum GopeedTaskStatus {
+  FAILED = "FAILED",
+  CREATED = "CREATED",
+  FINISHED = "FINISHED",
+  CLEANED = "CLEANED",
+}
+
 export class GopeedServiceError extends Data.Error<{ message: string }> {
   constructor(message: string) {
     super({ message });
@@ -162,6 +170,7 @@ export const createMediaTaskEffect = (
               data: {
                 gopeedTaskId: taskId,
                 gopeedTaskFinished: false,
+                gopeedTaskDeleted: false,
               },
             });
             return record as { gopeedTaskId: string };
@@ -222,6 +231,7 @@ export const createFileTaskEffect = (
               data: {
                 gopeedTaskId: taskId,
                 gopeedTaskFinished: false,
+                gopeedTaskDeleted: false,
               },
             });
             return record as { gopeedTaskId: string };
@@ -332,6 +342,188 @@ const checkTaskExists = (fileId: number, isMedia: boolean) => {
             ),
           )
         : Effect.succeed(true),
+    ),
+  );
+};
+
+// Helper function to determine the Gopeed task status based on the three fields
+export function getGopeedTaskStatus(
+  gopeedTaskId: string | null,
+  gopeedTaskFinished: boolean,
+  gopeedTaskDeleted: boolean,
+): GopeedTaskStatus {
+  if (gopeedTaskId === null) {
+    return GopeedTaskStatus.FAILED;
+  }
+  if (!gopeedTaskFinished) {
+    return GopeedTaskStatus.CREATED;
+  }
+  if (!gopeedTaskDeleted) {
+    return GopeedTaskStatus.FINISHED;
+  }
+  return GopeedTaskStatus.CLEANED;
+}
+
+// Effect to update task record when task creation fails
+export const updateTaskFailedEffect = (
+  fileId: number,
+  isMedia: boolean,
+): Effect.Effect<void, GopeedServiceError, PrismaService> => {
+  const modelName = isMedia ? "modelVersionImage" : "modelVersionFile";
+  return pipe(
+    PrismaService,
+    Effect.flatMap((prisma) =>
+      Effect.tryPromise({
+        try: async () => {
+          await (prisma as any)[modelName].update({
+            where: { id: fileId },
+            data: {
+              gopeedTaskId: null,
+              gopeedTaskFinished: false,
+              gopeedTaskDeleted: false,
+            },
+          });
+        },
+        catch: (error) =>
+          new GopeedServiceError(`Failed to update task as failed: ${error}`),
+      }),
+    ),
+  );
+};
+
+// Effect to update task record when task is created successfully
+export const updateTaskCreatedEffect = (
+  fileId: number,
+  taskId: string,
+  isMedia: boolean,
+): Effect.Effect<void, GopeedServiceError, PrismaService> => {
+  const modelName = isMedia ? "modelVersionImage" : "modelVersionFile";
+  return pipe(
+    PrismaService,
+    Effect.flatMap((prisma) =>
+      Effect.tryPromise({
+        try: async () => {
+          await (prisma as any)[modelName].update({
+            where: { id: fileId },
+            data: {
+              gopeedTaskId: taskId,
+              gopeedTaskFinished: false,
+              gopeedTaskDeleted: false,
+            },
+          });
+        },
+        catch: (error) =>
+          new GopeedServiceError(`Failed to update task as created: ${error}`),
+      }),
+    ),
+  );
+};
+
+// Effect to update task record when task is finished (downloaded)
+export const updateTaskFinishedEffect = (
+  fileId: number,
+  isMedia: boolean,
+): Effect.Effect<void, GopeedServiceError, PrismaService> => {
+  const modelName = isMedia ? "modelVersionImage" : "modelVersionFile";
+  return pipe(
+    PrismaService,
+    Effect.flatMap((prisma) =>
+      Effect.tryPromise({
+        try: async () => {
+          await (prisma as any)[modelName].update({
+            where: { id: fileId },
+            data: {
+              gopeedTaskFinished: true,
+              gopeedTaskDeleted: false,
+            },
+          });
+        },
+        catch: (error) =>
+          new GopeedServiceError(`Failed to update task as finished: ${error}`),
+      }),
+    ),
+  );
+};
+
+// Effect to update task record when task is cleaned (Gopeed task deleted)
+export const updateTaskCleanedEffect = (
+  fileId: number,
+  isMedia: boolean,
+): Effect.Effect<void, GopeedServiceError, PrismaService> => {
+  const modelName = isMedia ? "modelVersionImage" : "modelVersionFile";
+  return pipe(
+    PrismaService,
+    Effect.flatMap((prisma) =>
+      Effect.tryPromise({
+        try: async () => {
+          await (prisma as any)[modelName].update({
+            where: { id: fileId },
+            data: {
+              gopeedTaskDeleted: true,
+            },
+          });
+        },
+        catch: (error) =>
+          new GopeedServiceError(`Failed to update task as cleaned: ${error}`),
+      }),
+    ),
+  );
+};
+
+// Combined effect to mark task as finished and clean Gopeed task (manual cleanup)
+export const finishAndCleanTaskEffect = (
+  taskId: string,
+  fileId: number,
+  isMedia: boolean,
+  force: boolean = false,
+): Effect.Effect<
+  void,
+  GopeedServiceError | ApiError,
+  PrismaService | GopeedClient
+> => {
+  const deleteEffect = deleteTaskEffect(taskId, force);
+  const updateCleanedEffect = updateTaskCleanedEffect(fileId, isMedia);
+
+  return pipe(
+    deleteEffect,
+    Effect.flatMap(() => updateCleanedEffect),
+    Effect.map(() => undefined),
+  );
+};
+
+// Effect to get task status from database
+export const getTaskStatusFromDbEffect = (
+  fileId: number,
+  isMedia: boolean,
+): Effect.Effect<GopeedTaskStatus, GopeedServiceError, PrismaService> => {
+  const modelName = isMedia ? "modelVersionImage" : "modelVersionFile";
+  return pipe(
+    PrismaService,
+    Effect.flatMap((prisma) =>
+      Effect.tryPromise({
+        try: async () => {
+          const record = await (prisma as any)[modelName].findUnique({
+            where: { id: fileId },
+            select: {
+              gopeedTaskId: true,
+              gopeedTaskFinished: true,
+              gopeedTaskDeleted: true,
+            },
+          });
+          if (!record) {
+            throw new GopeedServiceError(
+              `Record not found for fileId: ${fileId}`,
+            );
+          }
+          return getGopeedTaskStatus(
+            record.gopeedTaskId,
+            record.gopeedTaskFinished,
+            record.gopeedTaskDeleted,
+          );
+        },
+        catch: (error) =>
+          new GopeedServiceError(`Failed to get task status: ${error}`),
+      }),
     ),
   );
 };

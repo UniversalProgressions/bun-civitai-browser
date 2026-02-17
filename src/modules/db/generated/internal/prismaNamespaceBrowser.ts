@@ -59,8 +59,7 @@ export const ModelName = {
   BaseModelType: 'BaseModelType',
   ModelVersion: 'ModelVersion',
   ModelVersionFile: 'ModelVersionFile',
-  ModelVersionImage: 'ModelVersionImage',
-  GopeedTask: 'GopeedTask'
+  ModelVersionImage: 'ModelVersionImage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -101,6 +100,7 @@ export const ModelScalarFieldEnum = {
   typeId: 'typeId',
   nsfw: 'nsfw',
   nsfwLevel: 'nsfwLevel',
+  json: 'json',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -140,6 +140,7 @@ export const ModelVersionScalarFieldEnum = {
   baseModelId: 'baseModelId',
   baseModelTypeId: 'baseModelTypeId',
   nsfwLevel: 'nsfwLevel',
+  json: 'json',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -153,6 +154,9 @@ export const ModelVersionFileScalarFieldEnum = {
   name: 'name',
   type: 'type',
   downloadUrl: 'downloadUrl',
+  gopeedTaskId: 'gopeedTaskId',
+  gopeedTaskFinished: 'gopeedTaskFinished',
+  gopeedTaskDeleted: 'gopeedTaskDeleted',
   modelVersionId: 'modelVersionId'
 } as const
 
@@ -167,21 +171,13 @@ export const ModelVersionImageScalarFieldEnum = {
   height: 'height',
   hash: 'hash',
   type: 'type',
+  gopeedTaskId: 'gopeedTaskId',
+  gopeedTaskFinished: 'gopeedTaskFinished',
+  gopeedTaskDeleted: 'gopeedTaskDeleted',
   modelVersionId: 'modelVersionId'
 } as const
 
 export type ModelVersionImageScalarFieldEnum = (typeof ModelVersionImageScalarFieldEnum)[keyof typeof ModelVersionImageScalarFieldEnum]
-
-
-export const GopeedTaskScalarFieldEnum = {
-  id: 'id',
-  isFinished: 'isFinished',
-  fileId: 'fileId',
-  isMedia: 'isMedia',
-  modelVersionId: 'modelVersionId'
-} as const
-
-export type GopeedTaskScalarFieldEnum = (typeof GopeedTaskScalarFieldEnum)[keyof typeof GopeedTaskScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -192,10 +188,34 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const NullsOrder = {
   first: 'first',
   last: 'last'
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 

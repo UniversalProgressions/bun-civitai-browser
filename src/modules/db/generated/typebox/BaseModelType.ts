@@ -19,6 +19,7 @@ export const BaseModelTypeRelations = t.Object({
       baseModelId: t.Integer(),
       baseModelTypeId: __nullable__(t.Integer()),
       nsfwLevel: t.Integer(),
+      json: t.Any(),
       createdAt: t.Date(),
       updatedAt: t.Date(),
     }),

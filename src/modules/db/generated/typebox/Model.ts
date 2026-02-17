@@ -11,6 +11,7 @@ export const ModelPlain = t.Object({
   typeId: t.Integer(),
   nsfw: t.Boolean(),
   nsfwLevel: t.Integer(),
+  json: t.Any(),
   createdAt: t.Date(),
   updatedAt: t.Date(),
 });
@@ -24,6 +25,7 @@ export const ModelRelations = t.Object({
       baseModelId: t.Integer(),
       baseModelTypeId: __nullable__(t.Integer()),
       nsfwLevel: t.Integer(),
+      json: t.Any(),
       createdAt: t.Date(),
       updatedAt: t.Date(),
     }),
@@ -47,12 +49,14 @@ export const ModelPlainInputCreate = t.Object({
   name: t.String(),
   nsfw: t.Boolean(),
   nsfwLevel: t.Integer(),
+  json: t.Any(),
 });
 
 export const ModelPlainInputUpdate = t.Object({
   name: t.Optional(t.String()),
   nsfw: t.Optional(t.Boolean()),
   nsfwLevel: t.Optional(t.Integer()),
+  json: t.Optional(t.Any()),
 });
 
 export const ModelRelationsInputCreate = t.Object({
@@ -154,6 +158,7 @@ export const ModelWhere = t.Partial(
           typeId: t.Integer(),
           nsfw: t.Boolean(),
           nsfwLevel: t.Integer(),
+          json: t.Any(),
           createdAt: t.Date(),
           updatedAt: t.Date(),
         },
@@ -190,6 +195,7 @@ export const ModelWhereUnique = t.Recursive(
             typeId: t.Integer(),
             nsfw: t.Boolean(),
             nsfwLevel: t.Integer(),
+            json: t.Any(),
             createdAt: t.Date(),
             updatedAt: t.Date(),
           }),
@@ -210,6 +216,7 @@ export const ModelSelect = t.Partial(
     nsfwLevel: t.Boolean(),
     modelVersions: t.Boolean(),
     tags: t.Boolean(),
+    json: t.Boolean(),
     createdAt: t.Boolean(),
     updatedAt: t.Boolean(),
     creator: t.Boolean(),
@@ -246,6 +253,9 @@ export const ModelOrderBy = t.Partial(
       additionalProperties: true,
     }),
     nsfwLevel: t.Union([t.Literal("asc"), t.Literal("desc")], {
+      additionalProperties: true,
+    }),
+    json: t.Union([t.Literal("asc"), t.Literal("desc")], {
       additionalProperties: true,
     }),
     createdAt: t.Union([t.Literal("asc"), t.Literal("desc")], {

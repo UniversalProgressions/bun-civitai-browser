@@ -11,6 +11,7 @@ export const ModelVersionPlain = t.Object({
   baseModelId: t.Integer(),
   baseModelTypeId: __nullable__(t.Integer()),
   nsfwLevel: t.Integer(),
+  json: t.Any(),
   createdAt: t.Date(),
   updatedAt: t.Date(),
 });
@@ -23,6 +24,7 @@ export const ModelVersionRelations = t.Object({
     typeId: t.Integer(),
     nsfw: t.Boolean(),
     nsfwLevel: t.Integer(),
+    json: t.Any(),
     createdAt: t.Date(),
     updatedAt: t.Date(),
   }),
@@ -37,6 +39,9 @@ export const ModelVersionRelations = t.Object({
       name: t.String(),
       type: t.String(),
       downloadUrl: t.String(),
+      gopeedTaskId: __nullable__(t.String()),
+      gopeedTaskFinished: t.Boolean(),
+      gopeedTaskDeleted: t.Boolean(),
       modelVersionId: t.Integer(),
     }),
     { additionalProperties: true },
@@ -50,16 +55,9 @@ export const ModelVersionRelations = t.Object({
       height: t.Integer(),
       hash: t.String(),
       type: t.String(),
-      modelVersionId: t.Integer(),
-    }),
-    { additionalProperties: true },
-  ),
-  downloads: t.Array(
-    t.Object({
-      id: t.String(),
-      isFinished: t.Boolean(),
-      fileId: t.Integer(),
-      isMedia: t.Boolean(),
+      gopeedTaskId: __nullable__(t.String()),
+      gopeedTaskFinished: t.Boolean(),
+      gopeedTaskDeleted: t.Boolean(),
       modelVersionId: t.Integer(),
     }),
     { additionalProperties: true },
@@ -69,11 +67,13 @@ export const ModelVersionRelations = t.Object({
 export const ModelVersionPlainInputCreate = t.Object({
   name: t.String(),
   nsfwLevel: t.Integer(),
+  json: t.Any(),
 });
 
 export const ModelVersionPlainInputUpdate = t.Object({
   name: t.Optional(t.String()),
   nsfwLevel: t.Optional(t.Integer()),
+  json: t.Optional(t.Any()),
 });
 
 export const ModelVersionRelationsInputCreate = t.Object({
@@ -109,16 +109,6 @@ export const ModelVersionRelationsInputCreate = t.Object({
       connect: t.Array(
         t.Object({
           id: t.Integer(),
-        }),
-        { additionalProperties: true },
-      ),
-    }),
-  ),
-  downloads: t.Optional(
-    t.Object({
-      connect: t.Array(
-        t.Object({
-          id: t.String(),
         }),
         { additionalProperties: true },
       ),
@@ -178,22 +168,6 @@ export const ModelVersionRelationsInputUpdate = t.Partial(
         ),
       }),
     ),
-    downloads: t.Partial(
-      t.Object({
-        connect: t.Array(
-          t.Object({
-            id: t.String(),
-          }),
-          { additionalProperties: true },
-        ),
-        disconnect: t.Array(
-          t.Object({
-            id: t.String(),
-          }),
-          { additionalProperties: true },
-        ),
-      }),
-    ),
   }),
 );
 
@@ -211,6 +185,7 @@ export const ModelVersionWhere = t.Partial(
           baseModelId: t.Integer(),
           baseModelTypeId: t.Integer(),
           nsfwLevel: t.Integer(),
+          json: t.Any(),
           createdAt: t.Date(),
           updatedAt: t.Date(),
         },
@@ -247,6 +222,7 @@ export const ModelVersionWhereUnique = t.Recursive(
             baseModelId: t.Integer(),
             baseModelTypeId: t.Integer(),
             nsfwLevel: t.Integer(),
+            json: t.Any(),
             createdAt: t.Date(),
             updatedAt: t.Date(),
           }),
@@ -265,6 +241,7 @@ export const ModelVersionSelect = t.Partial(
     baseModelId: t.Boolean(),
     baseModelTypeId: t.Boolean(),
     nsfwLevel: t.Boolean(),
+    json: t.Boolean(),
     createdAt: t.Boolean(),
     updatedAt: t.Boolean(),
     model: t.Boolean(),
@@ -272,7 +249,6 @@ export const ModelVersionSelect = t.Partial(
     baseModelType: t.Boolean(),
     files: t.Boolean(),
     images: t.Boolean(),
-    downloads: t.Boolean(),
     _count: t.Boolean(),
   }),
 );
@@ -284,7 +260,6 @@ export const ModelVersionInclude = t.Partial(
     baseModelType: t.Boolean(),
     files: t.Boolean(),
     images: t.Boolean(),
-    downloads: t.Boolean(),
     _count: t.Boolean(),
   }),
 );
@@ -307,6 +282,9 @@ export const ModelVersionOrderBy = t.Partial(
       additionalProperties: true,
     }),
     nsfwLevel: t.Union([t.Literal("asc"), t.Literal("desc")], {
+      additionalProperties: true,
+    }),
+    json: t.Union([t.Literal("asc"), t.Literal("desc")], {
       additionalProperties: true,
     }),
     createdAt: t.Union([t.Literal("asc"), t.Literal("desc")], {

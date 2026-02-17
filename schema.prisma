@@ -59,6 +59,7 @@ model Model {
   nsfwLevel     Int
   modelVersions ModelVersion[]
   tags          Tag[]
+  json          Json
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -104,6 +105,7 @@ model ModelVersion {
   baseModelId     Int
   baseModelTypeId Int?
   nsfwLevel       Int
+  json            Json
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -112,45 +114,40 @@ model ModelVersion {
   baseModelType BaseModelType?      @relation(fields: [baseModelTypeId], references: [id])
   files         ModelVersionFile[]
   images        ModelVersionImage[]
-  downloads     GopeedTask[]
 
   @@index([modelId, name, baseModelId, baseModelTypeId, nsfwLevel])
 }
 
 model ModelVersionFile {
-  id          Int    @id
-  sizeKB      Float
-  name        String
-  type        String
-  downloadUrl String
+  id                 Int     @id
+  sizeKB             Float
+  name               String
+  type               String
+  downloadUrl        String
+  gopeedTaskId       String?  @unique
+  gopeedTaskFinished Boolean
+  gopeedTaskDeleted  Boolean @default(false)
 
   modelVersionId Int
   modelVersion   ModelVersion @relation(fields: [modelVersionId], references: [id], onDelete: Cascade)
+
+  @@index([id, gopeedTaskId])
 }
 
 model ModelVersionImage {
-  id        Int    @id
-  url       String
-  nsfwLevel Int
-  width     Int
-  height    Int
-  hash      String
-  type      String
+  id                 Int     @id
+  url                String
+  nsfwLevel          Int
+  width              Int
+  height             Int
+  hash               String
+  type               String
+  gopeedTaskId       String?  @unique
+  gopeedTaskFinished Boolean
+  gopeedTaskDeleted  Boolean @default(false)
 
   modelVersionId Int
   modelVersion   ModelVersion @relation(fields: [modelVersionId], references: [id], onDelete: Cascade)
-}
 
-model GopeedTask {
-  id         String  @id
-  isFinished Boolean
-  // Civitai file or media (image) id.
-  fileId     Int     @unique
-  // It's used to distinguish weather it's a model file or media(images) for locating exact data in json.
-  isMedia    Boolean
-
-  modelVersionId Int          @unique
-  modelVersion   ModelVersion @relation(fields: [modelVersionId], references: [id], onDelete: Cascade)
-
-  @@index([id, fileId])
+  @@index([id, gopeedTaskId])
 }

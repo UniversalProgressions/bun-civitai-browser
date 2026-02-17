@@ -12,6 +12,9 @@ export const ModelVersionImagePlain = t.Object({
   height: t.Integer(),
   hash: t.String(),
   type: t.String(),
+  gopeedTaskId: __nullable__(t.String()),
+  gopeedTaskFinished: t.Boolean(),
+  gopeedTaskDeleted: t.Boolean(),
   modelVersionId: t.Integer(),
 });
 
@@ -23,6 +26,7 @@ export const ModelVersionImageRelations = t.Object({
     baseModelId: t.Integer(),
     baseModelTypeId: __nullable__(t.Integer()),
     nsfwLevel: t.Integer(),
+    json: t.Any(),
     createdAt: t.Date(),
     updatedAt: t.Date(),
   }),
@@ -35,6 +39,8 @@ export const ModelVersionImagePlainInputCreate = t.Object({
   height: t.Integer(),
   hash: t.String(),
   type: t.String(),
+  gopeedTaskFinished: t.Boolean(),
+  gopeedTaskDeleted: t.Optional(t.Boolean()),
 });
 
 export const ModelVersionImagePlainInputUpdate = t.Object({
@@ -44,6 +50,8 @@ export const ModelVersionImagePlainInputUpdate = t.Object({
   height: t.Optional(t.Integer()),
   hash: t.Optional(t.String()),
   type: t.Optional(t.String()),
+  gopeedTaskFinished: t.Optional(t.Boolean()),
+  gopeedTaskDeleted: t.Optional(t.Boolean()),
 });
 
 export const ModelVersionImageRelationsInputCreate = t.Object({
@@ -79,6 +87,9 @@ export const ModelVersionImageWhere = t.Partial(
           height: t.Integer(),
           hash: t.String(),
           type: t.String(),
+          gopeedTaskId: t.String(),
+          gopeedTaskFinished: t.Boolean(),
+          gopeedTaskDeleted: t.Boolean(),
           modelVersionId: t.Integer(),
         },
         { additionalProperties: true },
@@ -92,12 +103,19 @@ export const ModelVersionImageWhereUnique = t.Recursive(
     t.Intersect(
       [
         t.Partial(
-          t.Object({ id: t.Integer() }, { additionalProperties: true }),
+          t.Object(
+            { id: t.Integer(), gopeedTaskId: t.String() },
+            { additionalProperties: true },
+          ),
           { additionalProperties: true },
         ),
-        t.Union([t.Object({ id: t.Integer() })], {
-          additionalProperties: true,
-        }),
+        t.Union(
+          [
+            t.Object({ id: t.Integer() }),
+            t.Object({ gopeedTaskId: t.String() }),
+          ],
+          { additionalProperties: true },
+        ),
         t.Partial(
           t.Object({
             AND: t.Union([Self, t.Array(Self, { additionalProperties: true })]),
@@ -115,6 +133,9 @@ export const ModelVersionImageWhereUnique = t.Recursive(
             height: t.Integer(),
             hash: t.String(),
             type: t.String(),
+            gopeedTaskId: t.String(),
+            gopeedTaskFinished: t.Boolean(),
+            gopeedTaskDeleted: t.Boolean(),
             modelVersionId: t.Integer(),
           }),
         ),
@@ -133,6 +154,9 @@ export const ModelVersionImageSelect = t.Partial(
     height: t.Boolean(),
     hash: t.Boolean(),
     type: t.Boolean(),
+    gopeedTaskId: t.Boolean(),
+    gopeedTaskFinished: t.Boolean(),
+    gopeedTaskDeleted: t.Boolean(),
     modelVersionId: t.Boolean(),
     modelVersion: t.Boolean(),
     _count: t.Boolean(),
@@ -164,6 +188,15 @@ export const ModelVersionImageOrderBy = t.Partial(
       additionalProperties: true,
     }),
     type: t.Union([t.Literal("asc"), t.Literal("desc")], {
+      additionalProperties: true,
+    }),
+    gopeedTaskId: t.Union([t.Literal("asc"), t.Literal("desc")], {
+      additionalProperties: true,
+    }),
+    gopeedTaskFinished: t.Union([t.Literal("asc"), t.Literal("desc")], {
+      additionalProperties: true,
+    }),
+    gopeedTaskDeleted: t.Union([t.Literal("asc"), t.Literal("desc")], {
       additionalProperties: true,
     }),
     modelVersionId: t.Union([t.Literal("asc"), t.Literal("desc")], {

@@ -7,6 +7,5 @@ export * from "./BaseModelType";
 export * from "./ModelVersion";
 export * from "./ModelVersionFile";
 export * from "./ModelVersionImage";
-export * from "./GopeedTask";
 export * from "./__nullable__";
 export * from "./__transformDate__";

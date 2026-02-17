@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.3.0
- * Query Engine version: 9d6ad21cbbceab97458517b147a6a09ff43aa735
+ * Prisma Client JS version: 7.4.0
+ * Query Engine version: ab56fe763f921d033a6c195e7ddeb3e255bdbb57
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.3.0",
-  engine: "9d6ad21cbbceab97458517b147a6a09ff43aa735"
+  client: "7.4.0",
+  engine: "ab56fe763f921d033a6c195e7ddeb3e255bdbb57"
 }
 
 /**
@@ -392,8 +392,7 @@ export const ModelName = {
   BaseModelType: 'BaseModelType',
   ModelVersion: 'ModelVersion',
   ModelVersionFile: 'ModelVersionFile',
-  ModelVersionImage: 'ModelVersionImage',
-  GopeedTask: 'GopeedTask'
+  ModelVersionImage: 'ModelVersionImage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -409,7 +408,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "creator" | "modelType" | "model" | "tag" | "baseModel" | "baseModelType" | "modelVersion" | "modelVersionFile" | "modelVersionImage" | "gopeedTask"
+    modelProps: "creator" | "modelType" | "model" | "tag" | "baseModel" | "baseModelType" | "modelVersion" | "modelVersionFile" | "modelVersionImage"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1079,80 +1078,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    GopeedTask: {
-      payload: Prisma.$GopeedTaskPayload<ExtArgs>
-      fields: Prisma.GopeedTaskFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.GopeedTaskFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$GopeedTaskPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.GopeedTaskFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$GopeedTaskPayload>
-        }
-        findFirst: {
-          args: Prisma.GopeedTaskFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$GopeedTaskPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.GopeedTaskFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$GopeedTaskPayload>
-        }
-        findMany: {
-          args: Prisma.GopeedTaskFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$GopeedTaskPayload>[]
-        }
-        create: {
-          args: Prisma.GopeedTaskCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$GopeedTaskPayload>
-        }
-        createMany: {
-          args: Prisma.GopeedTaskCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.GopeedTaskCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$GopeedTaskPayload>[]
-        }
-        delete: {
-          args: Prisma.GopeedTaskDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$GopeedTaskPayload>
-        }
-        update: {
-          args: Prisma.GopeedTaskUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$GopeedTaskPayload>
-        }
-        deleteMany: {
-          args: Prisma.GopeedTaskDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.GopeedTaskUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.GopeedTaskUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$GopeedTaskPayload>[]
-        }
-        upsert: {
-          args: Prisma.GopeedTaskUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$GopeedTaskPayload>
-        }
-        aggregate: {
-          args: Prisma.GopeedTaskAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateGopeedTask>
-        }
-        groupBy: {
-          args: Prisma.GopeedTaskGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.GopeedTaskGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.GopeedTaskCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.GopeedTaskCountAggregateOutputType> | number
-        }
-      }
-    }
   }
 } & {
   other: {
@@ -1214,6 +1139,7 @@ export const ModelScalarFieldEnum = {
   typeId: 'typeId',
   nsfw: 'nsfw',
   nsfwLevel: 'nsfwLevel',
+  json: 'json',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1253,6 +1179,7 @@ export const ModelVersionScalarFieldEnum = {
   baseModelId: 'baseModelId',
   baseModelTypeId: 'baseModelTypeId',
   nsfwLevel: 'nsfwLevel',
+  json: 'json',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1266,6 +1193,9 @@ export const ModelVersionFileScalarFieldEnum = {
   name: 'name',
   type: 'type',
   downloadUrl: 'downloadUrl',
+  gopeedTaskId: 'gopeedTaskId',
+  gopeedTaskFinished: 'gopeedTaskFinished',
+  gopeedTaskDeleted: 'gopeedTaskDeleted',
   modelVersionId: 'modelVersionId'
 } as const
 
@@ -1280,21 +1210,13 @@ export const ModelVersionImageScalarFieldEnum = {
   height: 'height',
   hash: 'hash',
   type: 'type',
+  gopeedTaskId: 'gopeedTaskId',
+  gopeedTaskFinished: 'gopeedTaskFinished',
+  gopeedTaskDeleted: 'gopeedTaskDeleted',
   modelVersionId: 'modelVersionId'
 } as const
 
 export type ModelVersionImageScalarFieldEnum = (typeof ModelVersionImageScalarFieldEnum)[keyof typeof ModelVersionImageScalarFieldEnum]
-
-
-export const GopeedTaskScalarFieldEnum = {
-  id: 'id',
-  isFinished: 'isFinished',
-  fileId: 'fileId',
-  isMedia: 'isMedia',
-  modelVersionId: 'modelVersionId'
-} as const
-
-export type GopeedTaskScalarFieldEnum = (typeof GopeedTaskScalarFieldEnum)[keyof typeof GopeedTaskScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1305,12 +1227,36 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const NullsOrder = {
   first: 'first',
   last: 'last'
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
 
@@ -1337,6 +1283,20 @@ export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'Boolean'
  */
 export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -1457,7 +1417,6 @@ export type GlobalOmitConfig = {
   modelVersion?: Prisma.ModelVersionOmit
   modelVersionFile?: Prisma.ModelVersionFileOmit
   modelVersionImage?: Prisma.ModelVersionImageOmit
-  gopeedTask?: Prisma.GopeedTaskOmit
 }
 
 /* Types for Logging */

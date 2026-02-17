@@ -10,6 +10,9 @@ export const ModelVersionFilePlain = t.Object({
   name: t.String(),
   type: t.String(),
   downloadUrl: t.String(),
+  gopeedTaskId: __nullable__(t.String()),
+  gopeedTaskFinished: t.Boolean(),
+  gopeedTaskDeleted: t.Boolean(),
   modelVersionId: t.Integer(),
 });
 
@@ -21,6 +24,7 @@ export const ModelVersionFileRelations = t.Object({
     baseModelId: t.Integer(),
     baseModelTypeId: __nullable__(t.Integer()),
     nsfwLevel: t.Integer(),
+    json: t.Any(),
     createdAt: t.Date(),
     updatedAt: t.Date(),
   }),
@@ -31,6 +35,8 @@ export const ModelVersionFilePlainInputCreate = t.Object({
   name: t.String(),
   type: t.String(),
   downloadUrl: t.String(),
+  gopeedTaskFinished: t.Boolean(),
+  gopeedTaskDeleted: t.Optional(t.Boolean()),
 });
 
 export const ModelVersionFilePlainInputUpdate = t.Object({
@@ -38,6 +44,8 @@ export const ModelVersionFilePlainInputUpdate = t.Object({
   name: t.Optional(t.String()),
   type: t.Optional(t.String()),
   downloadUrl: t.Optional(t.String()),
+  gopeedTaskFinished: t.Optional(t.Boolean()),
+  gopeedTaskDeleted: t.Optional(t.Boolean()),
 });
 
 export const ModelVersionFileRelationsInputCreate = t.Object({
@@ -71,6 +79,9 @@ export const ModelVersionFileWhere = t.Partial(
           name: t.String(),
           type: t.String(),
           downloadUrl: t.String(),
+          gopeedTaskId: t.String(),
+          gopeedTaskFinished: t.Boolean(),
+          gopeedTaskDeleted: t.Boolean(),
           modelVersionId: t.Integer(),
         },
         { additionalProperties: true },
@@ -84,12 +95,19 @@ export const ModelVersionFileWhereUnique = t.Recursive(
     t.Intersect(
       [
         t.Partial(
-          t.Object({ id: t.Integer() }, { additionalProperties: true }),
+          t.Object(
+            { id: t.Integer(), gopeedTaskId: t.String() },
+            { additionalProperties: true },
+          ),
           { additionalProperties: true },
         ),
-        t.Union([t.Object({ id: t.Integer() })], {
-          additionalProperties: true,
-        }),
+        t.Union(
+          [
+            t.Object({ id: t.Integer() }),
+            t.Object({ gopeedTaskId: t.String() }),
+          ],
+          { additionalProperties: true },
+        ),
         t.Partial(
           t.Object({
             AND: t.Union([Self, t.Array(Self, { additionalProperties: true })]),
@@ -105,6 +123,9 @@ export const ModelVersionFileWhereUnique = t.Recursive(
             name: t.String(),
             type: t.String(),
             downloadUrl: t.String(),
+            gopeedTaskId: t.String(),
+            gopeedTaskFinished: t.Boolean(),
+            gopeedTaskDeleted: t.Boolean(),
             modelVersionId: t.Integer(),
           }),
         ),
@@ -121,6 +142,9 @@ export const ModelVersionFileSelect = t.Partial(
     name: t.Boolean(),
     type: t.Boolean(),
     downloadUrl: t.Boolean(),
+    gopeedTaskId: t.Boolean(),
+    gopeedTaskFinished: t.Boolean(),
+    gopeedTaskDeleted: t.Boolean(),
     modelVersionId: t.Boolean(),
     modelVersion: t.Boolean(),
     _count: t.Boolean(),
@@ -146,6 +170,15 @@ export const ModelVersionFileOrderBy = t.Partial(
       additionalProperties: true,
     }),
     downloadUrl: t.Union([t.Literal("asc"), t.Literal("desc")], {
+      additionalProperties: true,
+    }),
+    gopeedTaskId: t.Union([t.Literal("asc"), t.Literal("desc")], {
+      additionalProperties: true,
+    }),
+    gopeedTaskFinished: t.Union([t.Literal("asc"), t.Literal("desc")], {
+      additionalProperties: true,
+    }),
+    gopeedTaskDeleted: t.Union([t.Literal("asc"), t.Literal("desc")], {
       additionalProperties: true,
     }),
     modelVersionId: t.Union([t.Literal("asc"), t.Literal("desc")], {

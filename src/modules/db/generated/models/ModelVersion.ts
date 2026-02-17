@@ -71,6 +71,7 @@ export type ModelVersionCountAggregateOutputType = {
   baseModelId: number
   baseModelTypeId: number
   nsfwLevel: number
+  json: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -122,6 +123,7 @@ export type ModelVersionCountAggregateInputType = {
   baseModelId?: true
   baseModelTypeId?: true
   nsfwLevel?: true
+  json?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -220,6 +222,7 @@ export type ModelVersionGroupByOutputType = {
   baseModelId: number
   baseModelTypeId: number | null
   nsfwLevel: number
+  json: runtime.JsonValue
   createdAt: Date
   updatedAt: Date
   _count: ModelVersionCountAggregateOutputType | null
@@ -254,6 +257,7 @@ export type ModelVersionWhereInput = {
   baseModelId?: Prisma.IntFilter<"ModelVersion"> | number
   baseModelTypeId?: Prisma.IntNullableFilter<"ModelVersion"> | number | null
   nsfwLevel?: Prisma.IntFilter<"ModelVersion"> | number
+  json?: Prisma.JsonFilter<"ModelVersion">
   createdAt?: Prisma.DateTimeFilter<"ModelVersion"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ModelVersion"> | Date | string
   model?: Prisma.XOR<Prisma.ModelScalarRelationFilter, Prisma.ModelWhereInput>
@@ -261,7 +265,6 @@ export type ModelVersionWhereInput = {
   baseModelType?: Prisma.XOR<Prisma.BaseModelTypeNullableScalarRelationFilter, Prisma.BaseModelTypeWhereInput> | null
   files?: Prisma.ModelVersionFileListRelationFilter
   images?: Prisma.ModelVersionImageListRelationFilter
-  downloads?: Prisma.GopeedTaskListRelationFilter
 }
 
 export type ModelVersionOrderByWithRelationInput = {
@@ -271,6 +274,7 @@ export type ModelVersionOrderByWithRelationInput = {
   baseModelId?: Prisma.SortOrder
   baseModelTypeId?: Prisma.SortOrderInput | Prisma.SortOrder
   nsfwLevel?: Prisma.SortOrder
+  json?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   model?: Prisma.ModelOrderByWithRelationInput
@@ -278,7 +282,6 @@ export type ModelVersionOrderByWithRelationInput = {
   baseModelType?: Prisma.BaseModelTypeOrderByWithRelationInput
   files?: Prisma.ModelVersionFileOrderByRelationAggregateInput
   images?: Prisma.ModelVersionImageOrderByRelationAggregateInput
-  downloads?: Prisma.GopeedTaskOrderByRelationAggregateInput
 }
 
 export type ModelVersionWhereUniqueInput = Prisma.AtLeast<{
@@ -291,6 +294,7 @@ export type ModelVersionWhereUniqueInput = Prisma.AtLeast<{
   baseModelId?: Prisma.IntFilter<"ModelVersion"> | number
   baseModelTypeId?: Prisma.IntNullableFilter<"ModelVersion"> | number | null
   nsfwLevel?: Prisma.IntFilter<"ModelVersion"> | number
+  json?: Prisma.JsonFilter<"ModelVersion">
   createdAt?: Prisma.DateTimeFilter<"ModelVersion"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ModelVersion"> | Date | string
   model?: Prisma.XOR<Prisma.ModelScalarRelationFilter, Prisma.ModelWhereInput>
@@ -298,7 +302,6 @@ export type ModelVersionWhereUniqueInput = Prisma.AtLeast<{
   baseModelType?: Prisma.XOR<Prisma.BaseModelTypeNullableScalarRelationFilter, Prisma.BaseModelTypeWhereInput> | null
   files?: Prisma.ModelVersionFileListRelationFilter
   images?: Prisma.ModelVersionImageListRelationFilter
-  downloads?: Prisma.GopeedTaskListRelationFilter
 }, "id">
 
 export type ModelVersionOrderByWithAggregationInput = {
@@ -308,6 +311,7 @@ export type ModelVersionOrderByWithAggregationInput = {
   baseModelId?: Prisma.SortOrder
   baseModelTypeId?: Prisma.SortOrderInput | Prisma.SortOrder
   nsfwLevel?: Prisma.SortOrder
+  json?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ModelVersionCountOrderByAggregateInput
@@ -327,6 +331,7 @@ export type ModelVersionScalarWhereWithAggregatesInput = {
   baseModelId?: Prisma.IntWithAggregatesFilter<"ModelVersion"> | number
   baseModelTypeId?: Prisma.IntNullableWithAggregatesFilter<"ModelVersion"> | number | null
   nsfwLevel?: Prisma.IntWithAggregatesFilter<"ModelVersion"> | number
+  json?: Prisma.JsonWithAggregatesFilter<"ModelVersion">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ModelVersion"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ModelVersion"> | Date | string
 }
@@ -335,6 +340,7 @@ export type ModelVersionCreateInput = {
   id: number
   name: string
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   model: Prisma.ModelCreateNestedOneWithoutModelVersionsInput
@@ -342,7 +348,6 @@ export type ModelVersionCreateInput = {
   baseModelType?: Prisma.BaseModelTypeCreateNestedOneWithoutModelVersionsInput
   files?: Prisma.ModelVersionFileCreateNestedManyWithoutModelVersionInput
   images?: Prisma.ModelVersionImageCreateNestedManyWithoutModelVersionInput
-  downloads?: Prisma.GopeedTaskCreateNestedManyWithoutModelVersionInput
 }
 
 export type ModelVersionUncheckedCreateInput = {
@@ -352,17 +357,18 @@ export type ModelVersionUncheckedCreateInput = {
   baseModelId: number
   baseModelTypeId?: number | null
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   files?: Prisma.ModelVersionFileUncheckedCreateNestedManyWithoutModelVersionInput
   images?: Prisma.ModelVersionImageUncheckedCreateNestedManyWithoutModelVersionInput
-  downloads?: Prisma.GopeedTaskUncheckedCreateNestedManyWithoutModelVersionInput
 }
 
 export type ModelVersionUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   model?: Prisma.ModelUpdateOneRequiredWithoutModelVersionsNestedInput
@@ -370,7 +376,6 @@ export type ModelVersionUpdateInput = {
   baseModelType?: Prisma.BaseModelTypeUpdateOneWithoutModelVersionsNestedInput
   files?: Prisma.ModelVersionFileUpdateManyWithoutModelVersionNestedInput
   images?: Prisma.ModelVersionImageUpdateManyWithoutModelVersionNestedInput
-  downloads?: Prisma.GopeedTaskUpdateManyWithoutModelVersionNestedInput
 }
 
 export type ModelVersionUncheckedUpdateInput = {
@@ -380,11 +385,11 @@ export type ModelVersionUncheckedUpdateInput = {
   baseModelId?: Prisma.IntFieldUpdateOperationsInput | number
   baseModelTypeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   files?: Prisma.ModelVersionFileUncheckedUpdateManyWithoutModelVersionNestedInput
   images?: Prisma.ModelVersionImageUncheckedUpdateManyWithoutModelVersionNestedInput
-  downloads?: Prisma.GopeedTaskUncheckedUpdateManyWithoutModelVersionNestedInput
 }
 
 export type ModelVersionCreateManyInput = {
@@ -394,6 +399,7 @@ export type ModelVersionCreateManyInput = {
   baseModelId: number
   baseModelTypeId?: number | null
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -402,6 +408,7 @@ export type ModelVersionUpdateManyMutationInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -413,6 +420,7 @@ export type ModelVersionUncheckedUpdateManyInput = {
   baseModelId?: Prisma.IntFieldUpdateOperationsInput | number
   baseModelTypeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -434,6 +442,7 @@ export type ModelVersionCountOrderByAggregateInput = {
   baseModelId?: Prisma.SortOrder
   baseModelTypeId?: Prisma.SortOrder
   nsfwLevel?: Prisma.SortOrder
+  json?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -635,31 +644,17 @@ export type ModelVersionUpdateOneRequiredWithoutImagesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ModelVersionUpdateToOneWithWhereWithoutImagesInput, Prisma.ModelVersionUpdateWithoutImagesInput>, Prisma.ModelVersionUncheckedUpdateWithoutImagesInput>
 }
 
-export type ModelVersionCreateNestedOneWithoutDownloadsInput = {
-  create?: Prisma.XOR<Prisma.ModelVersionCreateWithoutDownloadsInput, Prisma.ModelVersionUncheckedCreateWithoutDownloadsInput>
-  connectOrCreate?: Prisma.ModelVersionCreateOrConnectWithoutDownloadsInput
-  connect?: Prisma.ModelVersionWhereUniqueInput
-}
-
-export type ModelVersionUpdateOneRequiredWithoutDownloadsNestedInput = {
-  create?: Prisma.XOR<Prisma.ModelVersionCreateWithoutDownloadsInput, Prisma.ModelVersionUncheckedCreateWithoutDownloadsInput>
-  connectOrCreate?: Prisma.ModelVersionCreateOrConnectWithoutDownloadsInput
-  upsert?: Prisma.ModelVersionUpsertWithoutDownloadsInput
-  connect?: Prisma.ModelVersionWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.ModelVersionUpdateToOneWithWhereWithoutDownloadsInput, Prisma.ModelVersionUpdateWithoutDownloadsInput>, Prisma.ModelVersionUncheckedUpdateWithoutDownloadsInput>
-}
-
 export type ModelVersionCreateWithoutModelInput = {
   id: number
   name: string
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   baseModel: Prisma.BaseModelCreateNestedOneWithoutModelVersionsInput
   baseModelType?: Prisma.BaseModelTypeCreateNestedOneWithoutModelVersionsInput
   files?: Prisma.ModelVersionFileCreateNestedManyWithoutModelVersionInput
   images?: Prisma.ModelVersionImageCreateNestedManyWithoutModelVersionInput
-  downloads?: Prisma.GopeedTaskCreateNestedManyWithoutModelVersionInput
 }
 
 export type ModelVersionUncheckedCreateWithoutModelInput = {
@@ -668,11 +663,11 @@ export type ModelVersionUncheckedCreateWithoutModelInput = {
   baseModelId: number
   baseModelTypeId?: number | null
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   files?: Prisma.ModelVersionFileUncheckedCreateNestedManyWithoutModelVersionInput
   images?: Prisma.ModelVersionImageUncheckedCreateNestedManyWithoutModelVersionInput
-  downloads?: Prisma.GopeedTaskUncheckedCreateNestedManyWithoutModelVersionInput
 }
 
 export type ModelVersionCreateOrConnectWithoutModelInput = {
@@ -710,6 +705,7 @@ export type ModelVersionScalarWhereInput = {
   baseModelId?: Prisma.IntFilter<"ModelVersion"> | number
   baseModelTypeId?: Prisma.IntNullableFilter<"ModelVersion"> | number | null
   nsfwLevel?: Prisma.IntFilter<"ModelVersion"> | number
+  json?: Prisma.JsonFilter<"ModelVersion">
   createdAt?: Prisma.DateTimeFilter<"ModelVersion"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ModelVersion"> | Date | string
 }
@@ -718,13 +714,13 @@ export type ModelVersionCreateWithoutBaseModelInput = {
   id: number
   name: string
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   model: Prisma.ModelCreateNestedOneWithoutModelVersionsInput
   baseModelType?: Prisma.BaseModelTypeCreateNestedOneWithoutModelVersionsInput
   files?: Prisma.ModelVersionFileCreateNestedManyWithoutModelVersionInput
   images?: Prisma.ModelVersionImageCreateNestedManyWithoutModelVersionInput
-  downloads?: Prisma.GopeedTaskCreateNestedManyWithoutModelVersionInput
 }
 
 export type ModelVersionUncheckedCreateWithoutBaseModelInput = {
@@ -733,11 +729,11 @@ export type ModelVersionUncheckedCreateWithoutBaseModelInput = {
   name: string
   baseModelTypeId?: number | null
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   files?: Prisma.ModelVersionFileUncheckedCreateNestedManyWithoutModelVersionInput
   images?: Prisma.ModelVersionImageUncheckedCreateNestedManyWithoutModelVersionInput
-  downloads?: Prisma.GopeedTaskUncheckedCreateNestedManyWithoutModelVersionInput
 }
 
 export type ModelVersionCreateOrConnectWithoutBaseModelInput = {
@@ -769,13 +765,13 @@ export type ModelVersionCreateWithoutBaseModelTypeInput = {
   id: number
   name: string
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   model: Prisma.ModelCreateNestedOneWithoutModelVersionsInput
   baseModel: Prisma.BaseModelCreateNestedOneWithoutModelVersionsInput
   files?: Prisma.ModelVersionFileCreateNestedManyWithoutModelVersionInput
   images?: Prisma.ModelVersionImageCreateNestedManyWithoutModelVersionInput
-  downloads?: Prisma.GopeedTaskCreateNestedManyWithoutModelVersionInput
 }
 
 export type ModelVersionUncheckedCreateWithoutBaseModelTypeInput = {
@@ -784,11 +780,11 @@ export type ModelVersionUncheckedCreateWithoutBaseModelTypeInput = {
   name: string
   baseModelId: number
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   files?: Prisma.ModelVersionFileUncheckedCreateNestedManyWithoutModelVersionInput
   images?: Prisma.ModelVersionImageUncheckedCreateNestedManyWithoutModelVersionInput
-  downloads?: Prisma.GopeedTaskUncheckedCreateNestedManyWithoutModelVersionInput
 }
 
 export type ModelVersionCreateOrConnectWithoutBaseModelTypeInput = {
@@ -820,13 +816,13 @@ export type ModelVersionCreateWithoutFilesInput = {
   id: number
   name: string
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   model: Prisma.ModelCreateNestedOneWithoutModelVersionsInput
   baseModel: Prisma.BaseModelCreateNestedOneWithoutModelVersionsInput
   baseModelType?: Prisma.BaseModelTypeCreateNestedOneWithoutModelVersionsInput
   images?: Prisma.ModelVersionImageCreateNestedManyWithoutModelVersionInput
-  downloads?: Prisma.GopeedTaskCreateNestedManyWithoutModelVersionInput
 }
 
 export type ModelVersionUncheckedCreateWithoutFilesInput = {
@@ -836,10 +832,10 @@ export type ModelVersionUncheckedCreateWithoutFilesInput = {
   baseModelId: number
   baseModelTypeId?: number | null
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   images?: Prisma.ModelVersionImageUncheckedCreateNestedManyWithoutModelVersionInput
-  downloads?: Prisma.GopeedTaskUncheckedCreateNestedManyWithoutModelVersionInput
 }
 
 export type ModelVersionCreateOrConnectWithoutFilesInput = {
@@ -862,13 +858,13 @@ export type ModelVersionUpdateWithoutFilesInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   model?: Prisma.ModelUpdateOneRequiredWithoutModelVersionsNestedInput
   baseModel?: Prisma.BaseModelUpdateOneRequiredWithoutModelVersionsNestedInput
   baseModelType?: Prisma.BaseModelTypeUpdateOneWithoutModelVersionsNestedInput
   images?: Prisma.ModelVersionImageUpdateManyWithoutModelVersionNestedInput
-  downloads?: Prisma.GopeedTaskUpdateManyWithoutModelVersionNestedInput
 }
 
 export type ModelVersionUncheckedUpdateWithoutFilesInput = {
@@ -878,23 +874,23 @@ export type ModelVersionUncheckedUpdateWithoutFilesInput = {
   baseModelId?: Prisma.IntFieldUpdateOperationsInput | number
   baseModelTypeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   images?: Prisma.ModelVersionImageUncheckedUpdateManyWithoutModelVersionNestedInput
-  downloads?: Prisma.GopeedTaskUncheckedUpdateManyWithoutModelVersionNestedInput
 }
 
 export type ModelVersionCreateWithoutImagesInput = {
   id: number
   name: string
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   model: Prisma.ModelCreateNestedOneWithoutModelVersionsInput
   baseModel: Prisma.BaseModelCreateNestedOneWithoutModelVersionsInput
   baseModelType?: Prisma.BaseModelTypeCreateNestedOneWithoutModelVersionsInput
   files?: Prisma.ModelVersionFileCreateNestedManyWithoutModelVersionInput
-  downloads?: Prisma.GopeedTaskCreateNestedManyWithoutModelVersionInput
 }
 
 export type ModelVersionUncheckedCreateWithoutImagesInput = {
@@ -904,10 +900,10 @@ export type ModelVersionUncheckedCreateWithoutImagesInput = {
   baseModelId: number
   baseModelTypeId?: number | null
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   files?: Prisma.ModelVersionFileUncheckedCreateNestedManyWithoutModelVersionInput
-  downloads?: Prisma.GopeedTaskUncheckedCreateNestedManyWithoutModelVersionInput
 }
 
 export type ModelVersionCreateOrConnectWithoutImagesInput = {
@@ -930,13 +926,13 @@ export type ModelVersionUpdateWithoutImagesInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   model?: Prisma.ModelUpdateOneRequiredWithoutModelVersionsNestedInput
   baseModel?: Prisma.BaseModelUpdateOneRequiredWithoutModelVersionsNestedInput
   baseModelType?: Prisma.BaseModelTypeUpdateOneWithoutModelVersionsNestedInput
   files?: Prisma.ModelVersionFileUpdateManyWithoutModelVersionNestedInput
-  downloads?: Prisma.GopeedTaskUpdateManyWithoutModelVersionNestedInput
 }
 
 export type ModelVersionUncheckedUpdateWithoutImagesInput = {
@@ -946,78 +942,10 @@ export type ModelVersionUncheckedUpdateWithoutImagesInput = {
   baseModelId?: Prisma.IntFieldUpdateOperationsInput | number
   baseModelTypeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   files?: Prisma.ModelVersionFileUncheckedUpdateManyWithoutModelVersionNestedInput
-  downloads?: Prisma.GopeedTaskUncheckedUpdateManyWithoutModelVersionNestedInput
-}
-
-export type ModelVersionCreateWithoutDownloadsInput = {
-  id: number
-  name: string
-  nsfwLevel: number
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  model: Prisma.ModelCreateNestedOneWithoutModelVersionsInput
-  baseModel: Prisma.BaseModelCreateNestedOneWithoutModelVersionsInput
-  baseModelType?: Prisma.BaseModelTypeCreateNestedOneWithoutModelVersionsInput
-  files?: Prisma.ModelVersionFileCreateNestedManyWithoutModelVersionInput
-  images?: Prisma.ModelVersionImageCreateNestedManyWithoutModelVersionInput
-}
-
-export type ModelVersionUncheckedCreateWithoutDownloadsInput = {
-  id: number
-  modelId: number
-  name: string
-  baseModelId: number
-  baseModelTypeId?: number | null
-  nsfwLevel: number
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  files?: Prisma.ModelVersionFileUncheckedCreateNestedManyWithoutModelVersionInput
-  images?: Prisma.ModelVersionImageUncheckedCreateNestedManyWithoutModelVersionInput
-}
-
-export type ModelVersionCreateOrConnectWithoutDownloadsInput = {
-  where: Prisma.ModelVersionWhereUniqueInput
-  create: Prisma.XOR<Prisma.ModelVersionCreateWithoutDownloadsInput, Prisma.ModelVersionUncheckedCreateWithoutDownloadsInput>
-}
-
-export type ModelVersionUpsertWithoutDownloadsInput = {
-  update: Prisma.XOR<Prisma.ModelVersionUpdateWithoutDownloadsInput, Prisma.ModelVersionUncheckedUpdateWithoutDownloadsInput>
-  create: Prisma.XOR<Prisma.ModelVersionCreateWithoutDownloadsInput, Prisma.ModelVersionUncheckedCreateWithoutDownloadsInput>
-  where?: Prisma.ModelVersionWhereInput
-}
-
-export type ModelVersionUpdateToOneWithWhereWithoutDownloadsInput = {
-  where?: Prisma.ModelVersionWhereInput
-  data: Prisma.XOR<Prisma.ModelVersionUpdateWithoutDownloadsInput, Prisma.ModelVersionUncheckedUpdateWithoutDownloadsInput>
-}
-
-export type ModelVersionUpdateWithoutDownloadsInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  model?: Prisma.ModelUpdateOneRequiredWithoutModelVersionsNestedInput
-  baseModel?: Prisma.BaseModelUpdateOneRequiredWithoutModelVersionsNestedInput
-  baseModelType?: Prisma.BaseModelTypeUpdateOneWithoutModelVersionsNestedInput
-  files?: Prisma.ModelVersionFileUpdateManyWithoutModelVersionNestedInput
-  images?: Prisma.ModelVersionImageUpdateManyWithoutModelVersionNestedInput
-}
-
-export type ModelVersionUncheckedUpdateWithoutDownloadsInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  modelId?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  baseModelId?: Prisma.IntFieldUpdateOperationsInput | number
-  baseModelTypeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  files?: Prisma.ModelVersionFileUncheckedUpdateManyWithoutModelVersionNestedInput
-  images?: Prisma.ModelVersionImageUncheckedUpdateManyWithoutModelVersionNestedInput
 }
 
 export type ModelVersionCreateManyModelInput = {
@@ -1026,6 +954,7 @@ export type ModelVersionCreateManyModelInput = {
   baseModelId: number
   baseModelTypeId?: number | null
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1034,13 +963,13 @@ export type ModelVersionUpdateWithoutModelInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baseModel?: Prisma.BaseModelUpdateOneRequiredWithoutModelVersionsNestedInput
   baseModelType?: Prisma.BaseModelTypeUpdateOneWithoutModelVersionsNestedInput
   files?: Prisma.ModelVersionFileUpdateManyWithoutModelVersionNestedInput
   images?: Prisma.ModelVersionImageUpdateManyWithoutModelVersionNestedInput
-  downloads?: Prisma.GopeedTaskUpdateManyWithoutModelVersionNestedInput
 }
 
 export type ModelVersionUncheckedUpdateWithoutModelInput = {
@@ -1049,11 +978,11 @@ export type ModelVersionUncheckedUpdateWithoutModelInput = {
   baseModelId?: Prisma.IntFieldUpdateOperationsInput | number
   baseModelTypeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   files?: Prisma.ModelVersionFileUncheckedUpdateManyWithoutModelVersionNestedInput
   images?: Prisma.ModelVersionImageUncheckedUpdateManyWithoutModelVersionNestedInput
-  downloads?: Prisma.GopeedTaskUncheckedUpdateManyWithoutModelVersionNestedInput
 }
 
 export type ModelVersionUncheckedUpdateManyWithoutModelInput = {
@@ -1062,6 +991,7 @@ export type ModelVersionUncheckedUpdateManyWithoutModelInput = {
   baseModelId?: Prisma.IntFieldUpdateOperationsInput | number
   baseModelTypeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1072,6 +1002,7 @@ export type ModelVersionCreateManyBaseModelInput = {
   name: string
   baseModelTypeId?: number | null
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1080,13 +1011,13 @@ export type ModelVersionUpdateWithoutBaseModelInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   model?: Prisma.ModelUpdateOneRequiredWithoutModelVersionsNestedInput
   baseModelType?: Prisma.BaseModelTypeUpdateOneWithoutModelVersionsNestedInput
   files?: Prisma.ModelVersionFileUpdateManyWithoutModelVersionNestedInput
   images?: Prisma.ModelVersionImageUpdateManyWithoutModelVersionNestedInput
-  downloads?: Prisma.GopeedTaskUpdateManyWithoutModelVersionNestedInput
 }
 
 export type ModelVersionUncheckedUpdateWithoutBaseModelInput = {
@@ -1095,11 +1026,11 @@ export type ModelVersionUncheckedUpdateWithoutBaseModelInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   baseModelTypeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   files?: Prisma.ModelVersionFileUncheckedUpdateManyWithoutModelVersionNestedInput
   images?: Prisma.ModelVersionImageUncheckedUpdateManyWithoutModelVersionNestedInput
-  downloads?: Prisma.GopeedTaskUncheckedUpdateManyWithoutModelVersionNestedInput
 }
 
 export type ModelVersionUncheckedUpdateManyWithoutBaseModelInput = {
@@ -1108,6 +1039,7 @@ export type ModelVersionUncheckedUpdateManyWithoutBaseModelInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   baseModelTypeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1118,6 +1050,7 @@ export type ModelVersionCreateManyBaseModelTypeInput = {
   name: string
   baseModelId: number
   nsfwLevel: number
+  json: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1126,13 +1059,13 @@ export type ModelVersionUpdateWithoutBaseModelTypeInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   model?: Prisma.ModelUpdateOneRequiredWithoutModelVersionsNestedInput
   baseModel?: Prisma.BaseModelUpdateOneRequiredWithoutModelVersionsNestedInput
   files?: Prisma.ModelVersionFileUpdateManyWithoutModelVersionNestedInput
   images?: Prisma.ModelVersionImageUpdateManyWithoutModelVersionNestedInput
-  downloads?: Prisma.GopeedTaskUpdateManyWithoutModelVersionNestedInput
 }
 
 export type ModelVersionUncheckedUpdateWithoutBaseModelTypeInput = {
@@ -1141,11 +1074,11 @@ export type ModelVersionUncheckedUpdateWithoutBaseModelTypeInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   baseModelId?: Prisma.IntFieldUpdateOperationsInput | number
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   files?: Prisma.ModelVersionFileUncheckedUpdateManyWithoutModelVersionNestedInput
   images?: Prisma.ModelVersionImageUncheckedUpdateManyWithoutModelVersionNestedInput
-  downloads?: Prisma.GopeedTaskUncheckedUpdateManyWithoutModelVersionNestedInput
 }
 
 export type ModelVersionUncheckedUpdateManyWithoutBaseModelTypeInput = {
@@ -1154,6 +1087,7 @@ export type ModelVersionUncheckedUpdateManyWithoutBaseModelTypeInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   baseModelId?: Prisma.IntFieldUpdateOperationsInput | number
   nsfwLevel?: Prisma.IntFieldUpdateOperationsInput | number
+  json?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1166,13 +1100,11 @@ export type ModelVersionUncheckedUpdateManyWithoutBaseModelTypeInput = {
 export type ModelVersionCountOutputType = {
   files: number
   images: number
-  downloads: number
 }
 
 export type ModelVersionCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   files?: boolean | ModelVersionCountOutputTypeCountFilesArgs
   images?: boolean | ModelVersionCountOutputTypeCountImagesArgs
-  downloads?: boolean | ModelVersionCountOutputTypeCountDownloadsArgs
 }
 
 /**
@@ -1199,13 +1131,6 @@ export type ModelVersionCountOutputTypeCountImagesArgs<ExtArgs extends runtime.T
   where?: Prisma.ModelVersionImageWhereInput
 }
 
-/**
- * ModelVersionCountOutputType without action
- */
-export type ModelVersionCountOutputTypeCountDownloadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.GopeedTaskWhereInput
-}
-
 
 export type ModelVersionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1214,6 +1139,7 @@ export type ModelVersionSelect<ExtArgs extends runtime.Types.Extensions.Internal
   baseModelId?: boolean
   baseModelTypeId?: boolean
   nsfwLevel?: boolean
+  json?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   model?: boolean | Prisma.ModelDefaultArgs<ExtArgs>
@@ -1221,7 +1147,6 @@ export type ModelVersionSelect<ExtArgs extends runtime.Types.Extensions.Internal
   baseModelType?: boolean | Prisma.ModelVersion$baseModelTypeArgs<ExtArgs>
   files?: boolean | Prisma.ModelVersion$filesArgs<ExtArgs>
   images?: boolean | Prisma.ModelVersion$imagesArgs<ExtArgs>
-  downloads?: boolean | Prisma.ModelVersion$downloadsArgs<ExtArgs>
   _count?: boolean | Prisma.ModelVersionCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["modelVersion"]>
 
@@ -1232,6 +1157,7 @@ export type ModelVersionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   baseModelId?: boolean
   baseModelTypeId?: boolean
   nsfwLevel?: boolean
+  json?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   model?: boolean | Prisma.ModelDefaultArgs<ExtArgs>
@@ -1246,6 +1172,7 @@ export type ModelVersionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   baseModelId?: boolean
   baseModelTypeId?: boolean
   nsfwLevel?: boolean
+  json?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   model?: boolean | Prisma.ModelDefaultArgs<ExtArgs>
@@ -1260,18 +1187,18 @@ export type ModelVersionSelectScalar = {
   baseModelId?: boolean
   baseModelTypeId?: boolean
   nsfwLevel?: boolean
+  json?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ModelVersionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "modelId" | "name" | "baseModelId" | "baseModelTypeId" | "nsfwLevel" | "createdAt" | "updatedAt", ExtArgs["result"]["modelVersion"]>
+export type ModelVersionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "modelId" | "name" | "baseModelId" | "baseModelTypeId" | "nsfwLevel" | "json" | "createdAt" | "updatedAt", ExtArgs["result"]["modelVersion"]>
 export type ModelVersionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   model?: boolean | Prisma.ModelDefaultArgs<ExtArgs>
   baseModel?: boolean | Prisma.BaseModelDefaultArgs<ExtArgs>
   baseModelType?: boolean | Prisma.ModelVersion$baseModelTypeArgs<ExtArgs>
   files?: boolean | Prisma.ModelVersion$filesArgs<ExtArgs>
   images?: boolean | Prisma.ModelVersion$imagesArgs<ExtArgs>
-  downloads?: boolean | Prisma.ModelVersion$downloadsArgs<ExtArgs>
   _count?: boolean | Prisma.ModelVersionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ModelVersionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1293,7 +1220,6 @@ export type $ModelVersionPayload<ExtArgs extends runtime.Types.Extensions.Intern
     baseModelType: Prisma.$BaseModelTypePayload<ExtArgs> | null
     files: Prisma.$ModelVersionFilePayload<ExtArgs>[]
     images: Prisma.$ModelVersionImagePayload<ExtArgs>[]
-    downloads: Prisma.$GopeedTaskPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -1302,6 +1228,7 @@ export type $ModelVersionPayload<ExtArgs extends runtime.Types.Extensions.Intern
     baseModelId: number
     baseModelTypeId: number | null
     nsfwLevel: number
+    json: runtime.JsonValue
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["modelVersion"]>
@@ -1703,7 +1630,6 @@ export interface Prisma__ModelVersionClient<T, Null = never, ExtArgs extends run
   baseModelType<T extends Prisma.ModelVersion$baseModelTypeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ModelVersion$baseModelTypeArgs<ExtArgs>>): Prisma.Prisma__BaseModelTypeClient<runtime.Types.Result.GetResult<Prisma.$BaseModelTypePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   files<T extends Prisma.ModelVersion$filesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ModelVersion$filesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ModelVersionFilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   images<T extends Prisma.ModelVersion$imagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ModelVersion$imagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ModelVersionImagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  downloads<T extends Prisma.ModelVersion$downloadsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ModelVersion$downloadsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GopeedTaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1739,6 +1665,7 @@ export interface ModelVersionFieldRefs {
   readonly baseModelId: Prisma.FieldRef<"ModelVersion", 'Int'>
   readonly baseModelTypeId: Prisma.FieldRef<"ModelVersion", 'Int'>
   readonly nsfwLevel: Prisma.FieldRef<"ModelVersion", 'Int'>
+  readonly json: Prisma.FieldRef<"ModelVersion", 'Json'>
   readonly createdAt: Prisma.FieldRef<"ModelVersion", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ModelVersion", 'DateTime'>
 }
@@ -2199,30 +2126,6 @@ export type ModelVersion$imagesArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   distinct?: Prisma.ModelVersionImageScalarFieldEnum | Prisma.ModelVersionImageScalarFieldEnum[]
-}
-
-/**
- * ModelVersion.downloads
- */
-export type ModelVersion$downloadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the GopeedTask
-   */
-  select?: Prisma.GopeedTaskSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the GopeedTask
-   */
-  omit?: Prisma.GopeedTaskOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.GopeedTaskInclude<ExtArgs> | null
-  where?: Prisma.GopeedTaskWhereInput
-  orderBy?: Prisma.GopeedTaskOrderByWithRelationInput | Prisma.GopeedTaskOrderByWithRelationInput[]
-  cursor?: Prisma.GopeedTaskWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.GopeedTaskScalarFieldEnum | Prisma.GopeedTaskScalarFieldEnum[]
 }
 
 /**

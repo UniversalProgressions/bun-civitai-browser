@@ -44,6 +44,9 @@ export type ModelVersionFileMinAggregateOutputType = {
   name: string | null
   type: string | null
   downloadUrl: string | null
+  gopeedTaskId: string | null
+  gopeedTaskFinished: boolean | null
+  gopeedTaskDeleted: boolean | null
   modelVersionId: number | null
 }
 
@@ -53,6 +56,9 @@ export type ModelVersionFileMaxAggregateOutputType = {
   name: string | null
   type: string | null
   downloadUrl: string | null
+  gopeedTaskId: string | null
+  gopeedTaskFinished: boolean | null
+  gopeedTaskDeleted: boolean | null
   modelVersionId: number | null
 }
 
@@ -62,6 +68,9 @@ export type ModelVersionFileCountAggregateOutputType = {
   name: number
   type: number
   downloadUrl: number
+  gopeedTaskId: number
+  gopeedTaskFinished: number
+  gopeedTaskDeleted: number
   modelVersionId: number
   _all: number
 }
@@ -85,6 +94,9 @@ export type ModelVersionFileMinAggregateInputType = {
   name?: true
   type?: true
   downloadUrl?: true
+  gopeedTaskId?: true
+  gopeedTaskFinished?: true
+  gopeedTaskDeleted?: true
   modelVersionId?: true
 }
 
@@ -94,6 +106,9 @@ export type ModelVersionFileMaxAggregateInputType = {
   name?: true
   type?: true
   downloadUrl?: true
+  gopeedTaskId?: true
+  gopeedTaskFinished?: true
+  gopeedTaskDeleted?: true
   modelVersionId?: true
 }
 
@@ -103,6 +118,9 @@ export type ModelVersionFileCountAggregateInputType = {
   name?: true
   type?: true
   downloadUrl?: true
+  gopeedTaskId?: true
+  gopeedTaskFinished?: true
+  gopeedTaskDeleted?: true
   modelVersionId?: true
   _all?: true
 }
@@ -199,6 +217,9 @@ export type ModelVersionFileGroupByOutputType = {
   name: string
   type: string
   downloadUrl: string
+  gopeedTaskId: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted: boolean
   modelVersionId: number
   _count: ModelVersionFileCountAggregateOutputType | null
   _avg: ModelVersionFileAvgAggregateOutputType | null
@@ -231,6 +252,9 @@ export type ModelVersionFileWhereInput = {
   name?: Prisma.StringFilter<"ModelVersionFile"> | string
   type?: Prisma.StringFilter<"ModelVersionFile"> | string
   downloadUrl?: Prisma.StringFilter<"ModelVersionFile"> | string
+  gopeedTaskId?: Prisma.StringNullableFilter<"ModelVersionFile"> | string | null
+  gopeedTaskFinished?: Prisma.BoolFilter<"ModelVersionFile"> | boolean
+  gopeedTaskDeleted?: Prisma.BoolFilter<"ModelVersionFile"> | boolean
   modelVersionId?: Prisma.IntFilter<"ModelVersionFile"> | number
   modelVersion?: Prisma.XOR<Prisma.ModelVersionScalarRelationFilter, Prisma.ModelVersionWhereInput>
 }
@@ -241,12 +265,16 @@ export type ModelVersionFileOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   downloadUrl?: Prisma.SortOrder
+  gopeedTaskId?: Prisma.SortOrderInput | Prisma.SortOrder
+  gopeedTaskFinished?: Prisma.SortOrder
+  gopeedTaskDeleted?: Prisma.SortOrder
   modelVersionId?: Prisma.SortOrder
   modelVersion?: Prisma.ModelVersionOrderByWithRelationInput
 }
 
 export type ModelVersionFileWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  gopeedTaskId?: string
   AND?: Prisma.ModelVersionFileWhereInput | Prisma.ModelVersionFileWhereInput[]
   OR?: Prisma.ModelVersionFileWhereInput[]
   NOT?: Prisma.ModelVersionFileWhereInput | Prisma.ModelVersionFileWhereInput[]
@@ -254,9 +282,11 @@ export type ModelVersionFileWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"ModelVersionFile"> | string
   type?: Prisma.StringFilter<"ModelVersionFile"> | string
   downloadUrl?: Prisma.StringFilter<"ModelVersionFile"> | string
+  gopeedTaskFinished?: Prisma.BoolFilter<"ModelVersionFile"> | boolean
+  gopeedTaskDeleted?: Prisma.BoolFilter<"ModelVersionFile"> | boolean
   modelVersionId?: Prisma.IntFilter<"ModelVersionFile"> | number
   modelVersion?: Prisma.XOR<Prisma.ModelVersionScalarRelationFilter, Prisma.ModelVersionWhereInput>
-}, "id">
+}, "id" | "gopeedTaskId">
 
 export type ModelVersionFileOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -264,6 +294,9 @@ export type ModelVersionFileOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   downloadUrl?: Prisma.SortOrder
+  gopeedTaskId?: Prisma.SortOrderInput | Prisma.SortOrder
+  gopeedTaskFinished?: Prisma.SortOrder
+  gopeedTaskDeleted?: Prisma.SortOrder
   modelVersionId?: Prisma.SortOrder
   _count?: Prisma.ModelVersionFileCountOrderByAggregateInput
   _avg?: Prisma.ModelVersionFileAvgOrderByAggregateInput
@@ -281,6 +314,9 @@ export type ModelVersionFileScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"ModelVersionFile"> | string
   type?: Prisma.StringWithAggregatesFilter<"ModelVersionFile"> | string
   downloadUrl?: Prisma.StringWithAggregatesFilter<"ModelVersionFile"> | string
+  gopeedTaskId?: Prisma.StringNullableWithAggregatesFilter<"ModelVersionFile"> | string | null
+  gopeedTaskFinished?: Prisma.BoolWithAggregatesFilter<"ModelVersionFile"> | boolean
+  gopeedTaskDeleted?: Prisma.BoolWithAggregatesFilter<"ModelVersionFile"> | boolean
   modelVersionId?: Prisma.IntWithAggregatesFilter<"ModelVersionFile"> | number
 }
 
@@ -290,6 +326,9 @@ export type ModelVersionFileCreateInput = {
   name: string
   type: string
   downloadUrl: string
+  gopeedTaskId?: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted?: boolean
   modelVersion: Prisma.ModelVersionCreateNestedOneWithoutFilesInput
 }
 
@@ -299,6 +338,9 @@ export type ModelVersionFileUncheckedCreateInput = {
   name: string
   type: string
   downloadUrl: string
+  gopeedTaskId?: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted?: boolean
   modelVersionId: number
 }
 
@@ -308,6 +350,9 @@ export type ModelVersionFileUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   downloadUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   modelVersion?: Prisma.ModelVersionUpdateOneRequiredWithoutFilesNestedInput
 }
 
@@ -317,6 +362,9 @@ export type ModelVersionFileUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   downloadUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   modelVersionId?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -326,6 +374,9 @@ export type ModelVersionFileCreateManyInput = {
   name: string
   type: string
   downloadUrl: string
+  gopeedTaskId?: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted?: boolean
   modelVersionId: number
 }
 
@@ -335,6 +386,9 @@ export type ModelVersionFileUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   downloadUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type ModelVersionFileUncheckedUpdateManyInput = {
@@ -343,6 +397,9 @@ export type ModelVersionFileUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   downloadUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   modelVersionId?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -362,6 +419,9 @@ export type ModelVersionFileCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   downloadUrl?: Prisma.SortOrder
+  gopeedTaskId?: Prisma.SortOrder
+  gopeedTaskFinished?: Prisma.SortOrder
+  gopeedTaskDeleted?: Prisma.SortOrder
   modelVersionId?: Prisma.SortOrder
 }
 
@@ -377,6 +437,9 @@ export type ModelVersionFileMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   downloadUrl?: Prisma.SortOrder
+  gopeedTaskId?: Prisma.SortOrder
+  gopeedTaskFinished?: Prisma.SortOrder
+  gopeedTaskDeleted?: Prisma.SortOrder
   modelVersionId?: Prisma.SortOrder
 }
 
@@ -386,6 +449,9 @@ export type ModelVersionFileMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   downloadUrl?: Prisma.SortOrder
+  gopeedTaskId?: Prisma.SortOrder
+  gopeedTaskFinished?: Prisma.SortOrder
+  gopeedTaskDeleted?: Prisma.SortOrder
   modelVersionId?: Prisma.SortOrder
 }
 
@@ -451,6 +517,9 @@ export type ModelVersionFileCreateWithoutModelVersionInput = {
   name: string
   type: string
   downloadUrl: string
+  gopeedTaskId?: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted?: boolean
 }
 
 export type ModelVersionFileUncheckedCreateWithoutModelVersionInput = {
@@ -459,6 +528,9 @@ export type ModelVersionFileUncheckedCreateWithoutModelVersionInput = {
   name: string
   type: string
   downloadUrl: string
+  gopeedTaskId?: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted?: boolean
 }
 
 export type ModelVersionFileCreateOrConnectWithoutModelVersionInput = {
@@ -495,6 +567,9 @@ export type ModelVersionFileScalarWhereInput = {
   name?: Prisma.StringFilter<"ModelVersionFile"> | string
   type?: Prisma.StringFilter<"ModelVersionFile"> | string
   downloadUrl?: Prisma.StringFilter<"ModelVersionFile"> | string
+  gopeedTaskId?: Prisma.StringNullableFilter<"ModelVersionFile"> | string | null
+  gopeedTaskFinished?: Prisma.BoolFilter<"ModelVersionFile"> | boolean
+  gopeedTaskDeleted?: Prisma.BoolFilter<"ModelVersionFile"> | boolean
   modelVersionId?: Prisma.IntFilter<"ModelVersionFile"> | number
 }
 
@@ -504,6 +579,9 @@ export type ModelVersionFileCreateManyModelVersionInput = {
   name: string
   type: string
   downloadUrl: string
+  gopeedTaskId?: string | null
+  gopeedTaskFinished: boolean
+  gopeedTaskDeleted?: boolean
 }
 
 export type ModelVersionFileUpdateWithoutModelVersionInput = {
@@ -512,6 +590,9 @@ export type ModelVersionFileUpdateWithoutModelVersionInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   downloadUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type ModelVersionFileUncheckedUpdateWithoutModelVersionInput = {
@@ -520,6 +601,9 @@ export type ModelVersionFileUncheckedUpdateWithoutModelVersionInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   downloadUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type ModelVersionFileUncheckedUpdateManyWithoutModelVersionInput = {
@@ -528,6 +612,9 @@ export type ModelVersionFileUncheckedUpdateManyWithoutModelVersionInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   downloadUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  gopeedTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gopeedTaskFinished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  gopeedTaskDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 
@@ -538,6 +625,9 @@ export type ModelVersionFileSelect<ExtArgs extends runtime.Types.Extensions.Inte
   name?: boolean
   type?: boolean
   downloadUrl?: boolean
+  gopeedTaskId?: boolean
+  gopeedTaskFinished?: boolean
+  gopeedTaskDeleted?: boolean
   modelVersionId?: boolean
   modelVersion?: boolean | Prisma.ModelVersionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["modelVersionFile"]>
@@ -548,6 +638,9 @@ export type ModelVersionFileSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   name?: boolean
   type?: boolean
   downloadUrl?: boolean
+  gopeedTaskId?: boolean
+  gopeedTaskFinished?: boolean
+  gopeedTaskDeleted?: boolean
   modelVersionId?: boolean
   modelVersion?: boolean | Prisma.ModelVersionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["modelVersionFile"]>
@@ -558,6 +651,9 @@ export type ModelVersionFileSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   name?: boolean
   type?: boolean
   downloadUrl?: boolean
+  gopeedTaskId?: boolean
+  gopeedTaskFinished?: boolean
+  gopeedTaskDeleted?: boolean
   modelVersionId?: boolean
   modelVersion?: boolean | Prisma.ModelVersionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["modelVersionFile"]>
@@ -568,10 +664,13 @@ export type ModelVersionFileSelectScalar = {
   name?: boolean
   type?: boolean
   downloadUrl?: boolean
+  gopeedTaskId?: boolean
+  gopeedTaskFinished?: boolean
+  gopeedTaskDeleted?: boolean
   modelVersionId?: boolean
 }
 
-export type ModelVersionFileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sizeKB" | "name" | "type" | "downloadUrl" | "modelVersionId", ExtArgs["result"]["modelVersionFile"]>
+export type ModelVersionFileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sizeKB" | "name" | "type" | "downloadUrl" | "gopeedTaskId" | "gopeedTaskFinished" | "gopeedTaskDeleted" | "modelVersionId", ExtArgs["result"]["modelVersionFile"]>
 export type ModelVersionFileInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   modelVersion?: boolean | Prisma.ModelVersionDefaultArgs<ExtArgs>
 }
@@ -593,6 +692,9 @@ export type $ModelVersionFilePayload<ExtArgs extends runtime.Types.Extensions.In
     name: string
     type: string
     downloadUrl: string
+    gopeedTaskId: string | null
+    gopeedTaskFinished: boolean
+    gopeedTaskDeleted: boolean
     modelVersionId: number
   }, ExtArgs["result"]["modelVersionFile"]>
   composites: {}
@@ -1023,6 +1125,9 @@ export interface ModelVersionFileFieldRefs {
   readonly name: Prisma.FieldRef<"ModelVersionFile", 'String'>
   readonly type: Prisma.FieldRef<"ModelVersionFile", 'String'>
   readonly downloadUrl: Prisma.FieldRef<"ModelVersionFile", 'String'>
+  readonly gopeedTaskId: Prisma.FieldRef<"ModelVersionFile", 'String'>
+  readonly gopeedTaskFinished: Prisma.FieldRef<"ModelVersionFile", 'Boolean'>
+  readonly gopeedTaskDeleted: Prisma.FieldRef<"ModelVersionFile", 'Boolean'>
   readonly modelVersionId: Prisma.FieldRef<"ModelVersionFile", 'Int'>
 }
     

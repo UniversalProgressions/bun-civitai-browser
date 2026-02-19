@@ -159,25 +159,134 @@ export async function deleteOneModelVersion(
   modelVersionId: number,
   modelId: number,
   prisma: PrismaClient = defaultPrisma,
-) {
+): Promise<{
+  deleted: boolean;
+  modelDeleted: boolean;
+  fileCount: number;
+  imageCount: number;
+}> {
+  // First, get the model version details to know what we're deleting
+  const modelVersion = await prisma.modelVersion.findUnique({
+    where: { id: modelVersionId },
+    include: {
+      files: true,
+      images: true,
+    },
+  });
+
+  if (!modelVersion) {
+    throw new Error(`Model version ${modelVersionId} not found`);
+  }
+
+  const fileCount = modelVersion.files.length;
+  const imageCount = modelVersion.images.length;
+
+  // Delete the model version (cascade will delete files and images)
   await prisma.modelVersion.delete({
     where: {
       id: modelVersionId,
     },
   });
-  // Check if there is any modelVersion have same modelId
+
+  // Check if there are any remaining model versions for this model
   const remainingModelVersions = await prisma.modelVersion.count({
     where: { modelId: modelId },
   });
 
-  // delete modelId if it has no modelversion records in database
+  let modelDeleted = false;
+  // Delete model if it has no model version records in database
   if (remainingModelVersions === 0) {
     await prisma.model.delete({
       where: {
         id: modelId,
       },
     });
+    modelDeleted = true;
   }
+
+  return {
+    deleted: true,
+    modelDeleted,
+    fileCount,
+    imageCount,
+  };
+}
+
+/**
+ * Delete multiple model versions
+ * @param versionIds Array of model version IDs to delete
+ * @param prisma Prisma client instance
+ * @returns Result of batch deletion
+ */
+export async function deleteMultipleModelVersions(
+  versionIds: number[],
+  prisma: PrismaClient = defaultPrisma,
+): Promise<{
+  total: number;
+  succeeded: number;
+  failed: number;
+  results: Array<{
+    versionId: number;
+    success: boolean;
+    error?: string;
+    modelDeleted?: boolean;
+    fileCount?: number;
+    imageCount?: number;
+  }>;
+}> {
+  const results = [];
+  let succeeded = 0;
+  let failed = 0;
+
+  for (const versionId of versionIds) {
+    try {
+      // Get model version to find its modelId
+      const modelVersion = await prisma.modelVersion.findUnique({
+        where: { id: versionId },
+        select: { modelId: true },
+      });
+
+      if (!modelVersion) {
+        results.push({
+          versionId,
+          success: false,
+          error: `Model version ${versionId} not found`,
+        });
+        failed++;
+        continue;
+      }
+
+      // Use existing delete function
+      const result = await deleteOneModelVersion(
+        versionId,
+        modelVersion.modelId,
+        prisma,
+      );
+
+      results.push({
+        versionId,
+        success: true,
+        modelDeleted: result.modelDeleted,
+        fileCount: result.fileCount,
+        imageCount: result.imageCount,
+      });
+      succeeded++;
+    } catch (error) {
+      results.push({
+        versionId,
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      failed++;
+    }
+  }
+
+  return {
+    total: versionIds.length,
+    succeeded,
+    failed,
+    results,
+  };
 }
 
 type ModelInfo = {

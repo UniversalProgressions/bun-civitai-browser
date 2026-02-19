@@ -9,8 +9,8 @@
 - 开发工作流
 - 当前技术栈参考
 
-**版本**: 1.0  
-**更新日期**: 2026年2月  
+**版本**: 1.1  
+**更新日期**: 2026年2月19日  
 **适用对象**: 所有项目开发者
 
 ---
@@ -85,6 +85,89 @@ src/modules/
 - 使用结构化日志记录
 - 关键操作添加性能监控
 - 错误日志包含足够上下文信息
+
+### 1.4 API错误处理架构：ElysiaJS + neverthrow组合
+
+**设计理念**：
+本项目采用分层错误处理架构，将 ElysiaJS 作为类型安全的 API 层，neverthrow 作为业务逻辑层的错误处理机制。这种组合设计确保错误类型信息在整个应用栈中不丢失，并能精确传递到前端。
+
+**ElysiaJS 的角色**：
+- **API 契约层**：提供类型安全的前后端通信
+- **错误转换层**：将 neverthrow 的 `Result<T, E>` 转换为 HTTP 响应
+- **统一接口**：保持所有 API 端点的错误响应格式一致
+
+**neverthrow 的角色**：
+- **业务错误封装**：使用 `Result<T, E>` 类型封装可能失败的操作
+- **错误类型安全**：保持错误的具体类型信息（如 `ModelNotFoundError`, `DatabaseConstraintError`）
+- **错误传播**：通过函数调用链传递错误，不丢失上下文信息
+
+**错误传播路径**：
+```
+业务函数 (Result<T, E>) 
+  → 服务层 (Result<T, E>) 
+  → 控制器层 (Elysia 错误处理) 
+  → HTTP 响应 (JSON 错误格式) 
+  → 前端显示 (类型化的错误信息)
+```
+
+**设计优势**：
+1. **类型安全贯穿全栈**：从数据库操作到前端显示，错误类型保持一致性
+2. **错误信息可追溯**：每个错误都包含完整的调用上下文
+3. **前端友好**：前端可以精确识别错误类型，提供针对性的用户反馈
+4. **问题定位高效**：开发时能快速定位错误根源，减少调试时间
+5. **可预见性**：所有可能的错误情况都有明确的类型定义
+
+**代码示例**：
+```typescript
+// 业务层使用 neverthrow
+import { Result, ok, err } from "neverthrow";
+import { ModelNotFoundError } from "../errors";
+
+async function findModel(modelId: number): Promise<Result<Model, ModelNotFoundError>> {
+  const model = await db.model.findUnique({ where: { id: modelId } });
+  
+  if (!model) {
+    return err(new ModelNotFoundError(
+      `Model with ID ${modelId} not found`,
+      modelId
+    ));
+  }
+  
+  return ok(model);
+}
+
+// 控制器层使用 Elysia
+import { Elysia } from "elysia";
+
+app.get("/models/:id", async ({ params }) => {
+  const result = await findModel(parseInt(params.id));
+  
+  if (result.isErr()) {
+    // Elysia 会自动将错误转换为合适的 HTTP 响应
+    throw result.error;
+  }
+  
+  return result.value;
+});
+```
+
+**错误响应格式**：
+```json
+{
+  "error": {
+    "name": "ModelNotFoundError",
+    "message": "Model with ID 123 not found",
+    "modelId": 123,
+    "timestamp": "2026-02-19T16:43:25.123Z"
+  }
+}
+```
+
+**实现要求**：
+1. **业务层**：所有可能失败的操作必须返回 `Result<T, E>` 类型
+2. **错误类**：每个错误类必须继承自统一的基类，包含足够的上下文信息
+3. **API 层**：Elysia 端点必须正确处理 neverthrow 的 Result 类型
+4. **前端集成**：前端必须根据错误类型提供相应的用户反馈
 
 ---
 
@@ -319,6 +402,7 @@ console.error("Download failed");  // 缺乏上下文
 - 相同错误类型聚合统计
 - 高频错误预警机制
 - 错误根本原因分析
+
 
 ---
 

@@ -5,12 +5,11 @@
  */
 import { join } from "node:path";
 import type { CreateTaskWithRequest, Task } from "@gopeed/types";
-import { Client, ApiError } from "@gopeed/rest";
-import { err, ok, Result, ResultAsync } from "neverthrow";
-import { prisma } from "../db/service";
+import { type Client, ApiError } from "@gopeed/rest";
+import { err, ok, type Result } from "neverthrow";
+import type { prisma } from "../db/service";
 import type {
   ModelVersion,
-  Model,
   ModelTypes,
   ModelFile,
 } from "#civitai-api/v1/models";
@@ -207,7 +206,7 @@ export async function createMediaTask(
 
   // 更新数据库记录
   try {
-    await (prismaClient as any).modelVersionImage.update({
+    await prismaClient.modelVersionImage.update({
       where: { id: image.id },
       data: {
         gopeedTaskId: taskId,
@@ -271,7 +270,7 @@ export async function createFileTask(
 
   // 更新数据库记录
   try {
-    await (prismaClient as any).modelVersionFile.update({
+    await prismaClient.modelVersionFile.update({
       where: { id: file.id },
       data: {
         gopeedTaskId: taskId,

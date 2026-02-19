@@ -1,4 +1,5 @@
 import type { Result } from "neverthrow";
+import { err, ok } from "neverthrow";
 import type { CivitaiClient } from "../client";
 import type { CivitaiError } from "../errors";
 import type { ModelVersionEndpointData } from "../../models/model-version";
@@ -72,7 +73,7 @@ export class ModelVersionsEndpointImpl implements ModelVersionsEndpoint {
             "Add your API key or download token to the client configuration",
         },
       };
-      return { isOk: () => false, isErr: () => true, error } as any;
+      return err(error);
     }
 
     // Add token to the download URL
@@ -101,7 +102,7 @@ export class ModelVersionsEndpointImpl implements ModelVersionsEndpoint {
                 "Check if you have access to this model or if your API key is valid",
             },
           };
-          return { isOk: () => false, isErr: () => true, error } as any;
+          return err(error);
         } else {
           const error: CivitaiError = {
             type: "NETWORK_ERROR",
@@ -112,16 +113,12 @@ export class ModelVersionsEndpointImpl implements ModelVersionsEndpoint {
               `HTTP ${response.status}: ${response.statusText}`,
             ),
           };
-          return { isOk: () => false, isErr: () => true, error } as any;
+          return err(error);
         }
       }
 
       // Return the final URL after following redirects
-      return {
-        isOk: () => true,
-        isErr: () => false,
-        value: response.url,
-      } as any;
+      return ok(response.url);
     } catch (error) {
       // Handle network errors
       const networkError: CivitaiError = {
@@ -131,11 +128,7 @@ export class ModelVersionsEndpointImpl implements ModelVersionsEndpoint {
         message: `Network error while resolving download URL: ${error instanceof Error ? error.message : String(error)}`,
         originalError: error,
       };
-      return {
-        isOk: () => false,
-        isErr: () => true,
-        error: networkError,
-      } as any;
+      return err(networkError);
     }
   }
 

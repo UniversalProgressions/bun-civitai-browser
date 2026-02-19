@@ -156,3 +156,71 @@ export class RecoveryError extends ServiceError {
     this.name = RecoveryError.NAME;
   }
 }
+
+/**
+ * Model version deletion error
+ */
+export class ModelVersionDeleteError extends ServiceError {
+  static readonly NAME = "ModelVersionDeleteError" as const;
+
+  constructor(
+    message: string,
+    public readonly modelId?: number,
+    public readonly versionId?: number,
+    public readonly cause?: string,
+  ) {
+    super(message);
+    this.name = ModelVersionDeleteError.NAME;
+  }
+}
+
+/**
+ * File deletion error
+ */
+export class FileDeleteError extends FileSystemError {
+  static readonly NAME = "FileDeleteError" as const;
+
+  constructor(
+    message: string,
+    public readonly filePath: string,
+    public readonly operation: string = "delete",
+    public readonly cause?: string,
+  ) {
+    super(message);
+    this.name = FileDeleteError.NAME;
+  }
+}
+
+/**
+ * Delete confirmation error
+ */
+export class DeleteConfirmationError extends ServiceError {
+  static readonly NAME = "DeleteConfirmationError" as const;
+
+  constructor(
+    message: string,
+    public readonly token?: string,
+    public readonly reason?: "expired" | "invalid" | "missing",
+  ) {
+    super(message);
+    this.name = DeleteConfirmationError.NAME;
+  }
+}
+
+/**
+ * Batch delete error
+ */
+export class BatchDeleteError extends ServiceError {
+  static readonly NAME = "BatchDeleteError" as const;
+
+  constructor(
+    message: string,
+    public readonly total: number,
+    public readonly succeeded: number,
+    public readonly failed: number,
+    public readonly failedItems: Array<{ versionId: number; error: string }>,
+  ) {
+    super(message);
+    this.name = BatchDeleteError.NAME;
+  }
+}

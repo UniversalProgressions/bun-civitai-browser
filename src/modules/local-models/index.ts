@@ -14,6 +14,14 @@ import {
   repairDatabaseRecordsWithNeverthrow,
 } from "./service/scan-models";
 import { updateAllGopeedTaskStatus } from "../db/crud/modelVersion";
+import {
+  createDeletionConfirmation,
+  createBatchDeletionConfirmation,
+  confirmAndDeleteModelVersion,
+  confirmAndDeleteBatchModelVersions,
+  deleteModelVersionCompletely,
+  deleteBatchModelVersionsCompletely,
+} from "./service/delete-service";
 
 export default new Elysia({ prefix: "/local-models" })
   // GET /local-models/models/:id/with-disk-status - Get model with disk existence check
@@ -296,5 +304,223 @@ export default new Elysia({ prefix: "/local-models" })
     },
     {
       response: t.Any(),
+    },
+  )
+  // DELETE /local-models/model-versions/:id - Request deletion of a single model version (requires confirmation)
+  .delete(
+    "/model-versions/:id",
+    async ({ params }) => {
+      const versionId = parseInt(params.id, 10);
+      if (Number.isNaN(versionId)) {
+        throw new Error("Invalid model version ID");
+      }
+
+      // Get model version data from CivitAI API
+      const versionResult = await client.modelVersions.getById(versionId);
+      if (versionResult.isErr()) {
+        throw new Error(
+          `Failed to get model version: ${versionResult.error.message}`,
+        );
+      }
+
+      const modelVersion = versionResult.value;
+
+      // Get the parent model
+      const modelResult = await client.models.getById(modelVersion.modelId);
+      if (modelResult.isErr()) {
+        throw new Error(
+          `Failed to get parent model: ${modelResult.error.message}`,
+        );
+      }
+
+      const modelById = modelResult.value;
+      const modelConversionResult = modelId2Model(modelById);
+      if (modelConversionResult.isErr()) {
+        throw new Error(
+          `Failed to convert model: ${modelConversionResult.error.message}`,
+        );
+      }
+      const modelData = modelConversionResult.value;
+
+      // Create deletion confirmation
+      const confirmationResult = await createDeletionConfirmation(
+        modelData,
+        versionId,
+      );
+      if (confirmationResult.isErr()) {
+        throw new Error(
+          `Failed to create deletion confirmation: ${confirmationResult.error.message}`,
+        );
+      }
+
+      return confirmationResult.value;
+    },
+    {
+      params: type({ id: "string" }),
+      response: type({
+        token: "string",
+        expiresAt: "Date",
+        item: type({
+          versionId: "number",
+          modelId: "number",
+          modelName: "string",
+          versionName: "string",
+          directoryPath: "string",
+          fileCount: "number",
+          imageCount: "number",
+          exists: "boolean",
+        }),
+      }),
+    },
+  )
+  // DELETE /local-models/model-versions - Request deletion of multiple model versions (requires confirmation)
+  .delete(
+    "/model-versions",
+    async ({ body }) => {
+      const { versionIds } = body;
+      if (!Array.isArray(versionIds) || versionIds.length === 0) {
+        throw new Error("versionIds must be a non-empty array");
+      }
+
+      const items = [];
+
+      // Get model and version data for each ID
+      for (const versionId of versionIds) {
+        const versionResult = await client.modelVersions.getById(versionId);
+        if (versionResult.isErr()) {
+          throw new Error(
+            `Failed to get model version ${versionId}: ${versionResult.error.message}`,
+          );
+        }
+
+        const modelVersion = versionResult.value;
+
+        // Get the parent model
+        const modelResult = await client.models.getById(modelVersion.modelId);
+        if (modelResult.isErr()) {
+          throw new Error(
+            `Failed to get parent model for version ${versionId}: ${modelResult.error.message}`,
+          );
+        }
+
+        const modelById = modelResult.value;
+        const modelConversionResult = modelId2Model(modelById);
+        if (modelConversionResult.isErr()) {
+          throw new Error(
+            `Failed to convert model for version ${versionId}: ${modelConversionResult.error.message}`,
+          );
+        }
+        const modelData = modelConversionResult.value;
+
+        items.push({ model: modelData, versionId });
+      }
+
+      // Create batch deletion confirmation
+      const confirmationResult = await createBatchDeletionConfirmation(items);
+      if (confirmationResult.isErr()) {
+        throw new Error(
+          `Failed to create batch deletion confirmation: ${confirmationResult.error.message}`,
+        );
+      }
+
+      return confirmationResult.value;
+    },
+    {
+      body: type({
+        versionIds: "number[]",
+      }),
+      response: type({
+        token: "string",
+        expiresAt: "Date",
+        items: type({
+          versionId: "number",
+          modelId: "number",
+          modelName: "string",
+          versionName: "string",
+          directoryPath: "string",
+          fileCount: "number",
+          imageCount: "number",
+          exists: "boolean",
+        }).array(),
+      }),
+    },
+  )
+  // POST /local-models/model-versions/:id/confirm-delete - Confirm and delete a single model version
+  .post(
+    "/model-versions/:id/confirm-delete",
+    async ({ params, body }) => {
+      const versionId = parseInt(params.id, 10);
+      if (Number.isNaN(versionId)) {
+        throw new Error("Invalid model version ID");
+      }
+
+      const { token } = body;
+      if (!token) {
+        throw new Error("Confirmation token is required");
+      }
+
+      // Confirm and delete using the token
+      const result = await confirmAndDeleteModelVersion(token);
+      if (result.isErr()) {
+        throw new Error(
+          `Failed to confirm and delete: ${result.error.message}`,
+        );
+      }
+
+      return result.value;
+    },
+    {
+      params: type({ id: "string" }),
+      body: type({
+        token: "string",
+      }),
+      response: type({
+        versionId: "number",
+        databaseDeleted: "boolean",
+        filesDeleted: "boolean",
+        modelDeleted: "boolean",
+        deletedFiles: "number",
+        deletedImages: "number",
+      }),
+    },
+  )
+  // POST /local-models/model-versions/confirm-delete - Confirm and delete multiple model versions
+  .post(
+    "/model-versions/confirm-delete",
+    async ({ body }) => {
+      const { token } = body;
+      if (!token) {
+        throw new Error("Confirmation token is required");
+      }
+
+      // Confirm and delete using the token
+      const result = await confirmAndDeleteBatchModelVersions(token);
+      if (result.isErr()) {
+        throw new Error(
+          `Failed to confirm and delete: ${result.error.message}`,
+        );
+      }
+
+      return result.value;
+    },
+    {
+      body: type({
+        token: "string",
+      }),
+      response: type({
+        total: "number",
+        succeeded: "number",
+        failed: "number",
+        results: type({
+          versionId: "number",
+          success: "boolean",
+          error: "string?",
+          databaseDeleted: "boolean?",
+          filesDeleted: "boolean?",
+          modelDeleted: "boolean?",
+          deletedFiles: "number?",
+          deletedImages: "number?",
+        }).array(),
+      }),
     },
   );

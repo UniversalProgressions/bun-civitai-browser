@@ -41,6 +41,20 @@ export async function upsertOneModelVersion(
   const checkFileExistence = options?.checkFileExistence ?? false;
   const basePath = options?.basePath || getSettings().basePath;
 
+  // IMPORTANT: Ensure the model object contains the modelVersion in its modelVersions array
+  // This is needed for the ModelLayout class to find the version
+  const modelWithVersion = {
+    ...model,
+    modelVersions: model.modelVersions || [],
+  };
+
+  // Add the version if not already present
+  if (
+    !modelWithVersion.modelVersions.some((mv: any) => mv.id === modelVersion.id)
+  ) {
+    modelWithVersion.modelVersions.push(modelVersion);
+  }
+
   // Helper function to check if a file exists on disk
   const checkFileExists = async (
     fileId: number,
@@ -50,7 +64,7 @@ export async function upsertOneModelVersion(
 
     const modelLayout = new (
       await import("../../local-models/service/file-layout")
-    ).ModelLayout(basePath, model);
+    ).ModelLayout(basePath, modelWithVersion);
     const mvLayout = modelLayout.getModelVersionLayout(modelVersion.id);
     const filePath = mvLayout.getFilePath(fileId);
     return await Bun.file(filePath).exists();
@@ -65,7 +79,7 @@ export async function upsertOneModelVersion(
 
     const modelLayout = new (
       await import("../../local-models/service/file-layout")
-    ).ModelLayout(basePath, model);
+    ).ModelLayout(basePath, modelWithVersion);
     const mvLayout = modelLayout.getModelVersionLayout(modelVersion.id);
     const imagePath = mvLayout.getMediaPath(imageId);
     return await Bun.file(imagePath).exists();
@@ -295,23 +309,65 @@ type ModelInfo = {
   versionId: number;
   filePath: string;
   fileName: string;
+  fileExtension: string;
+  directoryStructure: "old" | "new"; // old: .../modelType/modelId/versionId/file.ext, new: .../modelType/modelId/versionId/files/file.ext
 };
 
 export function extractModelInfo(filePath: string): ModelInfo | null {
   const normalizedPath = normalize(filePath);
   const parts = normalizedPath.split(sep);
 
-  if (parts.length < 3) return null;
+  // Minimum parts needed: .../modelType/modelId/versionId/file.ext (old) or .../modelType/modelId/versionId/files/file.ext (new)
+  if (parts.length < 4) return null;
 
   const fileName = parts[parts.length - 1];
-  if (!fileName.endsWith(".safetensors")) return null;
+
+  // Check if file has a supported model extension
+  const supportedExtensions = [
+    ".safetensors",
+    ".ckpt",
+    ".pt",
+    ".pth",
+    ".bin",
+    ".onnx",
+    ".gguf",
+  ];
+
+  const fileExtension = fileName.toLowerCase().slice(fileName.lastIndexOf("."));
+  if (!supportedExtensions.includes(fileExtension)) return null;
+
+  // Check if we have the new directory structure with "files" folder
+  const hasFilesFolder = parts[parts.length - 2] === "files";
+
+  let modelType: string;
+  let modelId: number;
+  let versionId: number;
+
+  if (hasFilesFolder) {
+    // New structure: .../modelType/modelId/versionId/files/file.ext
+    if (parts.length < 5) return null; // Need at least: .../modelType/modelId/versionId/files/file.ext
+
+    modelType = parts[parts.length - 5];
+    modelId = Number(parts[parts.length - 4]);
+    versionId = Number(parts[parts.length - 3]);
+  } else {
+    // Old structure: .../modelType/modelId/versionId/file.ext
+    modelType = parts[parts.length - 4];
+    modelId = Number(parts[parts.length - 3]);
+    versionId = Number(parts[parts.length - 2]);
+  }
+
+  // Validate numeric IDs
+  if (Number.isNaN(modelId) || Number.isNaN(versionId)) return null;
 
   return {
-    modelType: parts[parts.length - 4],
-    modelId: Number(parts[parts.length - 3]),
-    versionId: Number(parts[parts.length - 2]),
+    modelType,
+    modelId,
+    versionId,
     filePath: normalizedPath,
-    fileName: fileName.replace(".safetensors", ""),
+    fileName: fileName.replace(fileExtension, ""),
+    fileExtension,
+    directoryStructure: hasFilesFolder ? "new" : "old",
   };
 }
 

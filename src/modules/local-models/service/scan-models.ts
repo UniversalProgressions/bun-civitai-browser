@@ -346,22 +346,34 @@ export async function performIncrementalScan(
     let existingRecordsFound = 0;
     const failedFiles: string[] = [];
 
+    // Add debugging: show first few file paths
+    console.log(`[DEBUG] First 5 files to process:`);
+    for (let i = 0; i < Math.min(5, filesToProcess.length); i++) {
+      console.log(`  ${i + 1}: ${filesToProcess[i]}`);
+    }
+
     for (const filePath of filesToProcess) {
+      console.log(`[DEBUG] Processing file: ${filePath}`);
       try {
         const result = await processSingleFile(filePath, basePath);
         results.push(result);
 
         if (result.status === "added") {
           newRecordsAdded++;
+          console.log(`[DEBUG] Added new record: ${filePath}`);
         } else if (result.status === "exists") {
           existingRecordsFound++;
+          console.log(`[DEBUG] Record exists: ${filePath}`);
         } else if (result.status === "error") {
           failedFiles.push(`${filePath}: ${result.message}`);
+          console.log(`[DEBUG] Error: ${filePath} - ${result.message}`);
+        } else if (result.status === "skipped") {
+          console.log(`[DEBUG] Skipped: ${filePath} - ${result.message}`);
         }
       } catch (error) {
-        failedFiles.push(
-          `${filePath}: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        const errorMsg = `${filePath}: ${error instanceof Error ? error.message : String(error)}`;
+        failedFiles.push(errorMsg);
+        console.log(`[DEBUG] Exception: ${errorMsg}`);
       }
     }
 
@@ -482,16 +494,30 @@ async function processSingleFile(
     const modelContent = await Bun.file(modelJsonPath).json();
     const versionContent = await Bun.file(versionJsonPath).json();
 
+    // Validate model JSON (allow empty modelVersions array for local storage)
     const modelValidation = modelSchema(modelContent);
-    const versionValidation = modelVersionSchema(versionContent);
+
+    // For local storage, we should allow modelVersions to be empty array
+    // Modify validation to accept empty modelVersions
+    const modelWithEmptyVersions = {
+      ...modelContent,
+      modelVersions: modelContent.modelVersions || [],
+    };
+    const relaxedModelValidation = modelSchema(modelWithEmptyVersions);
+
+    // Validate version JSON with model-version endpoint schema
+    const { modelVersionEndpointDataSchema } = await import(
+      "#civitai-api/v1/models"
+    );
+    const versionValidation = modelVersionEndpointDataSchema(versionContent);
 
     if (
-      modelValidation instanceof type.errors ||
+      relaxedModelValidation instanceof type.errors ||
       versionValidation instanceof type.errors
     ) {
       const errors: string[] = [];
-      if (modelValidation instanceof type.errors)
-        errors.push(`Model JSON: ${modelValidation.summary}`);
+      if (relaxedModelValidation instanceof type.errors)
+        errors.push(`Model JSON: ${relaxedModelValidation.summary}`);
       if (versionValidation instanceof type.errors)
         errors.push(`Version JSON: ${versionValidation.summary}`);
 
@@ -502,8 +528,31 @@ async function processSingleFile(
       };
     }
 
-    modelData = modelValidation;
-    versionData = versionValidation;
+    modelData = relaxedModelValidation;
+
+    // Convert ModelVersionEndpointData to ModelVersion format
+    const { modelVersionEndpointData2ModelVersion } = await import(
+      "#civitai-api/v1/utils"
+    );
+    const conversionResult =
+      modelVersionEndpointData2ModelVersion(versionValidation);
+
+    if (conversionResult.isErr()) {
+      return {
+        filePath,
+        status: "error",
+        message: `Failed to convert version data: ${conversionResult.error.message}`,
+      };
+    }
+
+    versionData = conversionResult.value;
+
+    // IMPORTANT: For local storage, the model JSON may not contain the version in its modelVersions array.
+    // We need to ensure the model object has the version data for database operations.
+    // Add the version to model's modelVersions array if not already present.
+    if (!modelData.modelVersions.some((mv: any) => mv.id === versionData.id)) {
+      modelData.modelVersions.push(versionData);
+    }
   } catch (error) {
     console.error(`[SCAN]   ✗ JSON file error: ${error}`);
     return {

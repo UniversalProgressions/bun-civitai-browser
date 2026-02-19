@@ -1,5 +1,6 @@
+import { type ModelVersionEndpointData } from "./models";
 import { type ModelById } from "./models/model-id";
-import { type Model, modelSchema } from "./models/models";
+import { type Model, modelSchema, ModelVersion } from "./models/models";
 import { type } from "arktype";
 import { type Result, err, ok } from "neverthrow";
 
@@ -242,4 +243,82 @@ export function replaceUrlParam(
   }
 
   return urlString;
+}
+
+/**
+ * Convert ModelVersionEndpointData to ModelVersion format
+ * This is needed because the model-version endpoint returns a different structure
+ * than the models endpoint, and our database expects the models endpoint format.
+ */
+export function modelVersionEndpointData2ModelVersion(
+  data: ModelVersionEndpointData,
+): Result<ModelVersion, Error> {
+  // Create a deep copy to avoid mutating the original data
+  const processedData = JSON.parse(JSON.stringify(data)) as any;
+
+  // Process all images and add IDs
+  const imageErrors: Error[] = [];
+
+  // Add missing fields required by ModelVersion schema
+  // 1. availability - assume all downloaded models are Public
+  processedData.availability = "Public";
+
+  // 2. index - not present in model-version endpoint, use 0 as default
+  processedData.index = 0;
+
+  // 3. Add IDs to images by extracting from URL
+  if (processedData.images && Array.isArray(processedData.images)) {
+    processedData.images.forEach((image: any) => {
+      const idResult = extractIdFromImageUrl(image.url);
+      if (idResult.isErr()) {
+        imageErrors.push(idResult.error);
+        image.id = 0; // Fallback ID
+      } else {
+        image.id = idResult.value;
+      }
+    });
+  } else {
+    processedData.images = [];
+  }
+
+  // 4. Add thumbsDownCount to stats (not present in model-version endpoint)
+  if (processedData.stats) {
+    processedData.stats.thumbsDownCount = 0;
+  }
+
+  // 5. Ensure description is null if undefined
+  processedData.description = processedData.description ?? null;
+
+  // 6. Ensure trainedWords is an array
+  processedData.trainedWords = processedData.trainedWords || [];
+
+  // If there were errors processing images, return the first error
+  if (imageErrors.length > 0) {
+    const errorMessages = imageErrors.map((e) => e.message).join("; ");
+    return err(new Error(`Failed to process model images: ${errorMessages}`));
+  }
+
+  // Import the ModelVersion schema and validate
+  // Note: We need to dynamically import to avoid circular dependencies
+  try {
+    const { modelVersionSchema } = require("./models/models");
+    const { type } = require("arktype");
+
+    const validationResult = modelVersionSchema(processedData);
+    if (validationResult instanceof type.errors) {
+      return err(
+        new Error(
+          `Failed to convert ModelVersionEndpointData to ModelVersion. Validation errors: ${validationResult.summary}`,
+        ),
+      );
+    }
+
+    return ok(validationResult);
+  } catch (error) {
+    return err(
+      new Error(
+        `Failed to validate converted data: ${error instanceof Error ? error.message : String(error)}`,
+      ),
+    );
+  }
 }

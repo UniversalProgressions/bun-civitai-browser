@@ -31,7 +31,6 @@
     "clipboardy": "^5.3.0",
     "conf": "^15.1.0",
     "dompurify": "^3.3.1",
-    "effect": "^3.19.18",
     "elysia": "1.4.25",
     "es-toolkit": "^1.44.0",
     "fast-glob": "^3.3.3",
@@ -53,7 +52,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.2",
-    "@effect/language-service": "^0.74.0",
     "@tailwindcss/vite": "^4.1.18",
     "@types/conf": "^3.0.3",
     "@types/react-dom": "^19.2.3",

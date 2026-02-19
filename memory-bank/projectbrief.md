@@ -1,186 +1,506 @@
-# Project Brief: bun-civitai-browser
+# 项目开发标准 - 综合版本
 
-## 1. Project Vision & Goals
+## 概述
 
-**Vision**: Create an open-source, desktop-grade web application for AI enthusiasts and creators to seamlessly browse, download, and manage AI models from Civitai with a focus on performance, offline capability, and user experience.
+本文档整合了项目开发所需的所有标准和最佳实践，包括：
+- 架构和设计模式
+- 代码质量和语言规范
+- 错误处理标准
+- 开发工作流
+- 当前技术栈参考
 
-**Primary Goals**:
-- Provide a fast, responsive interface for browsing Civitai's extensive model library
-- Enable reliable model downloads with progress tracking and resume capability
-- Offer local model management with metadata preservation
-- Support offline browsing of cached/downloaded models
-- Maintain data privacy with local-first architecture
+**版本**: 1.0  
+**更新日期**: 2026年2月  
+**适用对象**: 所有项目开发者
 
-## 2. Current Technical Architecture
+---
 
-### Core Technology Stack
-- **Runtime**: Bun (v1.x) - High-performance JavaScript/TypeScript runtime
-- **Backend Framework**: Elysia.js - Fast, type-safe web framework with OpenAPI support
-- **Frontend**: React 19 + TypeScript + Vite build system
-- **UI Framework**: Ant Design v6 component library + Tailwind CSS v4 for styling
-- **Database**: SQLite with Prisma ORM for local data persistence
-- **State Management**: 
-  - Jotai for client-side atomic state
-  - React Query (TanStack Query) for server state and caching
-- **Validation**: Arktype for runtime type validation
-- **Download Management**: @gopeed/rest for reliable file downloads
+## 一、架构与设计模式
 
-## 3. Application Structure
+### 1.1 ElysiaJS最佳实践
 
+**核心原则**：
+- 所有后端代码必须遵循官方ElysiaJS最佳实践：[ElysiaJS Best Practices Guide](https://elysiajs.com/essential/best-practice.md)
+- 使用功能模块化架构，已实现在 `src/modules/`
+
+**实施要求**：
+1. **控制器实现**：使用Elysia实例作为控制器，保持HTTP层与业务逻辑分离
+2. **验证策略**：外部API使用arktype验证（因Civitai API数据结构不一致）
+3. **错误处理**：遵循Elysia错误处理模式，集成统一的错误系统
+4. **服务层设计**：业务逻辑封装在服务层，控制器仅处理HTTP交互
+
+**合规检查清单**：
+- [ ] 已查阅ElysiaJS最佳实践文档
+- [ ] 遵循推荐的文件夹结构模式
+- [ ] 正确使用Elysia实例作为控制器
+- [ ] 保持HTTP层与业务逻辑的适当分离
+- [ ] 按照Elysia模式实现错误处理
+- [ ] 添加适当的验证（外部API使用arktype）
+
+### 1.2 现代TypeScript/JavaScript模式
+
+**错误处理（neverthrow模式）**：
+- 使用 `neverthrow` 库进行类型安全的错误处理
+- 避免使用 `try-catch` 块处理业务错误
+- 使用 `Result<T, E>` 类型封装可能失败的操作
+
+**类型验证（arktype模式）**：
+- 使用 `arktype` 进行运行时类型验证
+- 创建品牌化类型：`type("string & brand<TypeName>")`
+- 模式验证优先于手动验证
+
+**函数式编程原则**：
+- 优先使用纯函数和不可变数据
+- 避免副作用，必要时明确标注
+- 使用函数组合简化复杂逻辑
+
+**依赖管理**：
+- 使用构造函数参数传递依赖
+- 避免全局状态，使用依赖注入模式
+- 服务层使用明确的接口定义
+
+### 1.3 项目特定架构
+
+**模块化组织**：
 ```
-bun-civitai-browser/
-├── src/
-│   ├── index.ts              # Main Elysia server entry point
-│   ├── dev.ts               # Development server configuration
-│   ├── html/                # Frontend application
-│   │   ├── index.html      # HTML entry point
-│   │   ├── main.tsx        # React application entry
-│   │   ├── layout.tsx      # Main application layout with tab navigation
-│   │   ├── styles.css      # Global styles
-│   │   ├── utils.ts        # Frontend utilities
-│   │   ├── components/     # Reusable React components
-│   │   │   ├── gallery.tsx
-│   │   │   └── shadowHTML.tsx
-│   │   └── pages/          # Application pages
-│   │       ├── civitaiModelsGallery.tsx
-│   │       ├── localModelsGallery.tsx
-│   │       ├── downloadPanel.tsx
-│   │       ├── settingsPanel.tsx
-│   │       └── galleryTestPage.tsx
-│   └── modules/            # Backend modules
-│       ├── civitai/        # Civitai API integration
-│       │   ├── index/      # API route definitions
-│       │   ├── models/     # Type definitions and API schemas
-│       │   └── service/    # Business logic and utilities
-│       ├── db/            # Database service layer
-│       └── settings/      # Application settings management
-├── schema.prisma          # Prisma database schema
-├── migrations/           # Database migration files
-├── public/              # Built frontend assets (generated)
-└── memory-bank/         # Project documentation
-```
-
-## 4. Database Schema Overview
-
-The application uses a comprehensive schema to model Civitai's data structure:
-
-### Core Entities
-- **Creator**: Model authors with username, profile image, and external links
-- **Model**: Primary model entity with name, type, NSFW classification, and metadata
-- **ModelType**: Classification categories (Checkpoint, LoRA, TextualInversion, ControlNet, etc.)
-- **Tag**: Searchable model tags for categorization and discovery
-- **ModelVersion**: Specific versions of models with base model information and publication dates
-- **ModelVersionFile**: Downloadable files with size, type, and download URLs
-- **ModelVersionImage**: Preview images with dimensions, hashes, and NSFW levels
-- **BaseModel** & **BaseModelType**: Foundation models (SD 1.5, SDXL, Flux, Pony, etc.)
-
-### Key Relationships
-- Models belong to Creators and have ModelTypes
-- Models have multiple ModelVersions
-- ModelVersions contain Files and Images
-- Models can have multiple Tags for categorization
-- BaseModels have hierarchical BaseModelTypes
-
-## 5. Current Feature Set
-
-### Implemented Features
-- ✅ **Civitai API Integration**: Full mirroring of Civitai API with local caching
-- ✅ **Model Browsing**: Gallery views with pagination and basic filtering
-- ✅ **Local Model Management**: Scan, organize, and browse downloaded models
-- ✅ **Download Management**: Queue-based downloads with progress tracking
-- ✅ **Settings System**: Configurable download paths, API keys, and preferences
-- ✅ **OpenAPI Documentation**: Auto-generated API docs at `/swagger`
-- ✅ **Responsive UI**: Ant Design components with Tailwind CSS styling
-- ✅ **Type Safety**: Full TypeScript coverage with Prisma-generated types
-- ✅ **Development Tools**: Hot reload, proxy configuration for seamless development
-
-### Features in Development
-- 🔄 **Advanced Search**: Filtering by model type, base model, tags, and NSFW level
-- 🔄 **Batch Operations**: Bulk download, delete, and tagging
-- 🔄 **Model Comparison**: Side-by-side version comparison
-- 🔄 **Automated Updates**: Scheduled metadata synchronization
-- 🔄 **Export/Import**: Backup and restore model collections
-
-## 6. Development Workflow
-
-### Available Scripts
-```bash
-# Development
-bun run dev:client      # Start Vite dev server (port 5173)
-bun run dev:server      # Start Elysia backend with watch mode (port 3000)
-
-# Building
-bun run build:client    # Build frontend to public/ directory
-
-# Database Operations
-bun run prisma:generate # Generate Prisma client types
-bun run prisma:migrate  # Run database migrations
-bun run prisma:reset    # Reset database (development only)
+src/modules/
+├── civitai/          # Civitai API集成
+├── db/              # 数据库访问层
+├── gopeed/          # 下载服务
+├── local-models/    # 本地模型管理
+└── settings/        # 应用配置
 ```
 
-### Build Process
-1. Frontend assets are built with Vite to the `public/` directory
-2. Elysia backend serves static files from `public/` at root path
-3. API routes are prefixed:
-   - `/civitai/*` - Civitai-related endpoints
-   - `/settings/*` - Application settings
-4. Development proxy configured for seamless local development
-5. TypeScript strict mode ensures type safety throughout
+**数据库访问模式**：
+- 使用Prisma ORM进行数据访问
+- 在 `src/modules/db/crud/` 中定义CRUD操作
+- 业务逻辑不直接访问数据库，通过服务层
 
-## 7. Refactoring Considerations & Technical Debt
+**配置管理**：
+- 环境变量通过 `src/modules/settings/` 管理
+- 使用arktype验证配置数据
+- 配置读取使用统一的设置服务
 
-### Architectural Improvements Needed
-1. **Module Consolidation**: Simplify the nested module structure in `src/modules/civitai/`
-2. **Error Handling Strategy**: Implement consistent error boundaries, logging, and user feedback
-3. **State Management Review**: Evaluate and potentially consolidate Jotai and React Query usage patterns
-4. **Type Safety Enhancement**: Better leverage Arktype for runtime validation
-5. **Testing Strategy**: Expand test coverage beyond current unit tests to include integration and E2E tests
+**日志记录和监控**：
+- 使用结构化日志记录
+- 关键操作添加性能监控
+- 错误日志包含足够上下文信息
 
-### Current Technical Debt
-- **Dual Dev Servers**: Separate development servers for client and server could be unified
-- **Type Duplication**: Some type definitions are duplicated across modules
-- **Error Handling**: Limited error handling in API routes and frontend components
-- **Configuration Management**: Settings scattered across multiple files
+---
 
-### Performance Considerations
-- **Database Optimization**: Indexes exist but query patterns need analysis
-- **Image Loading**: Gallery performance with many high-resolution images
-- **Memory Usage**: Long-running download processes memory management
+## 二、代码质量和语言规范
 
-## 8. Future Roadmap
+### 2.1 英语语言政策
 
-### Short-term Priorities (Next 3 Months)
-- Implement advanced search with comprehensive filters
-- Add model tagging and custom categorization
-- Improve download reliability with retry logic and resume capability
-- Enhance local model scanning performance and accuracy
-- Add keyboard shortcuts and accessibility improvements
-- Support batch operations (bulk download, delete, etc.)
+**核心原则**：
+所有代码、文档和通信必须使用英语，确保项目的一致性和全球协作性。
 
-### Medium-term Goals (3-6 Months)
-- Cross-platform desktop application packaging
-- Advanced analytics and statistics features (privacy-focused personal usage tracking)
+**适用范围**：
+- ✅ **源代码**：TypeScript/JavaScript文件
+- ✅ **配置文件**：JSON, YAML, TOML等
+- ✅ **文档文件**：README, Markdown, API文档
+- ✅ **代码注释**：单行注释、多行注释、JSDoc
+- ✅ **错误消息**：错误类消息、日志消息
+- ✅ **UI字符串**：用户界面文本
+- ✅ **提交消息**：Git提交描述
 
-### Long-term Vision (6+ Months)
-- Continuous optimization of core functionality performance and user experience
-- Extended support for more model formats
-- Enhanced offline capabilities and workflow integration
+**例外情况**：
+- ❗ 模型名称和描述（来自CivitAI的元数据）
+- ❗ 文件路径中的非英文字符（引用实际文件系统路径）
+- ❗ 外部API返回的本地化内容
+- ❗ 用户生成的内容（数据库中的模型标签等）
 
-## 9. Success Metrics & Evaluation
+**命名规范**：
+```typescript
+// ✅ GOOD: 英语命名
+const downloadProgress = 0.5
+function calculateTotalSize(files: File[]) { /* ... */ }
 
-### Technical Metrics
-- Application startup time < 3 seconds
-- Model search response time < 500ms
-- Download reliability > 99%
-- Test coverage > 80%
-- Bundle size < 5MB (gzipped)
+// ❌ BAD: 非英语命名
+const 下载进度 = 0.5  // 中文
+function 计算总大小(文件列表: File[]) { /* ... */ }  // 中文
 
-### User Experience Metrics
-- User retention rate > 40% (weekly active users)
-- Task completion rate > 90% for core workflows
-- Issue resolution time < 48 hours for critical bugs
-- Contributor growth and engagement
+// ❌ BAD: 混合语言
+const download文件列表 = []  // 混合中英文
+```
 
-**Last Updated**: December 2025  
-**Version**: 1.0.50  
-**Development Status**: Active Development
+**注释和文档**：
+```typescript
+// ✅ GOOD: 英语注释
+// Downloads model files to the specified directory
+async function downloadModel(modelId: string) { /* ... */ }
+
+/**
+ * Scans local model files and updates the database
+ * @param basePath - Root directory to scan
+ * @returns Scan result with statistics
+ */
+function scanModels(basePath: string) { /* ... */ }
+
+// ❌ BAD: 非英语注释
+// 下载模型文件到指定目录  // 中文注释
+async function downloadModel(modelId: string) { /* ... */ }
+```
+
+**错误消息和日志**：
+```typescript
+// ✅ GOOD: 英语错误消息
+throw new Error("Failed to download file: network timeout")
+console.error("Database connection failed:", error)
+
+// ❌ BAD: 非英语错误消息
+throw new Error("下载文件失败：网络超时")  // 中文
+console.error("数据库连接失败:", error)  // 中文
+```
+
+### 2.2 代码风格和格式化
+
+**TypeScript/JavaScript风格**：
+- 使用双引号（`"`）而非单引号
+- 尾随逗号使用ES5风格
+- 2空格缩进，不使用制表符
+- 最大行长度120字符
+
+**React组件模式**：
+- 函数组件优先于类组件
+- 使用TypeScript接口定义props
+- 复杂状态管理使用Jotai
+- 避免prop drilling，使用Context或状态管理
+
+**文件命名约定**：
+- 使用kebab-case：`model-version.ts`
+- 组件文件使用PascalCase：`DownloadPanel.tsx`
+- 测试文件后缀：`.test.ts` 或 `.spec.ts`
+- 类型定义文件：`.d.ts`
+
+**导入/导出规范**：
+```typescript
+// ✅ GOOD: 分组导入
+import { type } from "arktype"
+import { Elysia, t } from "elysia"
+
+// ✅ GOOD: 命名导出优先
+export class ModelService { /* ... */ }
+export function calculateSize() { /* ... */ }
+
+// ❌ BAD: 默认导出（除非必要）
+export default ModelService  // 尽量避免
+```
+
+**注释规范**：
+- 公共API必须有JSDoc注释
+- 复杂算法添加解释性注释
+- TODO注释必须包含责任人：`// TODO: [名字] 修复此问题`
+- 已弃用代码使用 `@deprecated` 标记
+
+---
+
+## 三、错误处理标准
+
+### 3.1 统一错误系统
+
+**核心原则**：
+- 所有错误类必须继承自 `AppError`（位于 `src/utils/errors.ts`）
+- 使用 `as const` 静态属性模式优化性能
+- 每个模块必须有独立的 `errors.ts` 文件
+- 错误类必须足够具体，避免通用错误
+
+**错误类结构**：
+```typescript
+import { ServiceError } from "../../utils/errors";
+
+export class ModelNotFoundError extends ServiceError {
+  static readonly NAME = "ModelNotFoundError" as const;
+  
+  constructor(
+    message: string,
+    public readonly modelId?: number,
+  ) {
+    super(message);
+    this.name = ModelNotFoundError.NAME;  // 性能优化：静态属性共享
+  }
+}
+```
+
+**性能优化说明**：
+- `static readonly NAME = "ErrorName" as const`：类型安全，编译器知道确切值
+- `this.name = ErrorClass.NAME`：避免 `constructor.name` 的运行时查找
+- 静态属性在类加载时创建一次，所有实例共享，减少内存分配
+
+### 3.2 模块错误文件要求
+
+**每个模块必须有 `errors.ts`**：
+```
+src/modules/
+├── civitai/errors.ts
+├── db/errors.ts
+├── gopeed/errors.ts
+├── local-models/service/errors.ts
+└── settings/errors.ts
+```
+
+**错误分类**：
+1. **服务错误** (`ServiceError`)：业务逻辑错误
+2. **验证错误** (`ValidationError`)：数据验证失败
+3. **数据库错误** (`DatabaseError`)：数据库操作错误
+4. **网络错误** (`NetworkError`)：网络请求错误
+5. **文件系统错误** (`FileSystemError`)：文件操作错误
+6. **配置错误** (`ConfigurationError`)：配置相关错误
+7. **外部服务错误** (`ExternalServiceError`)：第三方服务错误
+
+### 3.3 错误使用模式
+
+**创建错误**：
+```typescript
+// ✅ GOOD: 使用具体的错误类
+throw new ModelNotFoundError(
+  `Model with ID ${modelId} not found`,
+  modelId
+);
+
+// ❌ BAD: 使用通用Error
+throw new Error("Model not found");  // 缺乏上下文
+```
+
+**错误处理**：
+```typescript
+import { Result, ok, err } from "neverthrow";
+import { ModelNotFoundError } from "../errors";
+
+async function findModel(modelId: number): Promise<Result<Model, ModelNotFoundError>> {
+  const model = await db.model.findUnique({ where: { id: modelId } });
+  
+  if (!model) {
+    return err(new ModelNotFoundError(
+      `Model with ID ${modelId} not found`,
+      modelId
+    ));
+  }
+  
+  return ok(model);
+}
+```
+
+**错误转换**：
+```typescript
+// 将低级错误转换为领域错误
+try {
+  await someOperation();
+} catch (error) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    throw new DatabaseConstraintError(
+      "Failed to insert record due to constraint violation",
+      error.meta?.constraint,
+      "model",
+      error
+    );
+  }
+  throw error;
+}
+```
+
+### 3.4 错误记录和监控
+
+**结构化日志**：
+```typescript
+// ✅ GOOD: 包含错误上下文
+console.error("Failed to download model", {
+  error: error.name,           // 错误类名
+  message: error.message,      // 错误消息
+  modelId: modelId,            // 业务上下文
+  timestamp: new Date().toISOString(),
+});
+
+// ❌ BAD: 简单的字符串日志
+console.error("Download failed");  // 缺乏上下文
+```
+
+**错误聚合**：
+- 相同错误类型聚合统计
+- 高频错误预警机制
+- 错误根本原因分析
+
+---
+
+## 四、开发工作流
+
+### 4.1 Git和版本控制
+
+**提交消息规范**：
+```
+<类型>: <简短描述>
+
+<详细描述>
+
+<页脚>
+```
+
+**类型**：
+- `feat`: 新功能
+- `fix`: 错误修复
+- `docs`: 文档更新
+- `style`: 代码格式调整
+- `refactor`: 代码重构
+- `test`: 测试相关
+- `chore`: 构建或工具更新
+
+**分支策略**：
+- `main`: 生产就绪代码
+- `develop`: 开发分支
+- `feature/*`: 功能分支
+- `bugfix/*`: 错误修复分支
+- `release/*`: 发布分支
+
+**代码审查流程**：
+1. 自检：运行测试和lint检查
+2. 提交PR：清晰描述变更内容
+3. 审查：至少一名审查者批准
+4. 合并：通过CI后合并到目标分支
+
+### 4.2 测试和质量保证
+
+**单元测试模式**：
+- 每个业务函数必须有单元测试
+- 测试覆盖率不低于80%
+- 使用描述性的测试名称
+- 避免测试中的业务逻辑
+
+**集成测试策略**：
+- API端点集成测试
+- 数据库操作集成测试
+- 外部服务模拟测试
+- 端到端工作流测试
+
+**测试工具**：
+- 测试框架：Bun内置测试
+- 断言库：Bun内置断言
+- 模拟库：手动模拟或简单stub
+- 覆盖率：Bun coverage
+
+**代码覆盖率要求**：
+- 语句覆盖率：≥80%
+- 分支覆盖率：≥70%
+- 函数覆盖率：≥85%
+- 行覆盖率：≥80%
+
+### 4.3 部署和运维
+
+**环境配置**：
+- 开发环境：本地开发
+- 测试环境：自动化测试
+- 生产环境：用户使用
+
+**构建和打包**：
+- 使用Bun进行构建
+- 类型检查作为构建步骤
+- 代码压缩和优化
+- 资源文件处理
+
+**监控和日志**：
+- 应用性能监控
+- 错误追踪和告警
+- 用户行为分析
+- 系统资源监控
+
+**性能优化**：
+- 数据库查询优化
+- 缓存策略实施
+- 前端资源优化
+- 网络请求优化
+
+---
+
+## 五、附录
+
+### 5.1 技术栈参考
+
+**当前版本**：
+- **运行时**: Bun 1.x
+- **后端框架**: ElysiaJS 1.x
+- **前端框架**: React 18 + Jotai
+- **数据库**: Prisma + SQLite
+- **验证库**: arktype
+- **错误处理**: neverthrow
+- **构建工具**: Vite
+
+**重要依赖说明**：
+- `elysiajs`: 后端Web框架
+- `arktype`: 运行时类型验证
+- `neverthrow`: 类型安全错误处理
+- `prisma`: ORM和数据访问
+- `jotai`: React状态管理
+
+**迁移历史**：
+- 2026年2月：从Effect-TS迁移到neverthrow + arktype
+- 2025年12月：引入ElysiaJS最佳实践
+- 2025年11月：实施英语语言政策
+
+### 5.2 常见问题解答
+
+**Q: 如何处理Effect-TS遗留代码？**
+A: 逐步迁移到neverthrow模式，优先迁移核心业务逻辑。
+
+**Q: 新错误系统如何与现有代码兼容？**
+A: 新错误类继承自统一基类，可以逐步替换现有错误处理。
+
+**Q: 性能优化真的有必要吗？**
+A: 对于高频错误场景，静态属性模式可减少内存分配和属性查找。
+
+**Q: 如何确保团队遵循这些标准？**
+A: 代码审查清单、自动化lint检查、定期培训。
+
+**Q: 如何处理非英语的模型名称？**
+A: 保持原始元数据，但在代码中使用英语变量名。
+
+### 5.3 代码审查清单
+
+**架构和设计**：
+- [ ] 遵循ElysiaJS最佳实践
+- [ ] 使用正确的错误处理模式
+- [ ] 保持模块化组织
+- [ ] 避免全局状态
+
+**代码质量**：
+- [ ] 所有标识符使用英语
+- [ ] 注释和文档使用英语
+- [ ] 错误消息使用英语
+- [ ] 遵循代码风格指南
+
+**错误处理**：
+- [ ] 错误类使用 `as const` 静态属性
+- [ ] 错误类有明确的name属性
+- [ ] 错误类继承自适当的基础类
+- [ ] 错误消息包含足够上下文
+
+**测试和文档**：
+- [ ] 新功能有相应测试
+- [ ] 公共API有JSDoc注释
+- [ ] 复杂逻辑有解释性注释
+- [ ] 提交消息符合规范
+
+---
+
+## 六、更新和维护
+
+**定期审查**：
+- 每季度审查文档有效性
+- 根据技术栈变化更新标准
+- 收集团队反馈进行改进
+
+**变更流程**：
+1. 提出变更建议
+2. 团队讨论和批准
+3. 更新文档
+4. 通知所有开发者
+5. 逐步实施变更
+
+**联系信息**：
+- 文档维护：开发团队
+- 问题反馈：GitHub Issues
+- 紧急变更：团队负责人
+
+---
+
+**文档状态**: 正式发布  
+**生效日期**: 2026年2月19日  
+**替代文档**: `coding-standards.md`, `language-policy.md`, `systemPatterns.md`

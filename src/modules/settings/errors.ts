@@ -1,24 +1,46 @@
-import { Schema } from "effect";
+import {
+  ConfigurationError,
+  ValidationError as BaseValidationError,
+} from "../../utils/errors";
 
-export class SettingsNotFoundError extends Schema.TaggedError<SettingsNotFoundError>()(
-  "SettingsNotFoundError",
-  {
-    message: Schema.String,
-  },
-) {}
+/**
+ * 设置未找到错误
+ */
+export class SettingsNotFoundError extends ConfigurationError {
+  static readonly NAME = "SettingsNotFoundError" as const;
 
-export class SettingsValidationError extends Schema.TaggedError<SettingsValidationError>()(
-  "SettingsValidationError",
-  {
-    message: Schema.String,
-    summary: Schema.String,
-  },
-) {}
+  constructor(message: string) {
+    super(message);
+    this.name = SettingsNotFoundError.NAME;
+  }
+}
 
-export class SettingsUpdateError extends Schema.TaggedError<SettingsUpdateError>()(
-  "SettingsUpdateError",
-  {
-    message: Schema.String,
-    summary: Schema.String,
-  },
-) {}
+/**
+ * 设置验证错误
+ */
+export class SettingsValidationError extends BaseValidationError {
+  static readonly NAME = "SettingsValidationError" as const;
+
+  constructor(
+    message: string,
+    public readonly summary: string,
+  ) {
+    super(message);
+    this.name = SettingsValidationError.NAME;
+  }
+}
+
+/**
+ * 设置更新错误
+ */
+export class SettingsUpdateError extends ConfigurationError {
+  static readonly NAME = "SettingsUpdateError" as const;
+
+  constructor(
+    message: string,
+    public readonly summary: string,
+  ) {
+    super(message);
+    this.name = SettingsUpdateError.NAME;
+  }
+}

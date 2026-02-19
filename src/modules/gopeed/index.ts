@@ -1,31 +1,24 @@
 import { Elysia, t } from "elysia";
 import { type } from "arktype";
-import { Effect } from "effect";
-import {
-  GopeedServiceError,
-  GopeedTaskStatus,
-  getGopeedTaskStatus,
-  getTaskEffect,
-  pauseTaskEffect,
-  continueTaskEffect,
-  deleteTaskEffect,
-  getTaskStatusFromDbEffect,
-  finishAndCleanTaskEffect,
-  createGopeedTaskEffect,
-  updateTaskFailedEffect,
-  updateTaskCreatedEffect,
-  updateTaskFinishedEffect,
-  updateTaskCleanedEffect,
-  GopeedClient,
-  PrismaService,
-  SettingsContext,
-  TaskDuplicateError,
-  TaskAlreadyFinishedError,
-} from "./service";
 import { getSettings } from "../settings/service";
 import { prisma } from "../db/service";
 import { Client } from "@gopeed/rest";
 import type { CreateTaskWithRequest } from "@gopeed/types";
+import { Result } from "neverthrow";
+import {
+  GopeedServiceError,
+  GopeedTaskStatus,
+  getGopeedTaskStatus,
+  TaskDuplicateError,
+  TaskAlreadyFinishedError,
+  createGopeedTask,
+  getTask,
+  pauseTask,
+  continueTask,
+  deleteTask,
+  getTaskStatusFromDb,
+  finishAndCleanTask,
+} from "./service";
 
 // Error classes for API responses
 export class ApiError extends Error {
@@ -50,41 +43,32 @@ export class ValidationError extends Error {
   }
 }
 
-// Helper to run Effect programs with dependencies
-const runEffect = <A, E extends Error>(
-  effect: Effect.Effect<A, E, GopeedClient | PrismaService | SettingsContext>,
-): Promise<A> => {
-  const settings = getSettings();
-  const client = new Client({
-    host: settings.gopeed_api_host,
-    token: settings.gopeed_api_token || "",
-  });
-
-  return Effect.runPromise(
-    effect.pipe(
-      Effect.provideService(GopeedClient, client),
-      Effect.provideService(PrismaService, prisma),
-      Effect.provideService(SettingsContext, settings),
-    ),
-  );
-};
-
-// Helper to handle Effect errors
-const handleEffectError = (error: any): never => {
-  if (error instanceof GopeedServiceError) {
-    throw new ApiError(error.message, 500, error);
-  } else if (error instanceof TaskDuplicateError) {
-    throw new ApiError(error.message, 409, {
-      gopeedTaskId: error.gopeedTaskId,
-    });
-  } else if (error instanceof TaskAlreadyFinishedError) {
-    throw new ApiError(error.message, 400, error);
-  } else if (error._tag === "ApiError") {
-    // @gopeed/rest ApiError
-    throw new ApiError(error.message, error.status || 500, error);
-  } else {
-    throw new ApiError(error.message || "Internal server error", 500, error);
+// Helper to handle neverthrow errors
+const handleResultError = <T, E>(result: Result<T, E>): T => {
+  if (result.isErr()) {
+    const error = result.error;
+    if (error instanceof GopeedServiceError) {
+      throw new ApiError(error.message, 500, error);
+    } else if (error instanceof TaskDuplicateError) {
+      throw new ApiError(error.message, 409, {
+        gopeedTaskId: error.gopeedTaskId,
+      });
+    } else if (error instanceof TaskAlreadyFinishedError) {
+      throw new ApiError(error.message, 400, error);
+    } else if ((error as any)._tag === "ApiError") {
+      // @gopeed/rest ApiError
+      const apiError = error as any;
+      throw new ApiError(apiError.message, apiError.status || 500, apiError);
+    } else {
+      throw new ApiError(
+        error instanceof Error ? error.message : "Internal server error",
+        500,
+        error,
+      );
+    }
   }
+
+  return result.value;
 };
 
 export default new Elysia({ prefix: `/gopeed` })
@@ -261,8 +245,15 @@ export default new Elysia({ prefix: `/gopeed` })
     "/tasks/:taskId",
     async ({ params }) => {
       try {
-        const task = await runEffect(getTaskEffect(params.taskId));
-        // Extract fields from task with safe defaults
+        const settings = getSettings();
+        const client = new Client({
+          host: settings.gopeed_api_host,
+          token: settings.gopeed_api_token || "",
+        });
+
+        const result = await getTask(client, params.taskId);
+        const task = handleResultError(result);
+
         return {
           id: task.id,
           status: task.status,
@@ -275,7 +266,6 @@ export default new Elysia({ prefix: `/gopeed` })
             new Date().toISOString(),
         };
       } catch (error) {
-        handleEffectError(error);
         throw error; // Re-throw to let Elysia handle it
       }
     },
@@ -304,12 +294,11 @@ export default new Elysia({ prefix: `/gopeed` })
           throw new ApiError("Invalid file ID", 400);
         }
 
-        const status = await runEffect(
-          getTaskStatusFromDbEffect(fileId, isMedia),
-        );
+        const result = await getTaskStatusFromDb(prisma, fileId, isMedia);
+        const status = handleResultError(result);
+
         return { fileId, isMedia, status };
       } catch (error) {
-        handleEffectError(error);
         throw error;
       }
     },
@@ -328,10 +317,17 @@ export default new Elysia({ prefix: `/gopeed` })
     "/tasks/:taskId/pause",
     async ({ params }) => {
       try {
-        await runEffect(pauseTaskEffect(params.taskId));
+        const settings = getSettings();
+        const client = new Client({
+          host: settings.gopeed_api_host,
+          token: settings.gopeed_api_token || "",
+        });
+
+        const result = await pauseTask(client, params.taskId);
+        handleResultError(result);
+
         return { success: true, message: "Task paused successfully" };
       } catch (error) {
-        handleEffectError(error);
         throw error;
       }
     },
@@ -348,10 +344,17 @@ export default new Elysia({ prefix: `/gopeed` })
     "/tasks/:taskId/continue",
     async ({ params }) => {
       try {
-        await runEffect(continueTaskEffect(params.taskId));
+        const settings = getSettings();
+        const client = new Client({
+          host: settings.gopeed_api_host,
+          token: settings.gopeed_api_token || "",
+        });
+
+        const result = await continueTask(client, params.taskId);
+        handleResultError(result);
+
         return { success: true, message: "Task continued successfully" };
       } catch (error) {
-        handleEffectError(error);
         throw error;
       }
     },
@@ -369,10 +372,17 @@ export default new Elysia({ prefix: `/gopeed` })
     async ({ params, query }) => {
       try {
         const force = query.force === "true";
-        await runEffect(deleteTaskEffect(params.taskId, force));
+        const settings = getSettings();
+        const client = new Client({
+          host: settings.gopeed_api_host,
+          token: settings.gopeed_api_token || "",
+        });
+
+        const result = await deleteTask(client, params.taskId, force);
+        handleResultError(result);
+
         return { success: true, message: "Task deleted successfully" };
       } catch (error) {
-        handleEffectError(error);
         throw error;
       }
     },
@@ -391,15 +401,27 @@ export default new Elysia({ prefix: `/gopeed` })
     async ({ params, body }) => {
       try {
         const { fileId, isMedia, force } = body;
-        await runEffect(
-          finishAndCleanTaskEffect(params.taskId, fileId, isMedia, force),
+        const settings = getSettings();
+        const client = new Client({
+          host: settings.gopeed_api_host,
+          token: settings.gopeed_api_token || "",
+        });
+
+        const result = await finishAndCleanTask(
+          client,
+          prisma,
+          params.taskId,
+          fileId,
+          isMedia,
+          force,
         );
+        handleResultError(result);
+
         return {
           success: true,
           message: "Task finished and cleaned successfully",
         };
       } catch (error) {
-        handleEffectError(error);
         throw error;
       }
     },
@@ -422,12 +444,23 @@ export default new Elysia({ prefix: `/gopeed` })
     async ({ body }) => {
       try {
         const { taskOpts, fileId, isMedia } = body;
-        const taskId = await runEffect(
-          createGopeedTaskEffect(taskOpts, fileId, isMedia),
+        const settings = getSettings();
+        const client = new Client({
+          host: settings.gopeed_api_host,
+          token: settings.gopeed_api_token || "",
+        });
+
+        const result = await createGopeedTask(
+          client,
+          prisma,
+          taskOpts,
+          fileId,
+          isMedia,
         );
+        const taskId = handleResultError(result);
+
         return { taskId, success: true, message: "Task created successfully" };
       } catch (error) {
-        handleEffectError(error);
         throw error;
       }
     },

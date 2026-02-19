@@ -4,16 +4,7 @@ import {
   modelSchema,
   modelVersionSchema,
 } from "../../civitai-api/v1/models/models";
-import {
-  modelByIdSchema,
-  existedModelVersionsSchema,
-} from "../../civitai-api/v1/models/model-id";
-import { modelVersionEndpointDataSchema } from "../../civitai-api/v1/models/model-version";
-import type {
-  Model,
-  ModelById,
-  ModelVersionEndpointData,
-} from "../../civitai-api/v1/models";
+import { existedModelVersionsSchema } from "../../civitai-api/v1/models/model-id";
 import { modelId2Model } from "../../civitai-api/v1/utils";
 import { client } from "../civitai";
 import {
@@ -23,15 +14,14 @@ import {
   repairDatabaseRecordsWithNeverthrow,
 } from "./service/scan-models";
 import { updateAllGopeedTaskStatus } from "../db/crud/modelVersion";
-import { Effect } from "effect";
 
 export default new Elysia({ prefix: "/local-models" })
   // GET /local-models/models/:id/with-disk-status - Get model with disk existence check
   .get(
     "/models/:id/with-disk-status",
     async ({ params }) => {
-      const id = parseInt(params.id);
-      if (isNaN(id)) {
+      const id = parseInt(params.id, 10);
+      if (Number.isNaN(id)) {
         throw new Error("Invalid model ID");
       }
 
@@ -75,8 +65,8 @@ export default new Elysia({ prefix: "/local-models" })
   .get(
     "/model-versions/:id/with-disk-status",
     async ({ params }) => {
-      const id = parseInt(params.id);
-      if (isNaN(id)) {
+      const id = parseInt(params.id, 10);
+      if (Number.isNaN(id)) {
         throw new Error("Invalid model version ID");
       }
 
@@ -160,8 +150,8 @@ export default new Elysia({ prefix: "/local-models" })
   .get(
     "/models/:id/versions/on-disk",
     async ({ params }) => {
-      const id = parseInt(params.id);
-      if (isNaN(id)) {
+      const id = parseInt(params.id, 10);
+      if (Number.isNaN(id)) {
         throw new Error("Invalid model ID");
       }
 

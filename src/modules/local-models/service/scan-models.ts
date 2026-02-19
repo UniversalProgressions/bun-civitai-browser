@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-import { Result, ok, err } from "neverthrow";
+import { type Result, ok, err } from "neverthrow";
 import fg from "fast-glob";
 import { settingsService } from "../../settings/service";
 import { ModelLayout } from "./file-layout";
@@ -10,7 +10,7 @@ import type {
   ModelVersion,
 } from "#civitai-api/v1/models";
 import { extractModelInfo } from "../../db/crud/modelVersion";
-import { ModelVersionRelations } from "#generated/typebox/ModelVersion";
+import type { ModelVersionRelations } from "#generated/typebox/ModelVersion";
 
 // Supported model file extensions
 const SUPPORTED_MODEL_EXTENSIONS = [
@@ -199,6 +199,8 @@ export interface ConsistencyCheckResult {
   versionId: number;
   missingFiles: string[];
   extraFiles: string[];
+  missingImages: string[];
+  extraImages: string[];
   jsonValid: boolean;
   databaseRecordExists: boolean;
 }
@@ -627,6 +629,8 @@ export async function performConsistencyCheckWithNeverthrow(): Promise<
             `Error: ${error instanceof Error ? error.message : String(error)}`,
           ],
           extraFiles: [],
+          missingImages: [],
+          extraImages: [],
           jsonValid: false,
           databaseRecordExists: true,
         });
@@ -661,6 +665,8 @@ async function checkSingleModelVersionConsistency(
     versionId,
     missingFiles: [],
     extraFiles: [],
+    missingImages: [],
+    extraImages: [],
     jsonValid: false,
     databaseRecordExists: true,
   };
@@ -752,6 +758,35 @@ async function checkSingleModelVersionConsistency(
         result.extraFiles = [
           ...result.extraFiles,
           `Extra file in DB: ${dbFile.name} (ID: ${dbFile.id})`,
+        ];
+      }
+    }
+
+    // Check for missing images
+    const imagesInJson = versionData.images || [];
+    const imagesOnDisk = existenceStatus.images || [];
+
+    for (const image of imagesInJson) {
+      const existsOnDisk = imagesOnDisk.some(
+        (img) => img.id === image.id && img.exists,
+      );
+      const existsInDb = dbImages.some((img) => img.id === image.id);
+
+      if (!existsOnDisk && existsInDb) {
+        result.missingImages = [
+          ...result.missingImages,
+          `Missing image (ID: ${image.id})`,
+        ];
+      }
+    }
+
+    // Check for extra images in database that don't exist in JSON
+    for (const dbImage of dbImages) {
+      const existsInJson = imagesInJson.some((img) => img.id === dbImage.id);
+      if (!existsInJson) {
+        result.extraImages = [
+          ...result.extraImages,
+          `Extra image in DB (ID: ${dbImage.id})`,
         ];
       }
     }

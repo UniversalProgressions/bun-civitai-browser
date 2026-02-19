@@ -1,85 +1,158 @@
-import { Schema } from "effect";
+/**
+ * 本地模型服务错误类
+ *
+ * 使用新的统一错误系统，替代Effect Schema.TaggedError
+ */
+import {
+  FileSystemError,
+  ValidationError as BaseValidationError,
+  DatabaseError as BaseDatabaseError,
+  ServiceError,
+} from "../../../utils/errors";
 
-export class ScanFileError extends Schema.TaggedError<ScanFileError>()(
-  "ScanFileError",
-  {
-    filePath: Schema.String,
-    message: Schema.String,
-    cause: Schema.optional(Schema.String),
-  },
-) {}
+/**
+ * 扫描文件错误
+ */
+export class ScanFileError extends FileSystemError {
+  static readonly NAME = "ScanFileError" as const;
 
-export class JsonParseError extends Schema.TaggedError<JsonParseError>()(
-  "JsonParseError",
-  {
-    filePath: Schema.String,
-    message: Schema.String,
-    validationErrors: Schema.String,
-  },
-) {}
+  constructor(
+    message: string,
+    public readonly filePath: string,
+    public readonly cause?: string,
+  ) {
+    super(message);
+    this.name = ScanFileError.NAME;
+  }
+}
 
-export class DatabaseInsertError extends Schema.TaggedError<DatabaseInsertError>()(
-  "DatabaseInsertError",
-  {
-    modelId: Schema.Number,
-    versionId: Schema.Number,
-    message: Schema.String,
-    cause: Schema.optional(Schema.String),
-  },
-) {}
+/**
+ * JSON解析错误
+ */
+export class JsonParseError extends BaseValidationError {
+  static readonly NAME = "JsonParseError" as const;
 
-export class FileNotFoundError extends Schema.TaggedError<FileNotFoundError>()(
-  "FileNotFoundError",
-  {
-    filePath: Schema.String,
-    message: Schema.String,
-  },
-) {}
+  constructor(
+    message: string,
+    public readonly filePath: string,
+    public readonly validationErrors: string,
+  ) {
+    super(message);
+    this.name = JsonParseError.NAME;
+  }
+}
 
-export class DirectoryStructureError extends Schema.TaggedError<DirectoryStructureError>()(
-  "DirectoryStructureError",
-  {
-    filePath: Schema.String,
-    expectedPattern: Schema.String,
-    message: Schema.String,
-  },
-) {}
+/**
+ * 数据库插入错误
+ */
+export class DatabaseInsertError extends BaseDatabaseError {
+  static readonly NAME = "DatabaseInsertError" as const;
 
-export class HashMismatchError extends Schema.TaggedError<HashMismatchError>()(
-  "HashMismatchError",
-  {
-    filePath: Schema.String,
-    expectedHash: Schema.String,
-    actualHash: Schema.String,
-    message: Schema.String,
-  },
-) {}
+  constructor(
+    message: string,
+    public readonly modelId: number,
+    public readonly versionId: number,
+    public readonly cause?: string,
+  ) {
+    super(message);
+    this.name = DatabaseInsertError.NAME;
+  }
+}
 
-export class DatabaseConsistencyError extends Schema.TaggedError<DatabaseConsistencyError>()(
-  "DatabaseConsistencyError",
-  {
-    modelId: Schema.Number,
-    versionId: Schema.Number,
-    message: Schema.String,
-    missingFiles: Schema.Array(Schema.String),
-    extraFiles: Schema.Array(Schema.String),
-  },
-) {}
+/**
+ * 文件未找到错误
+ */
+export class FileNotFoundError extends FileSystemError {
+  static readonly NAME = "FileNotFoundError" as const;
 
-export class ScanInterruptedError extends Schema.TaggedError<ScanInterruptedError>()(
-  "ScanInterruptedError",
-  {
-    message: Schema.String,
-    processedFiles: Schema.Number,
-    totalFiles: Schema.Number,
-  },
-) {}
+  constructor(
+    message: string,
+    public readonly filePath: string,
+  ) {
+    super(message);
+    this.name = FileNotFoundError.NAME;
+  }
+}
 
-export class RecoveryError extends Schema.TaggedError<RecoveryError>()(
-  "RecoveryError",
-  {
-    operation: Schema.String,
-    message: Schema.String,
-    failedItems: Schema.Array(Schema.String),
-  },
-) {}
+/**
+ * 目录结构错误
+ */
+export class DirectoryStructureError extends FileSystemError {
+  static readonly NAME = "DirectoryStructureError" as const;
+
+  constructor(
+    message: string,
+    public readonly filePath: string,
+    public readonly expectedPattern: string,
+  ) {
+    super(message);
+    this.name = DirectoryStructureError.NAME;
+  }
+}
+
+/**
+ * 哈希不匹配错误
+ */
+export class HashMismatchError extends FileSystemError {
+  static readonly NAME = "HashMismatchError" as const;
+
+  constructor(
+    message: string,
+    public readonly filePath: string,
+    public readonly expectedHash: string,
+    public readonly actualHash: string,
+  ) {
+    super(message);
+    this.name = HashMismatchError.NAME;
+  }
+}
+
+/**
+ * 数据库一致性错误
+ */
+export class DatabaseConsistencyError extends BaseDatabaseError {
+  static readonly NAME = "DatabaseConsistencyError" as const;
+
+  constructor(
+    message: string,
+    public readonly modelId: number,
+    public readonly versionId: number,
+    public readonly missingFiles: string[],
+    public readonly extraFiles: string[],
+  ) {
+    super(message);
+    this.name = DatabaseConsistencyError.NAME;
+  }
+}
+
+/**
+ * 扫描中断错误
+ */
+export class ScanInterruptedError extends ServiceError {
+  static readonly NAME = "ScanInterruptedError" as const;
+
+  constructor(
+    message: string,
+    public readonly processedFiles: number,
+    public readonly totalFiles: number,
+  ) {
+    super(message);
+    this.name = ScanInterruptedError.NAME;
+  }
+}
+
+/**
+ * 恢复错误
+ */
+export class RecoveryError extends ServiceError {
+  static readonly NAME = "RecoveryError" as const;
+
+  constructor(
+    message: string,
+    public readonly operation: string,
+    public readonly failedItems: string[],
+  ) {
+    super(message);
+    this.name = RecoveryError.NAME;
+  }
+}

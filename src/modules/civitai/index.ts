@@ -25,8 +25,15 @@ import { Client } from "@gopeed/rest";
 import { join } from "node:path";
 import { CreateTaskWithRequest } from "@gopeed/types";
 import { ModelLayout, getMediaDir } from "../local-models/service/file-layout";
-import { upsertOneModelVersion } from "../db/crud/modelVersion";
-import { extractFilenameFromUrl } from "../../civitai-api/v1/utils";
+import {
+  upsertOneModelVersion,
+  updateModelVersionFileTaskId,
+  updateModelVersionImageTaskId,
+} from "../db/crud/modelVersion";
+import {
+  extractFilenameFromUrl,
+  extractIdFromImageUrl,
+} from "../../civitai-api/v1/utils";
 import { writeJsonFile } from "write-json-file";
 
 export const client = createCivitaiClient({
@@ -320,10 +327,14 @@ export default new Elysia({ prefix: `/civitai_api` })
             handleCivitaiError(versionResult.error);
           }
 
-          const modelVersion = versionResult.value;
+          const modelVersionEndpointData = versionResult.value;
 
-          for (let index = 0; index < modelVersion.files.length; index++) {
-            const file = modelVersion.files[index];
+          for (
+            let index = 0;
+            index < modelVersionEndpointData.files.length;
+            index++
+          ) {
+            const file = modelVersionEndpointData.files[index];
             // Directly use file.downloadUrl with Authorization header
             modelFileDownloadTasks.push({
               req: {
@@ -347,32 +358,66 @@ export default new Elysia({ prefix: `/civitai_api` })
           // Download Start
           // 1. save json data
           await writeJsonFile(milayout.getApiInfoJsonPath(), model);
-          await writeJsonFile(mvlayout.getApiInfoJsonPath(), modelVersion);
+          await writeJsonFile(
+            mvlayout.getApiInfoJsonPath(),
+            modelVersionEndpointData,
+          );
 
           // 2. download model files
           const modelfileTasksId: Array<string> = [];
+          const fileErrors: Array<{ fileId: number; error: any }> = [];
 
           for (let index = 0; index < modelFileDownloadTasks.length; index++) {
             const task = modelFileDownloadTasks[index];
+            const file = modelVersionEndpointData.files[index];
+
             if (
               await Bun.file(join(task.opts!.path!, task.opts!.name!)).exists()
             ) {
               continue;
             }
-            const taskId = await gopeed.createTask(task);
-            modelfileTasksId.push(taskId);
+
+            try {
+              const taskId = await gopeed.createTask(task);
+              modelfileTasksId.push(taskId);
+
+              // Update database with task ID
+              await updateModelVersionFileTaskId(file.id, taskId);
+            } catch (error) {
+              console.error(
+                `Failed to create Gopeed task for file ${file.id}:`,
+                error,
+              );
+              fileErrors.push({ fileId: file.id, error });
+              // Continue with other files, don't throw
+            }
+          }
+
+          // Log any file task creation errors
+          if (fileErrors.length > 0) {
+            console.error(
+              `Failed to create Gopeed tasks for ${fileErrors.length} files:`,
+              fileErrors
+                .map((e) => `File ${e.fileId}: ${e.error.message || e.error}`)
+                .join(", "),
+            );
           }
 
           // 3. download media files
           const mediaTaskIds: string[] = [];
+          const mediaErrors: Array<{ imageIndex: number; error: any }> = [];
           const mediaDir = getMediaDir(
             settings.basePath,
             model.type,
             model.id,
             modelVersionId,
           );
-          for (let index = 0; index < modelVersion.images.length; index++) {
-            const media = modelVersion.images[index];
+          for (
+            let index = 0;
+            index < modelVersionEndpointData.images.length;
+            index++
+          ) {
+            const media = modelVersionEndpointData.images[index];
             const filenameResult = extractFilenameFromUrl(media.url);
             if (filenameResult.isOk()) {
               const filename = filenameResult.value;
@@ -383,37 +428,110 @@ export default new Elysia({ prefix: `/civitai_api` })
                 continue;
               }
 
-              // Create media download task with Authorization header
-              const task = await gopeed.createTask({
-                req: {
-                  url: media.url,
-                  extra: {
-                    header: {
-                      Authorization: `Bearer ${settings.civitai_api_token}`,
+              try {
+                // Create media download task with Authorization header
+                const task = await gopeed.createTask({
+                  req: {
+                    url: media.url,
+                    extra: {
+                      header: {
+                        Authorization: `Bearer ${settings.civitai_api_token}`,
+                      },
+                    },
+                    labels: {
+                      CivitAI: `Media`,
                     },
                   },
-                  labels: {
-                    CivitAI: `Media`,
+                  opts: {
+                    name: filename,
+                    path: mediaDir,
                   },
-                },
-                opts: {
-                  name: filename,
-                  path: mediaDir,
-                },
-              });
-              mediaTaskIds.push(task);
+                });
+                mediaTaskIds.push(task);
+
+                // Extract image ID from URL and update database with task ID
+                const imageIdResult = extractIdFromImageUrl(media.url);
+                if (imageIdResult.isOk()) {
+                  const imageId = imageIdResult.value;
+                  await updateModelVersionImageTaskId(imageId, task);
+                } else {
+                  console.error(
+                    `Failed to extract image ID from URL for media task ${task}:`,
+                    imageIdResult.error,
+                  );
+                }
+              } catch (error) {
+                console.error(
+                  `Failed to create Gopeed task for media ${index}:`,
+                  error,
+                );
+                mediaErrors.push({ imageIndex: index, error });
+                // Continue with other media files, don't throw
+              }
             } else {
               // Log error but continue with other media files
               console.error(
                 `Failed to extract filename from URL: ${media.url}`,
                 filenameResult.error,
               );
+              mediaErrors.push({
+                imageIndex: index,
+                error: filenameResult.error,
+              });
             }
           }
 
+          // Log any media task creation errors
+          if (mediaErrors.length > 0) {
+            console.error(
+              `Failed to create Gopeed tasks for ${mediaErrors.length} media files:`,
+              mediaErrors
+                .map(
+                  (e) => `Image ${e.imageIndex}: ${e.error.message || e.error}`,
+                )
+                .join(", "),
+            );
+          }
+
           // 4. upsert model info to db
-          // @ts-ignore 'video' and 'image' isn't assignable to string
-          const records = await upsertOneModelVersion(model, modelVersion);
+          // Create a merged model version object with data from both sources
+          // Add IDs to images by extracting from URL
+          const imagesWithIds = modelVersionEndpointData.images.map((image) => {
+            const idResult = extractIdFromImageUrl(image.url);
+            if (idResult.isOk()) {
+              return {
+                ...image,
+                id: idResult.value,
+              };
+            } else {
+              console.error(
+                `Failed to extract ID from image URL: ${image.url}`,
+                idResult.error,
+              );
+              // Fallback to using index or 0, but better to handle gracefully
+              return {
+                ...image,
+                id: 0, // Fallback ID, will cause database error but at least type matches
+              };
+            }
+          });
+
+          const mergedModelVersion = {
+            ...modelVersionData,
+            files: modelVersionEndpointData.files,
+            images: imagesWithIds,
+            stats: modelVersionData.stats, // Use stats from modelVersionData which includes thumbsDownCount
+            // Ensure required fields are present
+            index: modelVersionData.index,
+            availability: modelVersionData.availability,
+            publishedAt: modelVersionData.publishedAt,
+            baseModelType: modelVersionData.baseModelType,
+            trainedWords: modelVersionData.trainedWords || [],
+          };
+          const records = await upsertOneModelVersion(
+            model,
+            mergedModelVersion,
+          );
 
           // 5. return tasks info
           return {

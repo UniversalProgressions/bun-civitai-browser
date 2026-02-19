@@ -15,6 +15,7 @@ import {
   extractFilenameFromUrl,
   extractIdFromImageUrl,
 } from "../../../civitai-api/v1/utils";
+import { Effect, pipe } from "effect";
 
 /**
  * The layout of directory:
@@ -243,6 +244,98 @@ export class ModelLayout {
       }
     }
     return existedFiles;
+  }
+
+  /**
+   * Check if all files and images for a model version exist on disk
+   * Returns an object with existence status for each file and image
+   */
+  async checkVersionFilesAndImagesExistence(versionId: number): Promise<{
+    files: Array<{ id: number; exists: boolean }>;
+    images: Array<{ id: number; exists: boolean }>;
+  }> {
+    const result = await Effect.runPromise(
+      this.checkVersionFilesAndImagesExistenceEffect(versionId),
+    );
+    return result;
+  }
+
+  /**
+   * Effect-style version of checkVersionFilesAndImagesExistence
+   * Check if all files and images for a model version exist on disk
+   * Returns an Effect that resolves to an object with existence status for each file and image
+   */
+  checkVersionFilesAndImagesExistenceEffect(versionId: number): Effect.Effect<
+    {
+      files: Array<{ id: number; exists: boolean }>;
+      images: Array<{ id: number; exists: boolean }>;
+    },
+    never
+  > {
+    const self = this;
+    return Effect.gen(function* () {
+      const mv = self.getModelVersionLayout(versionId);
+
+      // Helper function to safely check file existence
+      const checkFileExists = (
+        fileId: number,
+        filePath: string,
+      ): Effect.Effect<{ id: number; exists: boolean }, never> => {
+        return pipe(
+          Effect.tryPromise(async () => {
+            return await Bun.file(filePath).exists();
+          }),
+          Effect.catchAll(() => Effect.succeed(false)),
+          Effect.map((exists: boolean) => ({ id: fileId, exists })),
+        );
+      };
+
+      // Check files in parallel
+      const filesExistence: Array<{ id: number; exists: boolean }> =
+        yield* Effect.all(
+          mv.modelVersion.files.map((file: ModelFile) =>
+            checkFileExists(file.id, mv.getFilePath(file.id)),
+          ),
+          { concurrency: "unbounded" },
+        );
+
+      // Helper function to safely check image existence
+      const checkImageExists = (
+        image: ModelImage,
+      ): Effect.Effect<{ id: number; exists: boolean }, never> => {
+        return pipe(
+          Effect.sync(() => extractIdFromImageUrl(image.url)),
+          Effect.flatMap((idResult) => {
+            if (idResult.isOk()) {
+              const imageId = idResult.value;
+              return pipe(
+                Effect.tryPromise(async () => {
+                  const imagePath = mv.getMediaPath(imageId);
+                  return await Bun.file(imagePath).exists();
+                }),
+                Effect.catchAll(() => Effect.succeed(false)),
+                Effect.map((exists: boolean) => ({ id: imageId, exists })),
+              );
+            } else {
+              // If can't extract ID, mark as not existing
+              console.warn(`Could not extract ID from image URL: ${image.url}`);
+              return Effect.succeed({ id: 0, exists: false });
+            }
+          }),
+        );
+      };
+
+      // Check images in parallel
+      const imagesExistence: Array<{ id: number; exists: boolean }> =
+        yield* Effect.all(
+          mv.modelVersion.images.map((image: ModelImage) =>
+            checkImageExists(image),
+          ),
+          { concurrency: "unbounded" },
+        );
+
+      return { files: filesExistence, images: imagesExistence };
+    });
   }
 }
 

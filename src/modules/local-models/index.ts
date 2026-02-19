@@ -1,5 +1,5 @@
 import { type } from "arktype";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import {
   modelSchema,
   modelVersionSchema,
@@ -16,7 +16,14 @@ import type {
 } from "../../civitai-api/v1/models";
 import { modelId2Model } from "../../civitai-api/v1/utils";
 import { client } from "../civitai";
-import { checkModelOnDisk } from "./service/scan-models";
+import {
+  checkModelOnDisk,
+  performIncrementalScan,
+  performConsistencyCheckWithNeverthrow,
+  repairDatabaseRecordsWithNeverthrow,
+} from "./service/scan-models";
+import { updateAllGopeedTaskStatus } from "../db/crud/modelVersion";
+import { Effect } from "effect";
 
 export default new Elysia({ prefix: "/local-models" })
   // GET /local-models/models/:id/with-disk-status - Get model with disk existence check
@@ -199,5 +206,105 @@ export default new Elysia({ prefix: "/local-models" })
         versionsOnDisk: modelVersionSchema.array(),
         diskStatus: existedModelVersionsSchema,
       }),
+    },
+  )
+  // POST /local-models/enhanced-scan - Enhanced incremental scan with consistency checks (using neverthrow)
+  .post(
+    "/enhanced-scan",
+    async ({ body }) => {
+      console.log("[API] Starting enhanced scan process (neverthrow)...");
+      const options = body || {};
+      const result = await performIncrementalScan(options);
+      if (result.isErr()) {
+        console.error(`[API] Enhanced scan failed: ${result.error.message}`);
+        throw new Error(`Enhanced scan failed: ${result.error.message}`);
+      }
+      console.log(
+        `[API] Enhanced scan completed. Added ${result.value.newRecordsAdded} new records, found ${result.value.existingRecordsFound} existing records.`,
+      );
+      return result.value;
+    },
+    {
+      body: type({
+        "incremental?": "boolean",
+        "checkConsistency?": "boolean",
+        "repairDatabase?": "boolean",
+        "maxConcurrency?": "number",
+      }),
+      response: type({
+        totalFilesScanned: "number",
+        newRecordsAdded: "number",
+        existingRecordsFound: "number",
+        consistencyErrors: "string[]",
+        repairedRecords: "number",
+        failedFiles: "string[]",
+        scanDurationMs: "number",
+      }),
+    },
+  )
+  // POST /local-models/check-consistency - Check database consistency with local files (using neverthrow)
+  .post(
+    "/check-consistency",
+    async () => {
+      console.log("[API] Starting database consistency check (neverthrow)...");
+      const results = await performConsistencyCheckWithNeverthrow();
+      if (results.isErr()) {
+        console.error(
+          `[API] Consistency check failed: ${results.error.message}`,
+        );
+        throw new Error(`Consistency check failed: ${results.error.message}`);
+      }
+      console.log(
+        `[API] Consistency check completed. Checked ${results.value.length} model versions.`,
+      );
+      return results.value;
+    },
+    {
+      response: type({
+        modelId: "number",
+        versionId: "number",
+        missingFiles: "string[]",
+        extraFiles: "string[]",
+        jsonValid: "boolean",
+        databaseRecordExists: "boolean",
+      }).array(),
+    },
+  )
+  // POST /local-models/repair-database - Repair database records with consistency issues (using neverthrow)
+  .post(
+    "/repair-database",
+    async () => {
+      console.log("[API] Starting database repair process (neverthrow)...");
+      const result = await repairDatabaseRecordsWithNeverthrow();
+      if (result.isErr()) {
+        console.error(`[API] Database repair failed: ${result.error.message}`);
+        throw new Error(`Database repair failed: ${result.error.message}`);
+      }
+      console.log(
+        `[API] Database repair completed. Repaired ${result.value.repaired} records, failed on ${result.value.failed} records.`,
+      );
+      return result.value;
+    },
+    {
+      response: type({
+        repaired: "number",
+        failed: "number",
+        total: "number",
+      }),
+    },
+  )
+  // POST /local-models/fix-gopeed-task-status - Fix gopeed task status for all model versions based on disk existence
+  .post(
+    "/fix-gopeed-task-status",
+    async () => {
+      console.log("[API] Starting gopeed task status fix process...");
+      const result = await updateAllGopeedTaskStatus();
+      console.log(
+        `[API] Gopeed task status fix completed. Updated ${result.totalUpdatedFiles} files and ${result.totalUpdatedImages} images.`,
+      );
+      return result;
+    },
+    {
+      response: t.Any(),
     },
   );

@@ -28,15 +28,23 @@ import { edenTreaty } from "../utils";
 
 const { Title, Text } = Typography;
 
-// 定义任务状态枚举和颜色映射
+// Define task status enum and color mapping
 const TaskStatusConfig = {
-  FAILED: { color: "red", text: "失败", icon: <CloseCircleOutlined /> },
-  CREATED: { color: "blue", text: "进行中", icon: <CloudDownloadOutlined /> },
-  FINISHED: { color: "green", text: "已完成", icon: <CheckCircleOutlined /> },
-  CLEANED: { color: "default", text: "已清理", icon: <CheckCircleOutlined /> },
+  FAILED: { color: "red", text: "Failed", icon: <CloseCircleOutlined /> },
+  CREATED: {
+    color: "blue",
+    text: "In Progress",
+    icon: <CloudDownloadOutlined />,
+  },
+  FINISHED: {
+    color: "green",
+    text: "Completed",
+    icon: <CheckCircleOutlined />,
+  },
+  CLEANED: { color: "default", text: "Cleaned", icon: <CheckCircleOutlined /> },
 };
 
-// 定义任务类型接口
+// Define task type interface
 interface DownloadTask {
   id: number;
   name?: string;
@@ -81,15 +89,15 @@ const DownloadManager = () => {
     Record<string, GopeedTaskStatus>
   >({});
 
-  // 获取所有任务
+  // Get all tasks
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await edenTreaty.gopeed.tasks.get();
       if (error) {
         notification.error({
-          message: "获取任务列表失败",
-          description: error.value?.message || "未知错误",
+          message: "Failed to fetch task list",
+          description: error.value?.message || "Unknown error",
         });
         return;
       }
@@ -107,7 +115,7 @@ const DownloadManager = () => {
       const allTasks = [...response.files, ...response.images];
       setTasks(allTasks);
 
-      // 获取活动任务的详细状态
+      // Get detailed status for active tasks
       const activeTaskIds = allTasks
         .filter((task) => task.gopeedTaskId && !task.gopeedTaskFinished)
         .map((task) => task.gopeedTaskId as string);
@@ -130,20 +138,20 @@ const DownloadManager = () => {
     } catch (error) {
       console.error("Failed to fetch tasks:", error);
       notification.error({
-        message: "获取任务失败",
-        description: error instanceof Error ? error.message : "未知错误",
+        message: "Failed to fetch tasks",
+        description: error instanceof Error ? error.message : "Unknown error",
       });
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // 初始化加载任务
+  // Initialize loading tasks
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
 
-  // 设置轮询（每5秒）
+  // Setup polling (every 5 seconds)
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (polling) {
@@ -156,42 +164,42 @@ const DownloadManager = () => {
     };
   }, [polling, fetchTasks]);
 
-  // 处理任务控制操作
+  // Handle task control operations
   const handleTaskControl = async (
     action: "pause" | "continue" | "delete",
     taskId: string,
     force?: boolean,
   ) => {
     try {
-      // 使用类型断言处理动态路径参数
+      // Use type assertion for dynamic path parameters
       const tasksApi = edenTreaty.gopeed.tasks as any;
       switch (action) {
         case "pause":
           await tasksApi[taskId].pause.post();
-          notification.success({ message: "任务已暂停" });
+          notification.success({ message: "Task paused" });
           break;
         case "continue":
           await tasksApi[taskId].continue.post();
-          notification.success({ message: "任务已继续" });
+          notification.success({ message: "Task continued" });
           break;
         case "delete": {
           const query = force ? { force: "true" } : {};
           await tasksApi[taskId].delete(query);
-          notification.success({ message: "任务已删除" });
+          notification.success({ message: "Task deleted" });
           break;
         }
       }
-      // 操作后刷新任务列表
+      // Refresh task list after operation
       setTimeout(() => fetchTasks(), 1000);
     } catch (error) {
       notification.error({
-        message: "操作失败",
-        description: error instanceof Error ? error.message : "未知错误",
+        message: "Operation failed",
+        description: error instanceof Error ? error.message : "Unknown error",
       });
     }
   };
 
-  // 完成并清理任务
+  // Finish and clean task
   const handleFinishAndClean = async (
     taskId: string,
     fileId: number,
@@ -199,44 +207,44 @@ const DownloadManager = () => {
     force?: boolean,
   ) => {
     try {
-      // 使用类型断言处理动态路径参数
+      // Use type assertion for dynamic path parameters
       const tasksApi = edenTreaty.gopeed.tasks as any;
       await tasksApi[taskId]["finish-and-clean"].post({
         fileId,
         isMedia,
         force,
       });
-      notification.success({ message: "任务已完成并清理" });
+      notification.success({ message: "Task completed and cleaned" });
       setTimeout(() => fetchTasks(), 1000);
     } catch (error) {
       notification.error({
-        message: "操作失败",
-        description: error instanceof Error ? error.message : "未知错误",
+        message: "Operation failed",
+        description: error instanceof Error ? error.message : "Unknown error",
       });
     }
   };
 
-  // 表格列定义
+  // Table column definitions
   const columns = [
     {
-      title: "任务类型",
+      title: "Task Type",
       dataIndex: "resourceType",
       key: "resourceType",
       width: 100,
       render: (type: string) => (
         <Tag color={type === "file" ? "blue" : "purple"}>
-          {type === "file" ? "文件" : "图片"}
+          {type === "file" ? "File" : "Image"}
         </Tag>
       ),
     },
     {
-      title: "名称",
+      title: "Name",
       key: "name",
       width: 200,
       render: (record: DownloadTask) => (
         <div>
           <div style={{ fontWeight: "bold" }}>
-            {record.name || record.url?.split("/").pop() || "未知文件"}
+            {record.name || record.url?.split("/").pop() || "Unknown file"}
           </div>
           {record.modelVersion && (
             <div style={{ fontSize: "12px", color: "#666" }}>
@@ -247,15 +255,15 @@ const DownloadManager = () => {
       ),
     },
     {
-      title: "大小",
+      title: "Size",
       dataIndex: "sizeKB",
       key: "sizeKB",
       width: 100,
       render: (size?: number) =>
-        size ? `${(size / 1024).toFixed(2)} MB` : "未知",
+        size ? `${(size / 1024).toFixed(2)} MB` : "Unknown",
     },
     {
-      title: "状态",
+      title: "Status",
       key: "status",
       width: 150,
       render: (record: DownloadTask) => {
@@ -290,7 +298,7 @@ const DownloadManager = () => {
       },
     },
     {
-      title: "任务ID",
+      title: "Task ID",
       dataIndex: "gopeedTaskId",
       key: "gopeedTaskId",
       width: 120,
@@ -304,7 +312,7 @@ const DownloadManager = () => {
         ),
     },
     {
-      title: "操作",
+      title: "Actions",
       key: "actions",
       width: 200,
       render: (record: DownloadTask) => {
@@ -323,7 +331,7 @@ const DownloadManager = () => {
                   }
                   disabled={record.status !== "CREATED"}
                 >
-                  暂停
+                  Pause
                 </Button>
                 <Button
                   size="small"
@@ -333,7 +341,7 @@ const DownloadManager = () => {
                   }
                   disabled={record.status !== "CREATED"}
                 >
-                  继续
+                  Continue
                 </Button>
               </>
             )}
@@ -346,7 +354,7 @@ const DownloadManager = () => {
                   handleTaskControl("delete", record.gopeedTaskId!)
                 }
               >
-                删除
+                Delete
               </Button>
             )}
             {record.gopeedTaskFinished && !record.gopeedTaskDeleted && (
@@ -357,7 +365,7 @@ const DownloadManager = () => {
                   handleFinishAndClean(record.gopeedTaskId!, record.id, isMedia)
                 }
               >
-                清理
+                Clean
               </Button>
             )}
           </Space>
@@ -366,7 +374,7 @@ const DownloadManager = () => {
     },
   ];
 
-  // 计算统计信息
+  // Calculate statistics
   const stats = {
     total: tasks.length,
     active: tasks.filter((t) => t.status === "CREATED").length,
@@ -377,13 +385,13 @@ const DownloadManager = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <Title level={2}>下载管理器</Title>
+      <Title level={2}>Download Manager</Title>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
           <Card size="small">
             <StatCard
-              title="总任务数"
+              title="Total Tasks"
               value={stats.total}
               icon={<CloudDownloadOutlined />}
               color="#1890ff"
@@ -393,7 +401,7 @@ const DownloadManager = () => {
         <Col span={6}>
           <Card size="small">
             <StatCard
-              title="进行中"
+              title="In Progress"
               value={stats.active}
               icon={<ClockCircleOutlined />}
               color="#52c41a"
@@ -403,7 +411,7 @@ const DownloadManager = () => {
         <Col span={6}>
           <Card size="small">
             <StatCard
-              title="已完成"
+              title="Completed"
               value={stats.finished}
               icon={<CheckCircleOutlined />}
               color="#722ed1"
@@ -413,7 +421,7 @@ const DownloadManager = () => {
         <Col span={6}>
           <Card size="small">
             <StatCard
-              title="失败"
+              title="Failed"
               value={stats.failed}
               icon={<CloseCircleOutlined />}
               color="#f5222d"
@@ -425,7 +433,7 @@ const DownloadManager = () => {
       <Card
         title={
           <Space>
-            <span>下载任务列表</span>
+            <span>Download Task List</span>
             <Badge count={stats.active} showZero />
           </Space>
         }
@@ -436,14 +444,14 @@ const DownloadManager = () => {
               onClick={() => setPolling(!polling)}
               type={polling ? "primary" : "default"}
             >
-              {polling ? "停止轮询" : "开始轮询"}
+              {polling ? "Stop Polling" : "Start Polling"}
             </Button>
             <Button
               icon={<ReloadOutlined />}
               onClick={fetchTasks}
               loading={loading}
             >
-              刷新
+              Refresh
             </Button>
           </Space>
         }
@@ -453,7 +461,7 @@ const DownloadManager = () => {
           items={[
             {
               key: "all",
-              label: `全部 (${stats.total})`,
+              label: `All (${stats.total})`,
               children: (
                 <Table
                   columns={columns}
@@ -467,7 +475,7 @@ const DownloadManager = () => {
             },
             {
               key: "active",
-              label: `进行中 (${stats.active})`,
+              label: `In Progress (${stats.active})`,
               children: (
                 <Table
                   columns={columns}
@@ -481,7 +489,7 @@ const DownloadManager = () => {
             },
             {
               key: "finished",
-              label: `已完成 (${stats.finished})`,
+              label: `Completed (${stats.finished})`,
               children: (
                 <Table
                   columns={columns}
@@ -495,7 +503,7 @@ const DownloadManager = () => {
             },
             {
               key: "failed",
-              label: `失败 (${stats.failed})`,
+              label: `Failed (${stats.failed})`,
               children: (
                 <Table
                   columns={columns}
@@ -513,42 +521,45 @@ const DownloadManager = () => {
 
       <Divider />
 
-      <Card title="使用说明" size="small">
+      <Card title="Usage Instructions" size="small">
         <ul>
           <li>
-            状态说明：
-            <Tag color="blue">进行中</Tag> - 下载任务正在运行
-            <Tag color="green">已完成</Tag> - 文件已下载完成
-            <Tag color="red">失败</Tag> - 下载任务失败
-            <Tag color="default">已清理</Tag> - Gopeed任务已被清理
+            Status descriptions:
+            <Tag color="blue">In Progress</Tag> - Download task is running
+            <Tag color="green">Completed</Tag> - File has been downloaded
+            <Tag color="red">Failed</Tag> - Download task failed
+            <Tag color="default">Cleaned</Tag> - Gopeed task has been cleaned
           </li>
           <li>
-            操作说明：
+            Operation descriptions:
             <Button size="small" icon={<PauseOutlined />} disabled>
-              暂停
+              Pause
             </Button>{" "}
-            - 暂停下载任务
+            - Pause download task
             <Button size="small" icon={<PlayCircleOutlined />} disabled>
-              继续
+              Continue
             </Button>{" "}
-            - 继续已暂停的任务
+            - Continue paused task
             <Button size="small" danger icon={<DeleteOutlined />} disabled>
-              删除
+              Delete
             </Button>{" "}
-            - 删除Gopeed下载任务
+            - Delete Gopeed download task
             <Button size="small" type="primary" disabled>
-              清理
+              Clean
             </Button>{" "}
-            - 标记已完成的任务为已清理状态
+            - Mark completed task as cleaned
           </li>
-          <li>轮询功能：开启后每5秒自动刷新任务状态</li>
+          <li>
+            Polling feature: Automatically refreshes task status every 5 seconds
+            when enabled
+          </li>
         </ul>
       </Card>
     </div>
   );
 };
 
-// 统计卡片组件
+// Statistics card component
 const StatCard = ({ title, value, icon, color }: any) => (
   <div style={{ display: "flex", alignItems: "center" }}>
     <div style={{ marginRight: 16, fontSize: 24, color }}>{icon}</div>

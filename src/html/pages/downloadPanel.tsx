@@ -313,8 +313,8 @@ function ModelCardContent({ data }: { data: Model }) {
 }
 
 function InputBar() {
-  const [selectedOption, setSelectedOption] = useAtom(selectedOptionAtom); // 当前选中的加载选项
-  const [_activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom); // 当前激活的模型版本ID
+  const [selectedOption, setSelectedOption] = useAtom(selectedOptionAtom); // Currently selected loading option
+  const [_activeVersionId, setActiveVersionId] = useAtom(activeVersionIdAtom); // Currently active model version ID
   const [inputValue, setInputValue] = useAtom(inputValueAtom);
   const [_loading, setLoading] = useAtom(loadingAtom);
   const [_modelContent, setModelContent] = useAtom(modelContentAtom);

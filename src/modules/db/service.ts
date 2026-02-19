@@ -1,8 +1,14 @@
 import { PrismaClient } from "./generated/client";
-import { BunSQLiteAdapter } from "@abcx3/prisma-bun-adapter";
-
+import { PrismaBunSqlite } from "prisma-adapter-bun-sqlite";
 // Create adapter factory
-const adapter = new BunSQLiteAdapter({ filename: "./db.sqlite3" }); // keep the name to be same as in schema.prisma
+const adapter = new PrismaBunSqlite({
+  url: `file:./db.sqlite3`,
+  wal: {
+    enabled: true,
+    synchronous: "NORMAL", // 2-3x faster than FULL
+    busyTimeout: 10000,
+  },
+}); // keep the name to be same as in schema.prisma
 
 // Initialize Prisma with adapter
 export const prisma = new PrismaClient({ adapter });

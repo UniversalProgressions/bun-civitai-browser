@@ -19,6 +19,8 @@ import {
   getTaskStatusFromDb,
   finishAndCleanTask,
 } from "./service";
+import { ModelVersionFile } from "#generated/typebox/ModelVersionFile";
+import { ModelVersionImage } from "#generated/typebox/ModelVersionImage";
 
 // Error classes for API responses
 export class ApiError extends Error {
@@ -107,24 +109,10 @@ export default new Elysia({ prefix: `/gopeed` })
             gopeedTaskId: { not: null },
             gopeedTaskDeleted: false,
           },
-          select: {
-            id: true,
-            name: true,
-            sizeKB: true,
-            type: true,
-            gopeedTaskId: true,
-            gopeedTaskFinished: true,
-            gopeedTaskDeleted: true,
+          include: {
             modelVersion: {
-              select: {
-                id: true,
-                name: true,
-                model: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
+              include: {
+                model: true,
               },
             },
           },
@@ -135,60 +123,18 @@ export default new Elysia({ prefix: `/gopeed` })
             gopeedTaskId: { not: null },
             gopeedTaskDeleted: false,
           },
-          select: {
-            id: true,
-            url: true,
-            type: true,
-            gopeedTaskId: true,
-            gopeedTaskFinished: true,
-            gopeedTaskDeleted: true,
+          include: {
             modelVersion: {
-              select: {
-                id: true,
-                name: true,
-                model: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
+              include: {
+                model: true,
               },
             },
           },
         });
 
         return {
-          files: tasks.map((task) => ({
-            id: task.id,
-            name: task.name,
-            sizeKB: task.sizeKB,
-            fileType: task.type,
-            gopeedTaskId: task.gopeedTaskId,
-            gopeedTaskFinished: task.gopeedTaskFinished,
-            gopeedTaskDeleted: task.gopeedTaskDeleted,
-            status: getGopeedTaskStatus(
-              task.gopeedTaskId,
-              task.gopeedTaskFinished,
-              task.gopeedTaskDeleted,
-            ),
-            resourceType: "file" as const,
-            modelVersion: task.modelVersion,
-          })),
-          images: images.map((image) => ({
-            id: image.id,
-            url: image.url,
-            imageType: image.type,
-            gopeedTaskId: image.gopeedTaskId,
-            gopeedTaskFinished: image.gopeedTaskFinished,
-            gopeedTaskDeleted: image.gopeedTaskDeleted,
-            status: getGopeedTaskStatus(
-              image.gopeedTaskId,
-              image.gopeedTaskFinished,
-              image.gopeedTaskDeleted,
-            ),
-            resourceType: "image" as const,
-            modelVersion: image.modelVersion,
-          })),
+          files: tasks,
+          images: images,
         };
       } catch (error) {
         throw error; // Let the error handler handle it
@@ -196,47 +142,8 @@ export default new Elysia({ prefix: `/gopeed` })
     },
     {
       response: t.Object({
-        files: t.Array(
-          t.Object({
-            id: t.Number(),
-            name: t.String(),
-            sizeKB: t.Number(),
-            fileType: t.String(),
-            gopeedTaskId: t.Union([t.String(), t.Null()]),
-            gopeedTaskFinished: t.Boolean(),
-            gopeedTaskDeleted: t.Boolean(),
-            status: t.Enum(GopeedTaskStatus),
-            resourceType: t.Literal("file"),
-            modelVersion: t.Object({
-              id: t.Number(),
-              name: t.String(),
-              model: t.Object({
-                id: t.Number(),
-                name: t.String(),
-              }),
-            }),
-          }),
-        ),
-        images: t.Array(
-          t.Object({
-            id: t.Number(),
-            url: t.String(),
-            imageType: t.String(),
-            gopeedTaskId: t.Union([t.String(), t.Null()]),
-            gopeedTaskFinished: t.Boolean(),
-            gopeedTaskDeleted: t.Boolean(),
-            status: t.Enum(GopeedTaskStatus),
-            resourceType: t.Literal("image"),
-            modelVersion: t.Object({
-              id: t.Number(),
-              name: t.String(),
-              model: t.Object({
-                id: t.Number(),
-                name: t.String(),
-              }),
-            }),
-          }),
-        ),
+        files: t.Array(ModelVersionFile),
+        images: t.Array(ModelVersionImage),
       }),
     },
   )
@@ -258,12 +165,8 @@ export default new Elysia({ prefix: `/gopeed` })
           id: task.id,
           status: task.status,
           progress: typeof task.progress === "number" ? task.progress : 0,
-          speed: (task as any).speed || 0,
-          error: (task as any).error || null,
-          createAt:
-            (task as any).createAt ||
-            (task as any).createdAt ||
-            new Date().toISOString(),
+          speed: task.progress.speed || 0,
+          createAt: task.createdAt,
         };
       } catch (error) {
         throw error; // Re-throw to let Elysia handle it
@@ -276,7 +179,6 @@ export default new Elysia({ prefix: `/gopeed` })
         status: t.String(),
         progress: t.Number(),
         speed: t.Number(),
-        error: t.Union([t.String(), t.Null()]),
         createAt: t.String(),
       }),
     },
@@ -286,11 +188,11 @@ export default new Elysia({ prefix: `/gopeed` })
     "/files/:fileId/status",
     async ({ params, query }) => {
       try {
-        const fileId = parseInt(params.fileId);
+        const fileId = parseInt(params.fileId, 10);
         const queryType = query.type as string;
         const isMedia = queryType === "image";
 
-        if (isNaN(fileId)) {
+        if (Number.isNaN(fileId)) {
           throw new ApiError("Invalid file ID", 400);
         }
 

@@ -1,8 +1,8 @@
 import { type MenuProps, Tabs, type TabsProps } from "antd";
 import { SettingFilled } from "@ant-design/icons";
 import SettingsPanel from "./pages/settings";
-// import LocalModelsGallery from "./pages/localModelsGallery";
-import DownloadPanel from "./pages/downloadPanel";
+import LocalModelsGallery from "./pages/local-models";
+import DownloadPanel from "./pages/download";
 import DownloadManager from "./pages/downloadManager";
 import CivitaiGallery from "./pages/civitaiModelsGallery";
 // import TestPage from "./pages/galleryTestPage";
@@ -25,11 +25,11 @@ function GalleryContent() {
     //   key: "test",
     //   children: <TestPage />,
     // },
-    // {
-    //   label: MenuItemKeys.Local,
-    //   key: MenuItemKeys.Local,
-    //   children: <LocalModelsGallery />,
-    // },
+    {
+      label: MenuItemKeys.Local,
+      key: MenuItemKeys.Local,
+      children: <LocalModelsGallery />,
+    },
     {
       label: MenuItemKeys.CivitAI,
       key: MenuItemKeys.CivitAI,

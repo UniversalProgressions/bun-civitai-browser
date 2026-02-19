@@ -218,7 +218,7 @@ function ModelCardContent({ data }: { data: Model }) {
                       )}
                     />
                   ) : (
-                    `have no files`
+                    "No files available"
                   ),
               },
               {

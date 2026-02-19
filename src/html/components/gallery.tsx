@@ -20,7 +20,7 @@ function GalleryThumb({
   if (item === undefined) {
     return (
       <Card>
-        <p>have no preview</p>
+        <p>No preview available</p>
       </Card>
     );
   } else if (item.type === "image") {
@@ -57,13 +57,13 @@ export default function Gallery({ items }: { items: Array<ModelImageWithId> }) {
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
 
-  // 缩放功能
+  // Zoom functionality
   const handleZoomIn = () => {
-    setScale((prev) => Math.min(prev + 0.25, 3)); // 最大放大3倍
+    setScale((prev) => Math.min(prev + 0.25, 3)); // Maximum zoom 3x
   };
 
   const handleZoomOut = () => {
-    setScale((prev) => Math.max(prev - 0.25, 0.5)); // 最小缩小到0.5倍
+    setScale((prev) => Math.max(prev - 0.25, 0.5)); // Minimum zoom 0.5x
   };
 
   const handleReset = () => {
@@ -71,7 +71,7 @@ export default function Gallery({ items }: { items: Array<ModelImageWithId> }) {
     setPosition({ x: 0, y: 0 });
   };
 
-  // 拖拽功能 - 移除 scale <= 1 的限制，允许在任何缩放级别拖拽
+  // Drag functionality - Remove scale <= 1 restriction, allow dragging at any zoom level
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setStartPos({ x: e.clientX - position.x, y: e.clientY - position.y });
@@ -89,17 +89,17 @@ export default function Gallery({ items }: { items: Array<ModelImageWithId> }) {
     setIsDragging(false);
   };
 
-  // 滚轮缩放功能
+  // Mouse wheel zoom functionality
   const handleWheel = (e: React.WheelEvent) => {
-    // 阻止默认滚动行为
+    // Prevent default scroll behavior
     e.preventDefault();
 
-    // 根据滚轮方向缩放
+    // Zoom based on wheel direction
     if (e.deltaY < 0) {
-      // 向上滚动，放大
+      // Scroll up, zoom in
       handleZoomIn();
     } else {
-      // 向下滚动，缩小
+      // Scroll down, zoom out
       handleZoomOut();
     }
   };

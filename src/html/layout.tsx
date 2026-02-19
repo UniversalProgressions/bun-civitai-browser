@@ -6,6 +6,7 @@ import DownloadPanel from "./pages/downloadPanel";
 import DownloadManager from "./pages/downloadManager";
 import CivitaiGallery from "./pages/civitaiModelsGallery";
 // import TestPage from "./pages/galleryTestPage";
+import { SettingsCheck } from "./components/SettingsCheck";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -55,7 +56,12 @@ function GalleryContent() {
 }
 
 function App() {
-  return <GalleryContent />;
+  return (
+    <>
+      <SettingsCheck />
+      <GalleryContent />
+    </>
+  );
 }
 
 export default App;

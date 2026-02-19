@@ -36,11 +36,36 @@ import {
 } from "../../civitai-api/v1/utils";
 import { writeJsonFile } from "write-json-file";
 
-export const client = createCivitaiClient({
-  apiKey: getSettings().civitai_api_token, // Read API key from environment variable
-  timeout: 30000, // Reduced to 30 seconds timeout to avoid long waits
-  validateResponses: true, // Do not validate responses (recommended to enable in production)
-});
+// Lazy initialization of Civitai client to avoid immediate settings check
+let cachedClient: ReturnType<typeof createCivitaiClient> | null = null;
+
+function getCivitaiClient() {
+  if (!cachedClient) {
+    const settings = getSettings(); // This will throw if settings are not configured
+    cachedClient = createCivitaiClient({
+      apiKey: settings.civitai_api_token,
+      timeout: 30000,
+      validateResponses: true,
+    });
+  }
+  return cachedClient;
+}
+
+// Backward compatibility export (deprecated - use getCivitaiClient() instead)
+export const client = {
+  get creators() {
+    return getCivitaiClient().creators;
+  },
+  get models() {
+    return getCivitaiClient().models;
+  },
+  get modelVersions() {
+    return getCivitaiClient().modelVersions;
+  },
+  get tags() {
+    return getCivitaiClient().tags;
+  },
+};
 
 export class CivitaiApiError extends Error {
   constructor(
@@ -114,17 +139,26 @@ function handleCivitaiError(error: CivitaiError): never {
 
 // Gopeed client helper function
 function getGopeedClient() {
-  const settings = getSettings();
-  if (!settings.gopeed_api_host) {
-    throw new GopeedHostNotSpecifiedError(
-      `Please specify gopeed API address to use model downloading feature.`,
-    );
+  try {
+    const settings = getSettings();
+    if (!settings.gopeed_api_host) {
+      throw new GopeedHostNotSpecifiedError(
+        `Please specify gopeed API address to use model downloading feature.`,
+      );
+    }
+    const client = new Client({
+      host: settings.gopeed_api_host,
+      token: settings.gopeed_api_token || "",
+    });
+    return client;
+  } catch (error) {
+    if (error instanceof Error && error.message === "Settings not configured") {
+      throw new GopeedHostNotSpecifiedError(
+        `Please configure settings first. Gopeed API address is required to use model downloading feature.`,
+      );
+    }
+    throw error;
   }
-  const client = new Client({
-    host: settings.gopeed_api_host,
-    token: settings.gopeed_api_token || "",
-  });
-  return client;
 }
 
 export default new Elysia({ prefix: `/civitai_api` })

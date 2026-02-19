@@ -1,90 +1,197 @@
-import { Effect, Schedule } from "effect";
+import { cron } from "@elysiajs/cron";
 import { getSettings } from "../settings/service";
 import { prisma } from "../db/service";
 import { Client, ApiError } from "@gopeed/rest";
-import {
-  GopeedClient,
-  PrismaService,
-  SettingsContext,
-  updateTaskCreatedEffect,
-  updateTaskFinishedEffect,
-  updateTaskFailedEffect,
-  updateTaskCleanedEffect,
-  GopeedTaskStatus,
-  getTaskEffect,
-  GopeedServiceError,
-} from "./service";
+import { Result, ok, err } from "neverthrow";
 
-// Create the services for Effect
-const settings = getSettings();
-const gopeedClient = new Client({
-  host: settings.gopeed_api_host,
-  token: settings.gopeed_api_token || "",
-});
+// Define error types
+export class CronError extends Error {
+  constructor(
+    message: string,
+    public readonly taskId?: string,
+    public readonly fileId?: number,
+    public readonly isMedia?: boolean,
+  ) {
+    super(message);
+    this.name = "CronError";
+  }
+}
 
-// Helper to run Effect programs
-const runEffect = <A, E extends Error>(
-  effect: Effect.Effect<A, E, GopeedClient | PrismaService | SettingsContext>,
-): Promise<A> => {
-  return Effect.runPromise(
-    effect.pipe(
-      Effect.provideService(GopeedClient, gopeedClient),
-      Effect.provideService(PrismaService, prisma),
-      Effect.provideService(SettingsContext, settings),
-    ),
-  );
-};
+export class GopeedApiError extends CronError {
+  constructor(
+    message: string,
+    taskId?: string,
+    fileId?: number,
+    isMedia?: boolean,
+  ) {
+    super(message, taskId, fileId, isMedia);
+    this.name = "GopeedApiError";
+  }
+}
 
-// Retry schedule for 3 attempts with exponential backoff
-const retrySchedule = Schedule.exponential(1000).pipe(
-  Schedule.compose(Schedule.recurs(3)), // Max 3 retries
-  Schedule.upTo("10 seconds"), // Max 10 seconds total
-);
+export class DatabaseError extends CronError {
+  constructor(message: string, fileId?: number, isMedia?: boolean) {
+    super(message, undefined, fileId, isMedia);
+    this.name = "DatabaseError";
+  }
+}
 
-// Function to check and update a single task status
-const checkAndUpdateTask = (
+// Helper function to get Gopeed client
+function getGopeedClient() {
+  const settings = getSettings();
+  return new Client({
+    host: settings.gopeed_api_host,
+    token: settings.gopeed_api_token || "",
+  });
+}
+
+// Helper function to check and update a single task status
+async function checkAndUpdateTask(
   taskId: string,
   fileId: number,
   isMedia: boolean,
-): Effect.Effect<
-  void,
-  ApiError | GopeedServiceError,
-  GopeedClient | PrismaService | SettingsContext
-> => {
-  return Effect.gen(function* () {
-    try {
-      // Get task status from Gopeed
-      const task = yield* getTaskEffect(taskId);
+): Promise<Result<void, CronError>> {
+  try {
+    const client = getGopeedClient();
 
-      // Update database based on task status
-      switch (task.status) {
-        case "ready":
-        case "running":
-          yield* updateTaskCreatedEffect(fileId, taskId, isMedia);
-          break;
-        case "error":
-          yield* updateTaskFailedEffect(fileId, isMedia);
-          break;
-        case "done":
-          // Mark as finished
-          yield* updateTaskFinishedEffect(fileId, isMedia);
-          break;
-        case "pause":
-          // Task is paused, no status change needed
-          break;
-        default:
-          // Handle unknown status
-          console.warn(`Unknown task status: ${task.status}`);
-      }
-    } catch (error) {
-      // If we can't get task status, mark as failed
-      yield* updateTaskFailedEffect(fileId, isMedia);
+    // Get task status from Gopeed
+    const task = await client.getTask(taskId);
+
+    // Update database based on task status
+    switch (task.status) {
+      case "ready":
+      case "running":
+        // Mark as created/running
+        if (isMedia) {
+          await prisma.modelVersionImage.update({
+            where: { id: fileId },
+            data: {
+              gopeedTaskId: taskId,
+              gopeedTaskFinished: false,
+              gopeedTaskDeleted: false,
+            },
+          });
+        } else {
+          await prisma.modelVersionFile.update({
+            where: { id: fileId },
+            data: {
+              gopeedTaskId: taskId,
+              gopeedTaskFinished: false,
+              gopeedTaskDeleted: false,
+            },
+          });
+        }
+        break;
+
+      case "error":
+        // Mark as failed
+        if (isMedia) {
+          await prisma.modelVersionImage.update({
+            where: { id: fileId },
+            data: {
+              gopeedTaskId: null,
+              gopeedTaskFinished: false,
+              gopeedTaskDeleted: false,
+            },
+          });
+        } else {
+          await prisma.modelVersionFile.update({
+            where: { id: fileId },
+            data: {
+              gopeedTaskId: null,
+              gopeedTaskFinished: false,
+              gopeedTaskDeleted: false,
+            },
+          });
+        }
+        break;
+
+      case "done":
+        // Mark as finished
+        if (isMedia) {
+          await prisma.modelVersionImage.update({
+            where: { id: fileId },
+            data: {
+              gopeedTaskFinished: true,
+              gopeedTaskDeleted: false,
+            },
+          });
+        } else {
+          await prisma.modelVersionFile.update({
+            where: { id: fileId },
+            data: {
+              gopeedTaskFinished: true,
+              gopeedTaskDeleted: false,
+            },
+          });
+        }
+        break;
+
+      case "pause":
+        // Task is paused, no status change needed
+        break;
+
+      default:
+        console.warn(`Unknown task status for task ${taskId}: ${task.status}`);
     }
-  }).pipe(Effect.retry(retrySchedule));
-};
 
-// Function to poll all active tasks
-export const pollActiveTasks = async (): Promise<void> => {
+    return ok(undefined);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return err(
+        new GopeedApiError(
+          `Gopeed API error: ${error.message}`,
+          taskId,
+          fileId,
+          isMedia,
+        ),
+      );
+    }
+
+    // If we can't get task status, mark as failed
+    try {
+      if (isMedia) {
+        await prisma.modelVersionImage.update({
+          where: { id: fileId },
+          data: {
+            gopeedTaskId: null,
+            gopeedTaskFinished: false,
+            gopeedTaskDeleted: false,
+          },
+        });
+      } else {
+        await prisma.modelVersionFile.update({
+          where: { id: fileId },
+          data: {
+            gopeedTaskId: null,
+            gopeedTaskFinished: false,
+            gopeedTaskDeleted: false,
+          },
+        });
+      }
+    } catch (dbError) {
+      return err(
+        new DatabaseError(
+          `Failed to update task as failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`,
+          fileId,
+          isMedia,
+        ),
+      );
+    }
+
+    return err(
+      new CronError(
+        `Failed to check task ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
+        taskId,
+        fileId,
+        isMedia,
+      ),
+    );
+  }
+}
+
+// Main function to poll all active tasks
+export async function pollActiveTasks(): Promise<void> {
   try {
     console.log(
       `[${new Date().toISOString()}] Polling active download tasks...`,
@@ -124,9 +231,22 @@ export const pollActiveTasks = async (): Promise<void> => {
     for (const file of activeFiles) {
       if (!file.gopeedTaskId) continue;
       try {
-        await runEffect(checkAndUpdateTask(file.gopeedTaskId, file.id, false));
+        const result = await checkAndUpdateTask(
+          file.gopeedTaskId,
+          file.id,
+          false,
+        );
+        if (result.isErr()) {
+          console.error(
+            `Failed to check file task ${file.gopeedTaskId}:`,
+            result.error,
+          );
+        }
       } catch (error) {
-        console.error(`Failed to check file task ${file.gopeedTaskId}:`, error);
+        console.error(
+          `Unexpected error checking file task ${file.gopeedTaskId}:`,
+          error,
+        );
       }
     }
 
@@ -134,16 +254,26 @@ export const pollActiveTasks = async (): Promise<void> => {
     for (const image of activeImages) {
       if (!image.gopeedTaskId) continue;
       try {
-        await runEffect(checkAndUpdateTask(image.gopeedTaskId, image.id, true));
+        const result = await checkAndUpdateTask(
+          image.gopeedTaskId,
+          image.id,
+          true,
+        );
+        if (result.isErr()) {
+          console.error(
+            `Failed to check image task ${image.gopeedTaskId}:`,
+            result.error,
+          );
+        }
       } catch (error) {
         console.error(
-          `Failed to check image task ${image.gopeedTaskId}:`,
+          `Unexpected error checking image task ${image.gopeedTaskId}:`,
           error,
         );
       }
     }
 
-    // Clean up finished tasks (optional: mark as cleaned after some time)
+    // Log finished tasks (for monitoring)
     const finishedFiles = await prisma.modelVersionFile.findMany({
       where: {
         gopeedTaskFinished: true,
@@ -166,17 +296,20 @@ export const pollActiveTasks = async (): Promise<void> => {
       },
     });
 
-    // Optionally mark finished tasks as cleaned (after some delay)
-    // This could be implemented if you want to auto-clean finished tasks
-    // For now, we just log them
-
     console.log(
       `Polling complete. ${finishedFiles.length} finished files, ${finishedImages.length} finished images`,
     );
   } catch (error) {
     console.error("Error in pollActiveTasks:", error);
   }
-};
+}
 
-// Export for use in cron setup
+// Create cron configuration
+export const gopeedCron = cron({
+  name: "poll-active-tasks",
+  pattern: "*/5 * * * *", // Every 5 minutes
+  run: pollActiveTasks,
+});
+
+// For backward compatibility - export the function directly
 export default pollActiveTasks;

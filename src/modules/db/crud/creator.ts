@@ -1,7 +1,11 @@
-import { prisma } from "../service";
+import { prisma as defaultPrisma } from "../service";
 import type { Creator } from "#civitai-api/v1/models/creators";
+import type { PrismaClient } from "../generated/client";
 
-export async function upsertOneCreator(creator: Creator) {
+export async function upsertOneCreator(
+  creator: Creator,
+  prisma: PrismaClient = defaultPrisma,
+) {
   const record = creator.username
     ? await prisma.creator.upsert({
         where: {
@@ -21,7 +25,10 @@ export async function upsertOneCreator(creator: Creator) {
   return record;
 }
 
-export async function findOrCreateOneCreator(creator: Creator) {
+export async function findOrCreateOneCreator(
+  creator: Creator,
+  prisma: PrismaClient = defaultPrisma,
+) {
   const record = creator.username
     ? await prisma.creator.upsert({
         where: {

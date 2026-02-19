@@ -1,11 +1,9 @@
 import { ModelLayout } from "./file-layout";
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect, mock, beforeAll, afterAll } from "bun:test";
 import { join } from "node:path";
 import filenamify from "filenamify";
 import { last } from "es-toolkit/compat";
 import type { Model } from "#civitai-api/v1/models/models";
-import { settingsService } from "../../settings/service";
-import fg from "fast-glob";
 import modelData from "./models_res.json" with { type: "json" };
 import { extractIdFromImageUrl } from "#civitai-api/v1/utils";
 
@@ -13,6 +11,44 @@ import { extractIdFromImageUrl } from "#civitai-api/v1/utils";
 // Note: We need to adapt the test data to match the new Model type
 // For now, we'll cast it as Model
 export const modelId1 = modelData.items[0] as unknown as Model;
+
+// 模拟 settingsService
+const mockSettingsService = {
+  getSettings: () => ({
+    basePath: "/test/base/path",
+  }),
+};
+
+// 模拟 fast-glob
+const mockFastGlob = {
+  convertPathToPattern: (path: string) => {
+    console.log(`[MOCK FAST-GLOB] convertPathToPattern called with: ${path}`);
+    return path.replace(/\\/g, "/");
+  },
+  async: (pattern: string) => {
+    console.log(`[MOCK FAST-GLOB] async called with pattern: ${pattern}`);
+    // 返回一些模拟的safetensors文件路径
+    return Promise.resolve([
+      "/test/base/path/Checkpoint/123/456/files/model.safetensors",
+      "/test/base/path/Checkpoint/789/101/files/model.safetensors",
+    ]);
+  },
+};
+
+// 设置模拟
+beforeAll(() => {
+  // 模拟 settingsService
+  mock.module("../../settings/service", () => ({
+    settingsService: mockSettingsService,
+  }));
+
+  // 模拟 fast-glob
+  mock.module("fast-glob", () => mockFastGlob);
+});
+
+afterAll(() => {
+  mock.restore();
+});
 
 describe("test layout class", () => {
   const basePath = __dirname;
@@ -62,10 +98,24 @@ describe("test layout class", () => {
 });
 
 test("how to use fastglob scan model file", async () => {
+  // 重新导入以获取模拟的fast-glob
+  const fg = await import("fast-glob");
+  const { settingsService } = await import("../../settings/service");
+
   const expression =
     process.platform === "win32"
       ? `${fg.convertPathToPattern(settingsService.getSettings().basePath)}/**/*.safetensors`
       : `${settingsService.getSettings().basePath}/**/*.safetensors`;
+
+  console.log(`[TEST] Scanning with expression: ${expression}`);
+
   const safetensors = await fg.async(expression);
-  expect(safetensors.length > 0).toBe(true);
+  console.log(`[TEST] Found ${safetensors.length} safetensors files`);
+
+  // 在我们的模拟中，应该返回2个文件
+  expect(safetensors.length).toBe(2);
+  expect(safetensors).toEqual([
+    "/test/base/path/Checkpoint/123/456/files/model.safetensors",
+    "/test/base/path/Checkpoint/789/101/files/model.safetensors",
+  ]);
 });

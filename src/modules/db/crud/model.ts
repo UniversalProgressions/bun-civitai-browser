@@ -1,4 +1,4 @@
-import { prisma } from "../service";
+import { prisma as defaultPrisma } from "../service";
 import { ModelsRequestSort } from "#civitai-api/v1/models";
 import { findOrCreateOneCreator } from "./creator";
 import { findOrCreateOneModelType } from "./modelType";
@@ -9,15 +9,19 @@ import type {
 } from "../generated/models";
 import { Model as ModelTypeboxSchema } from "../generated/typebox/Model";
 import { Static } from "elysia";
+import type { PrismaClient } from "../generated/client";
 
 export type ModelWithAllRelations = Static<typeof ModelTypeboxSchema>;
 
-export async function findOrCreateOneModel(model: Model) {
+export async function findOrCreateOneModel(
+  model: Model,
+  prisma: PrismaClient = defaultPrisma,
+) {
   model.modelVersions = []; // These data will stored inside modelVersion.json field
   const creatorRecord = model.creator
-    ? await findOrCreateOneCreator(model.creator)
+    ? await findOrCreateOneCreator(model.creator, prisma)
     : undefined;
-  const modelTypeRecord = await findOrCreateOneModelType(model.type);
+  const modelTypeRecord = await findOrCreateOneModelType(model.type, prisma);
 
   const record = await prisma.model.upsert({
     where: {
@@ -93,8 +97,8 @@ function processSort(
 }
 
 export async function cursorPaginationQuery(params: ModelsRequestOptions) {
-  const [records, totalCount] = await prisma.$transaction([
-    prisma.model.findMany({
+  const [records, totalCount] = await defaultPrisma.$transaction([
+    defaultPrisma.model.findMany({
       take: 20,
       where: processCursorPaginationFindMany(params),
       include: {
@@ -105,7 +109,7 @@ export async function cursorPaginationQuery(params: ModelsRequestOptions) {
       },
       orderBy: processSort(params.sort),
     }),
-    prisma.model.count({
+    defaultPrisma.model.count({
       where: processCursorPaginationFindMany(params),
     }),
   ]);
@@ -117,7 +121,7 @@ export async function cursorPaginationNext(
   params: ModelsRequestOptions,
   modelIdAsCursor: number,
 ) {
-  const records = await prisma.model.findMany({
+  const records = await defaultPrisma.model.findMany({
     cursor: { id: modelIdAsCursor },
     take: 20,
     skip: 1,
@@ -142,8 +146,8 @@ export async function simplePagination(params: ModelsRequestOptions) {
   if (params.page === undefined || params.page < 1) {
     params.page = 1;
   }
-  const [records, totalCount] = await prisma.$transaction([
-    prisma.model.findMany({
+  const [records, totalCount] = await defaultPrisma.$transaction([
+    defaultPrisma.model.findMany({
       take: params.limit,
       skip: (params.page - 1) * params.limit,
       where: processCursorPaginationFindMany(params),
@@ -155,7 +159,7 @@ export async function simplePagination(params: ModelsRequestOptions) {
       },
       orderBy: processSort(params.sort),
     }),
-    prisma.model.count({
+    defaultPrisma.model.count({
       where: processCursorPaginationFindMany(params),
     }),
   ]);

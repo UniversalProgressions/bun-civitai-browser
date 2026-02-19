@@ -1,4 +1,4 @@
-import { prisma } from "../service";
+import { prisma as defaultPrisma } from "../service";
 import { modelVersionSchema, modelSchema } from "#civitai-api/v1/models";
 import type { Model, ModelVersion, ModelTypes } from "#civitai-api/v1/models";
 import { getSettings } from "../../settings/service";
@@ -14,6 +14,7 @@ import {
 import { type } from "arktype";
 import { isEqual } from "es-toolkit";
 import { extractIdFromImageUrl } from "#civitai-api/v1/utils";
+import type { PrismaClient } from "../generated/client";
 
 export async function upsertOneModelVersion(
   model: Model,
@@ -22,17 +23,20 @@ export async function upsertOneModelVersion(
     checkFileExistence?: boolean;
     basePath?: string;
   },
+  prisma: PrismaClient = defaultPrisma,
 ) {
   const baseModelRecord = await findOrCreateOneBaseModel(
     modelVersion.baseModel,
+    prisma,
   );
   const baseModelTypeRecord = modelVersion.baseModelType
     ? await findOrCreateOneBaseModelType(
         modelVersion.baseModelType,
         baseModelRecord.id,
+        prisma,
       )
     : undefined;
-  const modelIdRecord = await findOrCreateOneModel(model);
+  const modelIdRecord = await findOrCreateOneModel(model, prisma);
 
   const checkFileExistence = options?.checkFileExistence ?? false;
   const basePath = options?.basePath || getSettings().basePath;
@@ -154,6 +158,7 @@ export async function upsertOneModelVersion(
 export async function deleteOneModelVersion(
   modelVersionId: number,
   modelId: number,
+  prisma: PrismaClient = defaultPrisma,
 ) {
   await prisma.modelVersion.delete({
     where: {
@@ -214,7 +219,9 @@ export function extractAllModelInfo(filePaths: string[]): ModelInfo[] {
     .filter((info): info is ModelInfo => info !== null);
 }
 
-export async function scanModelsAndSyncToDb() {
+export async function scanModelsAndSyncToDb(
+  prisma: PrismaClient = defaultPrisma,
+) {
   const safetensorsPathsStream = scanModelsStream();
   for await (const entry of safetensorsPathsStream) {
     const modelInfo = extractModelInfo(entry as string);
@@ -268,7 +275,12 @@ export async function scanModelsAndSyncToDb() {
         console.error(modelIdInfo.summary);
         throw modelIdInfo;
       }
-      await upsertOneModelVersion(modelIdInfo, modelVersionInfo);
+      await upsertOneModelVersion(
+        modelIdInfo,
+        modelVersionInfo,
+        undefined,
+        prisma,
+      );
     }
   }
 }
@@ -281,6 +293,7 @@ export async function scanModelsAndSyncToDb() {
 export async function updateModelVersionFileTaskId(
   fileId: number,
   taskId: string,
+  prisma: PrismaClient = defaultPrisma,
 ) {
   await prisma.modelVersionFile.update({
     where: { id: fileId },
@@ -296,6 +309,7 @@ export async function updateModelVersionFileTaskId(
 export async function updateModelVersionImageTaskId(
   imageId: number,
   taskId: string,
+  prisma: PrismaClient = defaultPrisma,
 ) {
   await prisma.modelVersionImage.update({
     where: { id: imageId },
@@ -311,6 +325,7 @@ export async function updateModelVersionImageTaskId(
 export async function updateGopeedTaskStatus(
   modelVersionId: number,
   basePath?: string,
+  prisma: PrismaClient = defaultPrisma,
 ) {
   const settings = getSettings();
   const effectiveBasePath = basePath || settings.basePath;
@@ -386,7 +401,10 @@ export async function updateGopeedTaskStatus(
  * Update Gopeed task status for all model versions in the database
  * @param basePath Optional base path for file checking
  */
-export async function updateAllGopeedTaskStatus(basePath?: string) {
+export async function updateAllGopeedTaskStatus(
+  basePath?: string,
+  prisma: PrismaClient = defaultPrisma,
+) {
   const allModelVersions = await prisma.modelVersion.findMany({
     select: { id: true },
   });
@@ -399,7 +417,7 @@ export async function updateAllGopeedTaskStatus(basePath?: string) {
 
   for (const mv of allModelVersions) {
     try {
-      const result = await updateGopeedTaskStatus(mv.id, basePath);
+      const result = await updateGopeedTaskStatus(mv.id, basePath, prisma);
       results.push({
         modelVersionId: mv.id,
         ...result,

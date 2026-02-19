@@ -47,6 +47,7 @@
     "react-dom": "^19.2.4",
     "sanitize-basename": "^2.0.2",
     "tailwindcss": "^4.1.18",
+    "temp-dir": "^3.0.0",
     "valid-filename": "^4.0.0",
     "write-json-file": "^7.0.0"
   },

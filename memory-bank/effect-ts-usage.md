@@ -97,12 +97,15 @@
 - 复杂度：低（简单Effect使用）
 - 建议：转换为async/await + neverthrow
 
-#### 12. `src/modules/gopeed/cron.ts`
-**状态**: **待迁移**
-- 使用Effect的API：`Effect`, `Schedule`
-- 功能：定时任务
-- 复杂度：中等（使用Effect Schedule模块）
-- 建议：使用cron库或setInterval替换
+#### 12. `src/modules/gopeed/cron.ts` ✅ **已迁移到@elysia/cron和neverthrow**
+**状态**: **已完成迁移**
+- 已移除Effect的API：`Effect`, `Schedule`
+- 已添加@elysia/cron导入：`cron`
+- 已添加neverthrow导入：`Result`, `ok`, `err`
+- 创建了新的错误类型：`CronError`, `GopeedApiError`, `DatabaseError`
+- 功能：定时任务（每5分钟轮询活动下载任务）
+- 复杂度：已降低（使用标准async/await和neverthrow）
+- 迁移详情：使用`@elysia/cron`替换`Effect.Schedule`，移除所有Effect依赖
 
 #### 13. `src/modules/local-models/service/enhanced-scanner.test.ts` ❌ **已删除**
 **状态**: **已删除**

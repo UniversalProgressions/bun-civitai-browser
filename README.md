@@ -86,7 +86,7 @@ bun-civitai-browser/
 
 6. **Access the application**
    - Frontend: http://localhost:5173
-   - API Documentation: http://localhost:3000/swagger
+   - API Documentation: http://localhost:3000/openapi
 
 ## 🔧 Main Features
 
@@ -140,7 +140,7 @@ bun-civitai-browser/
 - `POST /civitai_api/v1/download/model-version` - Download model version
 - `GET /local-models/models/on-disk` - Query local models
 - `GET /settings` - Get application settings
-- `GET /swagger` - OpenAPI documentation (development mode)
+- `GET /openapi` - Elysia OpenAPI documentation (development mode)
 
 ### Development Commands
 

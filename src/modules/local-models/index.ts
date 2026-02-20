@@ -6,6 +6,8 @@ import {
 } from "../../civitai-api/v1/models/models";
 import { existedModelVersionsSchema } from "../../civitai-api/v1/models/model-id";
 import { modelId2Model } from "../../civitai-api/v1/utils";
+import type { ModelsRequestOptions } from "#civitai-api/v1/models";
+import { modelsRequestOptionsSchema } from "#civitai-api/v1/models";
 import { client } from "../civitai";
 import {
   checkModelOnDisk,
@@ -22,6 +24,7 @@ import {
   deleteModelVersionCompletely,
   deleteBatchModelVersionsCompletely,
 } from "./service/delete-service";
+import { queryLocalModelVersions } from "./service/local-models-query";
 
 export default new Elysia({ prefix: "/local-models" })
   // GET /local-models/models/:id/with-disk-status - Get model with disk existence check
@@ -127,24 +130,48 @@ export default new Elysia({ prefix: "/local-models" })
     },
   )
   // GET /local-models/models/on-disk - List models that exist on disk
-  .get(
+  .post(
     "/models/on-disk",
-    async () => {
-      // This would need to scan the filesystem and match with API data
-      // For now, return a placeholder response
-      return {
-        items: [],
-        metadata: {
-          totalItems: 0,
-          currentPage: 1,
-          pageSize: 0,
-          totalPages: 0,
-        },
-      };
+    async ({ body }) => {
+      try {
+        // 解析分页参数
+        const page = body.page || 1;
+        const pageSize = body.limit || 20;
+
+        // 使用新的查询服务获取本地模型数据
+        const result = await queryLocalModelVersions(page, pageSize);
+
+        if (result.isErr()) {
+          throw new Error(
+            `Failed to query local models: ${result.error.message}`,
+          );
+        }
+
+        return result.value;
+      } catch (error) {
+        console.error("[API] Error in /models/on-disk:", error);
+        throw new Error(
+          `Internal server error: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     },
     {
+      body: modelsRequestOptionsSchema,
       response: type({
-        items: modelSchema.array(),
+        items: type({
+          model: modelSchema,
+          version: modelVersionSchema,
+          mediaUrls: type({
+            thumbnail: "string?",
+            images: "string[]",
+          }),
+          files: type({
+            id: "number",
+            name: "string",
+            url: "string",
+            exists: "boolean",
+          }).array(),
+        }).array(),
         metadata: type({
           totalItems: "number",
           currentPage: "number",
@@ -523,4 +550,97 @@ export default new Elysia({ prefix: "/local-models" })
         }).array(),
       }),
     },
+  )
+  // GET /local-models/media - Get media file (images, etc.)
+  .get(
+    "/media",
+    async ({ query }) => {
+      try {
+        const { modelId, versionId, modelType, filename } = query;
+
+        // 验证参数
+        if (!modelId || !versionId || !modelType || !filename) {
+          throw new Error(
+            "Missing required parameters: modelId, versionId, modelType, filename",
+          );
+        }
+
+        const modelIdNum = parseInt(modelId, 10);
+        const versionIdNum = parseInt(versionId, 10);
+
+        if (Number.isNaN(modelIdNum) || Number.isNaN(versionIdNum)) {
+          throw new Error("modelId and versionId must be valid numbers");
+        }
+
+        // 使用 file-layout 计算文件路径
+        const { getMediaDir } = await import("./service/file-layout");
+        const { settingsService } = await import("../settings/service");
+
+        const basePath = settingsService.getSettings().basePath;
+        const mediaDir = getMediaDir(
+          basePath,
+          modelType,
+          modelIdNum,
+          versionIdNum,
+        );
+        const filePath = `${mediaDir}/${filename}`;
+
+        // 检查文件是否存在
+        const file = Bun.file(filePath);
+        if (!(await file.exists())) {
+          throw new Error(`File not found: ${filename}`);
+        }
+
+        // 根据文件扩展名设置 Content-Type
+        const extension = filename.toLowerCase().split(".").pop();
+        const contentType = getContentType(extension);
+
+        // 返回文件
+        return new Response(file, {
+          headers: {
+            "Content-Type": contentType,
+            "Cache-Control": "public, max-age=86400", // 缓存一天
+          },
+        });
+      } catch (error) {
+        console.error("[API] Error serving media file:", error);
+        throw new Error(
+          `Failed to serve media file: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    },
+    {
+      query: type({
+        modelId: "string",
+        versionId: "string",
+        modelType: "string",
+        filename: "string",
+      }),
+    },
   );
+
+// 辅助函数：根据文件扩展名获取 Content-Type
+function getContentType(extension: string | undefined): string {
+  const mimeTypes: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp",
+    bmp: "image/bmp",
+    svg: "image/svg+xml",
+    mp4: "video/mp4",
+    webm: "video/webm",
+    avi: "video/x-msvideo",
+    mov: "video/quicktime",
+    pdf: "application/pdf",
+    json: "application/json",
+    txt: "text/plain",
+  };
+
+  if (extension && mimeTypes[extension]) {
+    return mimeTypes[extension];
+  }
+
+  return "application/octet-stream";
+}

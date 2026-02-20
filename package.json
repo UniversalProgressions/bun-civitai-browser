@@ -3,9 +3,11 @@
   "version": "1.0.50",
   "type": "module",
   "scripts": {
-    "dev:client": "vite",
+    "dev:client": "vite --mode development",
     "dev:server": "bun run --watch src/dev.ts ",
-    "build:client": "vite build",
+    "build:client": "vite build --mode production",
+    "preview": "vite preview",
+    "start": "vite --mode development",
     "prisma:generate": "prisma generate --schema ./schema.prisma",
     "prisma:reset": "prisma migrate reset --schema ./schema.prisma",
     "prisma:migrate": "prisma migrate dev --schema ./schema.prisma",

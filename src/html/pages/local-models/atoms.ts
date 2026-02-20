@@ -1,6 +1,8 @@
 import { atom } from "jotai";
-import type { ModelsRequestOptions } from "../../../civitai-api/v1/models/index";
-import type { ModelWithAllRelations } from "../../../modules/db/crud/model";
+import type {
+  ModelsRequestOptions,
+  Model,
+} from "../../../civitai-api/v1/models/index";
 
 /**
  * Local models gallery state atoms
@@ -10,7 +12,7 @@ import type { ModelWithAllRelations } from "../../../modules/db/crud/model";
 export const isGalleryLoadingAtom = atom(false);
 
 // Atom to store local models data
-export const modelsAtom = atom<Array<ModelWithAllRelations>>([]);
+export const modelsAtom = atom<Array<Model>>([]);
 
 // Atom to store local search options
 export const localSearchOptionsAtom = atom<ModelsRequestOptions>({});
@@ -20,6 +22,6 @@ export const totalAtom = atom(0);
 
 // Default page and size configuration
 export const defaultPageAndSize = {
-	page: 1,
-	limit: 20,
+  page: 1,
+  limit: 20,
 };

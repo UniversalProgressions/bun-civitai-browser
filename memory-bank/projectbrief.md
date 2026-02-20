@@ -580,7 +580,138 @@ A: 保持原始元数据，但在代码中使用英语变量名。
 
 ---
 
-## 六、更新和维护
+## 六、前后端数据交互模式
+
+### 6.1 本地模型浏览功能架构
+
+**设计理念**：
+本地模型浏览功能采用预计算URL和参数化定位的架构，确保高效的前后端数据交互，同时保持类型安全和错误处理的完整性。
+
+**媒体URL设计模式**：
+```typescript
+// URL格式：四个参数定位媒体文件
+GET /local-models/media?modelId={modelId}&versionId={versionId}&modelType={modelType}&filename={filename}
+
+// 后端路径计算使用 file-layout.ts 中的函数
+import { getMediaDir } from "../modules/local-models/service/file-layout";
+
+// 前端生成完整URL避免相对路径问题
+const relativeUrl = `/local-models/media?modelId=${modelId}&versionId=${versionId}&modelType=${modelType}&filename=${encodeURIComponent(filename)}`;
+const url = typeof window !== "undefined" ? `${window.location.origin}${relativeUrl}` : relativeUrl;
+```
+
+**预计算数据策略**：
+1. **后端预计算**：`/local-models/models/on-disk` 端点返回数据时预计算所有媒体文件的URL
+2. **参数化定位**：媒体请求采用四个参数定位文件：modelId, versionId, modelType, filename
+3. **缓存优化**：设置 `Cache-Control: public, max-age=86400`，减少重复请求
+
+**前端缩略图选择逻辑**：
+- 使用 model version 中 images 数组的第一个图片作为 thumbnail
+- 前端负责选择逻辑，后端只提供完整数据
+- 支持多种媒体类型（图片、视频）的自动检测
+
+### 6.2 Gallery组件技术实现
+
+**问题与解决方案**：
+
+#### 问题1：URL解析失败
+**原因**：`new URL()` 构造函数需要完整URL，相对路径导致 "Invalid URL" 错误
+**解决方案**：
+1. 前端组件生成完整URL：`${window.location.origin}${relativeUrl}`
+2. Gallery组件增强URL处理：尝试解析相对路径，失败时添加origin
+3. 双重保障机制：前端提供完整URL + 后端能处理相对路径
+
+#### 问题2：文件类型检测错误
+**原因**：文件名存储在查询参数中（如 `?filename=image123.jpg`），无法从路径名提取
+**解决方案**：
+1. 从URL查询参数中提取 `filename` 参数
+2. 如果查询参数中没有，再从路径名中提取
+3. 基于实际文件扩展名判断是图片还是视频
+4. 未知文件类型默认使用图片渲染
+
+**代码示例**：
+```typescript
+// 安全地处理URL - 如果是相对路径，转换为完整URL
+let urlToUse = info.image.url;
+try {
+  new URL(urlToUse);
+} catch (e) {
+  if (typeof window !== "undefined" && urlToUse.startsWith("/")) {
+    urlToUse = `${window.location.origin}${urlToUse}`;
+  }
+}
+
+// 从查询参数中提取filename
+const params = new URLSearchParams(urlobj.search);
+const filenameParam = params.get("filename");
+if (filenameParam) {
+  filename = filenameParam;
+} else {
+  const pathParts = urlobj.pathname.split("/");
+  filename = pathParts[pathParts.length - 1] || "";
+}
+```
+
+### 6.3 调试日志优化策略
+
+**环境区分设计**：
+```typescript
+// 开发环境：保留有用的调试信息
+if (import.meta.env.DEV) {
+  console.warn("Failed to parse URL:", urlToUse, e);
+  // 其他开发调试日志
+}
+
+// 生产环境：控制台干净整洁
+// 仅显示关键错误，不显示开发调试信息
+```
+
+**环境变量配置**：
+- **开发环境**：运行 `bun run dev:client` → `import.meta.env.DEV = true`
+- **生产环境**：运行 `bun run build:client` → `import.meta.env.DEV = false`
+- **模式参数**：通过 `--mode development` 或 `--mode production` 指定
+
+**清理策略**：
+1. **移除开发调试日志**：删除 `console.log(info)` 等详细调试信息
+2. **保留重要警告**：将 `console.warn` 包装在 `if (import.meta.env.DEV)` 条件中
+3. **环境区分**：开发环境保留调试信息，生产环境控制台干净
+
+### 6.4 配置无感知服务启动架构
+
+**设计理念**：
+服务器可以在没有配置文件的情况下正常启动，配置检查交由前端完成，提供优雅的用户引导体验。
+
+**分层错误处理**：
+1. **服务器层**：移除启动时的配置依赖，所有API端点包含适当的配置缺失错误处理
+2. **API层**：配置缺失时返回有意义的HTTP状态码和错误消息，保持API向后兼容性
+3. **前端层**：自动配置检测，配置缺失时显示清晰的设置向导模态框
+
+**状态管理设计**：
+```typescript
+// Jotai atom 定义（src/html/atoms.ts）
+export const settingsValidAtom = atom<boolean>(false);
+export const settingsCheckingAtom = atom<boolean>(false);
+export const settingsInitializedAtom = atom<boolean>(false);
+export const initialSetupRequiredAtom = atom<boolean>(false);
+export const showSetupRequiredAtom = atom<boolean>(false);
+export const settingsReadyAtom = atom(
+  (get) => get(settingsValidAtom) && get(settingsInitializedAtom)
+);
+```
+
+**用户工作流程**：
+1. **新用户启动**：`bun run dev:server` → 服务器成功启动（无需配置）
+2. **前端加载**：访问 `http://localhost:5173` → 前端检查配置状态
+3. **设置引导**：配置缺失时显示设置向导 → 引导用户完成配置
+4. **功能使用**：配置完成后 → 正常使用所有功能
+
+**技术优势**：
+1. **用户体验优化**：清晰的引导而不是错误信息
+2. **开发体验改善**：新开发者可以立即启动和探索应用
+3. **代码质量提升**：更好的错误处理和状态管理
+4. **可维护性增强**：模块化的配置检查组件
+
+## 七、更新和维护
 
 **定期审查**：
 - 每季度审查文档有效性
@@ -602,5 +733,5 @@ A: 保持原始元数据，但在代码中使用英语变量名。
 ---
 
 **文档状态**: 正式发布  
-**生效日期**: 2026年2月19日  
-**替代文档**: `coding-standards.md`, `language-policy.md`, `systemPatterns.md`
+**更新日期**: 2026年2月20日  
+**替代文档**: `coding-standards.md`, `language-policy.md`, `systemPatterns.md`, `activeContext.md`

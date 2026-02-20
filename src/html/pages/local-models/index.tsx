@@ -8,12 +8,7 @@ import {
   modelsAtom,
   totalAtom,
 } from "./atoms";
-import {
-  FloatingButtons,
-  GalleryContent,
-  LocalModelCardContentLeftSide,
-  LocalPagination,
-} from "./components";
+import { FloatingButtons, GalleryContent, LocalPagination } from "./components";
 import { edenTreaty } from "../../utils";
 
 function LocalModelsGallery() {
@@ -23,19 +18,22 @@ function LocalModelsGallery() {
   const [_totalCount, setTotalCount] = useAtom(totalAtom);
 
   const fetchModels = useCallback(
-    async (_opts: ModelsRequestOptions) => {
+    async (opts: ModelsRequestOptions) => {
       setIsGalleryLoading(true);
       try {
-        // TODO: Uncomment when the endpoint is available
-        // const { data, error, headers, response, status } =
-        //   await edenTreaty["local-models"].models.pagination.post(opts);
-        // if (error) {
-        //   throw error;
-        // } else {
-        //   setModels(data.records);
-        //   setTotalCount(data.totalCount ?? 0);
-        // }
-        // Temporary: Return empty data
+        // 调用新的 /local-models/models/on-disk 端点
+        const { data, error } =
+          await edenTreaty["local-models"]["models"]["on-disk"].post(opts);
+        if (error) {
+          throw error;
+        } else {
+          // 新的数据结构包含 model 和 version 字段
+          // 我们需要将数据转换为前端期望的格式
+          setModels(data.items.map((item) => item.model));
+          setTotalCount(data.metadata.totalItems ?? 0);
+        }
+      } catch (error) {
+        console.error("Failed to fetch local models:", error);
         setModels([]);
         setTotalCount(0);
       } finally {
@@ -54,10 +52,7 @@ function LocalModelsGallery() {
       {isGalleryLoading ? (
         <div>Loading...</div>
       ) : (
-        <GalleryContent
-          models={models}
-          ModelCardContentLeftSide={LocalModelCardContentLeftSide}
-        />
+        <GalleryContent models={models} />
       )}
       <Space orientation="vertical" align="center" className="w-full">
         <Affix offsetBottom={5}>

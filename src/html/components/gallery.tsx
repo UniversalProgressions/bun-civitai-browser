@@ -23,7 +23,37 @@ function GalleryThumb({
         <p>No preview available</p>
       </Card>
     );
-  } else if (item.type === "image") {
+  }
+
+  // 根据文件扩展名判断是图片还是视频，不依赖item.type
+  let filename = "";
+  try {
+    const urlobj = new URL(item.url);
+    // 尝试从查询参数中提取filename
+    const params = new URLSearchParams(urlobj.search);
+    const filenameParam = params.get("filename");
+
+    if (filenameParam) {
+      filename = filenameParam;
+    } else {
+      // 否则从pathname中提取
+      const pathParts = urlobj.pathname.split("/");
+      filename = pathParts[pathParts.length - 1] || "";
+    }
+  } catch (e) {
+    // 如果URL解析失败，尝试直接提取
+    const lastSlashIndex = item.url.lastIndexOf("/");
+    if (lastSlashIndex !== -1) {
+      const afterSlash = item.url.substring(lastSlashIndex + 1);
+      filename = afterSlash.split("?")[0] || "";
+    }
+  }
+
+  const fileType = getFileType(filename || "");
+  const isVideo = fileType === "video";
+  const isImage = fileType === "image" || fileType === "unknown" || !isVideo;
+
+  if (isImage) {
     return (
       <button
         type="button"
@@ -144,13 +174,56 @@ export default function Gallery({ items }: { items: Array<ModelImageWithId> }) {
           imageRender: (originalNode, info) => {
             const { flipX, flipY, rotate, x, y } = info.transform;
             // const { alt, height, url, width } = info.image;
-            console.log(info);
-            const urlobj = new URL(info.image.url);
-            // Extract filename from URL pathname
-            const pathParts = urlobj.pathname.split("/");
-            const filename = pathParts[pathParts.length - 1];
+
+            // 安全地处理URL - 如果是相对路径，转换为完整URL
+            let urlToUse = info.image.url;
+            try {
+              // 尝试创建URL对象来检查是否是有效的完整URL
+              new URL(urlToUse);
+            } catch (e) {
+              // 如果是相对路径，添加当前origin
+              if (typeof window !== "undefined" && urlToUse.startsWith("/")) {
+                urlToUse = `${window.location.origin}${urlToUse}`;
+              }
+            }
+
+            let filename = "";
+            try {
+              const urlobj = new URL(urlToUse);
+
+              // 尝试从查询参数中提取filename参数
+              const params = new URLSearchParams(urlobj.search);
+              const filenameParam = params.get("filename");
+
+              if (filenameParam) {
+                // 如果有filename查询参数，使用它
+                filename = filenameParam;
+              } else {
+                // 否则从pathname中提取
+                const pathParts = urlobj.pathname.split("/");
+                filename = pathParts[pathParts.length - 1] || "";
+              }
+            } catch (e) {
+              // 仅在开发环境中显示URL解析失败警告
+              if (import.meta.env.DEV) {
+                console.warn("Failed to parse URL:", urlToUse, e);
+              }
+              // 如果仍然无法解析URL，尝试直接从URL字符串中提取文件名
+              const lastSlashIndex = urlToUse.lastIndexOf("/");
+              if (lastSlashIndex !== -1) {
+                const afterSlash = urlToUse.substring(lastSlashIndex + 1);
+                // 移除查询参数
+                filename = afterSlash.split("?")[0] || "";
+              }
+            }
+
             const fileType = getFileType(filename || "");
-            console.log(fileType, filename);
+
+            // 对于未知类型，默认使用图片渲染，因为大多数模型预览都是图片
+            // 只有在明确是视频类型时才渲染video元素
+            const isVideo = fileType === "video";
+            const isImage = fileType === "image" || fileType === "unknown";
+
             // Build transform string including flip, rotate, and our custom scale/position
             const flipTransforms = [];
             if (flipX) flipTransforms.push("scaleX(-1)");
@@ -182,14 +255,14 @@ export default function Gallery({ items }: { items: Array<ModelImageWithId> }) {
                     minHeight: "300px",
                   }}
                 >
-                  {fileType === "image" ? (
+                  {isImage ? (
                     <img
                       src={info.image.url}
                       alt={info.image.alt ?? ""}
                       className="max-w-full max-h-[80vh] object-contain select-none"
                       draggable="false"
                     />
-                  ) : (
+                  ) : isVideo ? (
                     <video
                       autoPlay
                       src={info.image.url}
@@ -199,6 +272,14 @@ export default function Gallery({ items }: { items: Array<ModelImageWithId> }) {
                     >
                       <track kind="captions" src="" label="English" />
                     </video>
+                  ) : (
+                    // 对于其他未知类型，也使用图片渲染
+                    <img
+                      src={info.image.url}
+                      alt={info.image.alt ?? ""}
+                      className="max-w-full max-h-[80vh] object-contain select-none"
+                      draggable="false"
+                    />
                   )}
                 </div>
               </div>

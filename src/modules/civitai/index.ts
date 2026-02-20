@@ -363,21 +363,43 @@ export default new Elysia({ prefix: `/civitai_api` })
 
           const modelVersionEndpointData = versionResult.value;
 
+          // Initialize file errors array before using it
+          const fileErrors: Array<{ fileId: number; error: any }> = [];
+
           for (
             let index = 0;
             index < modelVersionEndpointData.files.length;
             index++
           ) {
             const file = modelVersionEndpointData.files[index];
-            // Directly use file.downloadUrl with Authorization header
+
+            // Resolve the real download URL using the API
+            const resolvedUrlResult =
+              await client.modelVersions.resolveFileDownloadUrl(
+                file.downloadUrl,
+              );
+
+            if (resolvedUrlResult.isErr()) {
+              // Failed to resolve URL, log error and skip this file
+              console.error(
+                `Failed to resolve download URL for file ${file.id}:`,
+                resolvedUrlResult.error,
+              );
+              fileErrors.push({
+                fileId: file.id,
+                error: resolvedUrlResult.error,
+              });
+              continue; // Skip this file, continue with others
+            }
+
+            const resolvedUrl = resolvedUrlResult.value;
+
+            // Use the resolved real URL for download
+            // Note: The resolved URL already contains the token, no need for Authorization header
             modelFileDownloadTasks.push({
               req: {
-                url: file.downloadUrl,
-                extra: {
-                  header: {
-                    Authorization: `Bearer ${settings.civitai_api_token}`,
-                  },
-                },
+                url: resolvedUrl,
+                extra: {}, // No Authorization header needed
                 labels: {
                   CivitAI: `Model File`,
                 },
@@ -399,7 +421,6 @@ export default new Elysia({ prefix: `/civitai_api` })
 
           // 2. download model files
           const modelfileTasksId: Array<string> = [];
-          const fileErrors: Array<{ fileId: number; error: any }> = [];
 
           for (let index = 0; index < modelFileDownloadTasks.length; index++) {
             const task = modelFileDownloadTasks[index];

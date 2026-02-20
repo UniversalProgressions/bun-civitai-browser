@@ -76,19 +76,15 @@ export class ModelVersionsEndpointImpl implements ModelVersionsEndpoint {
       return err(error);
     }
 
-    // Add token to the download URL
-    const urlWithToken = this.makeModelFileDownloadUrl(
-      fileDownloadUrl,
-      downloadToken,
-    );
-
-    // Make a GET request to follow redirects and get the final URL
-    // We use GET instead of HEAD because ky doesn't support followRedirect for HEAD
-    // and we need to follow redirects to get the final CDN URL
+    // Make a GET request with Authorization header to follow redirects and get the final URL
+    // According to example.ts, we should use Authorization header, not token in URL
     try {
-      const response = await this.client["kyInstance"].get(urlWithToken, {
-        throwHttpErrors: false,
-        timeout: this.client.getConfig().timeout,
+      const response = await fetch(fileDownloadUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${downloadToken}`,
+        },
+        redirect: "follow", // Ensure we follow redirects to get the final CDN URL
       });
 
       if (!response.ok) {
@@ -118,6 +114,7 @@ export class ModelVersionsEndpointImpl implements ModelVersionsEndpoint {
       }
 
       // Return the final URL after following redirects
+      // response.url contains the final URL after all redirects
       return ok(response.url);
     } catch (error) {
       // Handle network errors

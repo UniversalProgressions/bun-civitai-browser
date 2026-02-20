@@ -426,6 +426,72 @@ class CivitaiClient {
 }
 ```
 
+### 6. 下载URL解析的实际工作模式
+
+**决策**：实现符合Civitai实际行为的下载URL解析
+
+**原因**：
+- Civitai的下载URL需要特殊处理，不能简单地将token作为URL参数
+- 必须使用Authorization header并跟随重定向获取最终CDN URL
+- 这是实际工作中发现的正确模式，确保了下载管理器能正常工作
+
+**实现**（在 `model-versions.ts` 中）：
+```typescript
+async resolveFileDownloadUrl(
+  fileDownloadUrl: string,
+  token?: string,
+): Promise<Result<string, CivitaiError>> {
+  // 使用Authorization header而不是URL参数
+  const downloadToken = token || this.client.getConfig().downloadToken || 
+                       this.client.getConfig().apiKey;
+  
+  if (!downloadToken) {
+    return err(createUnauthorizedError(
+      "Download token is required to resolve file download URLs.",
+      { suggestion: "Add your API key or download token to the client configuration" }
+    ));
+  }
+
+  // 使用fetch API并添加Authorization header
+  const response = await fetch(fileDownloadUrl, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${downloadToken}` },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      return err(createUnauthorizedError(
+        `Unauthorized to access model file download URL: ${fileDownloadUrl}`,
+        { suggestion: "Check if you have access to this model or if your API key is valid" }
+      ));
+    } else {
+      return err(createNetworkError(
+        response.status,
+        `HTTP_${response.status}`,
+        `Failed to resolve model file download URL: ${fileDownloadUrl}`,
+        new Error(`HTTP ${response.status}: ${response.statusText}`)
+      ));
+    }
+  }
+
+  // 返回重定向后的最终URL
+  return ok(response.url);
+}
+```
+
+**关键发现**：
+- **❌ 错误做法**：将token作为URL参数（`?token=...`）
+- **✅ 正确做法**：使用 `Authorization: Bearer <token>` HTTP header
+- **重定向机制**：Civitai会重定向到最终的CDN URL
+
+**完整示例**：
+查看 `src/civitai-api/v1/examples/resolve-download-url-example.ts` 获取完整的工作示例。
+
+**为什么重要**：
+1. 这是实际工作中Civitai API的行为
+2. 确保下载管理器（如Gopeed）能获得正确的CDN URL
+3. 避免授权失败和下载错误
+
 ## SOLID 原则应用
 
 ### 1. 单一职责原则 (Single Responsibility Principle)

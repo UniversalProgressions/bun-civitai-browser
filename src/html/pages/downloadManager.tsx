@@ -25,6 +25,7 @@ import {
   CloudDownloadOutlined,
 } from "@ant-design/icons";
 import { edenTreaty } from "../utils";
+import ErrorBoundary from "../components/ErrorBoundary";
 
 const { Title, Text } = Typography;
 
@@ -44,6 +45,24 @@ const TaskStatusConfig = {
   CLEANED: { color: "default", text: "Cleaned", icon: <CheckCircleOutlined /> },
 };
 
+// Helper function to calculate task status based on database fields
+const calculateTaskStatus = (
+  gopeedTaskId: string | null,
+  gopeedTaskFinished: boolean,
+  gopeedTaskDeleted: boolean,
+): keyof typeof TaskStatusConfig => {
+  if (gopeedTaskDeleted) {
+    return "CLEANED";
+  }
+  if (gopeedTaskFinished) {
+    return "FINISHED";
+  }
+  if (gopeedTaskId) {
+    return "CREATED";
+  }
+  return "FAILED";
+};
+
 // Define task type interface
 interface DownloadTask {
   id: number;
@@ -57,7 +76,7 @@ interface DownloadTask {
   gopeedTaskDeleted: boolean;
   status: keyof typeof TaskStatusConfig;
   resourceType: "file" | "image";
-  modelVersion: {
+  modelVersion?: {
     id: number;
     name: string;
     model: {
@@ -109,14 +128,31 @@ const DownloadManager = () => {
         !("files" in data) ||
         !("images" in data)
       ) {
-        console.log(data);
+        console.log("Invalid response format:", data);
         throw new Error("Invalid response format");
       }
-      const response = data as TaskResponse;
-      const allTasks = [...response.files, ...response.images];
+
+      // Process files and images to add calculated status
+      const processTasks = (items: any[], resourceType: "file" | "image") => {
+        return items.map((item) => ({
+          ...item,
+          resourceType,
+          status: calculateTaskStatus(
+            item.gopeedTaskId,
+            item.gopeedTaskFinished,
+            item.gopeedTaskDeleted,
+          ),
+        }));
+      };
+
+      // Type assertion for data
+      const responseData = data as any;
+      const files = processTasks(responseData.files || [], "file");
+      const images = processTasks(responseData.images || [], "image");
+      const allTasks = [...files, ...images];
       setTasks(allTasks);
 
-      // Get detailed status for active tasks
+      // Get detailed status for active tasks (those with gopeedTaskId and not finished)
       const activeTaskIds = allTasks
         .filter((task) => task.gopeedTaskId && !task.gopeedTaskFinished)
         .map((task) => task.gopeedTaskId as string);
@@ -205,7 +241,7 @@ const DownloadManager = () => {
 
   // Handle task control operations
   const handleTaskControl = async (
-    action: "pause" | "continue" | "delete",
+    action: "pause" | "continue" | "cancel" | "delete",
     taskId: string,
     force?: boolean,
   ) => {
@@ -220,6 +256,10 @@ const DownloadManager = () => {
         case "continue":
           await tasksApi[taskId].continue.post();
           notification.success({ message: "Task continued" });
+          break;
+        case "cancel":
+          await tasksApi[taskId].cancel.post();
+          notification.success({ message: "Task cancelled" });
           break;
         case "delete": {
           const query = force ? { force: "true" } : {};
@@ -285,7 +325,7 @@ const DownloadManager = () => {
           <div style={{ fontWeight: "bold" }}>
             {record.name || record.url?.split("/").pop() || "Unknown file"}
           </div>
-          {record.modelVersion && (
+          {record.modelVersion && record.modelVersion.model && (
             <div style={{ fontSize: "12px", color: "#666" }}>
               {record.modelVersion.model.name} - {record.modelVersion.name}
             </div>
@@ -384,16 +424,28 @@ const DownloadManager = () => {
                 </Button>
               </>
             )}
-            {record.gopeedTaskId && (
+            {canControl && (
+              <Button
+                size="small"
+                danger
+                icon={<CloseCircleOutlined />}
+                onClick={() =>
+                  handleTaskControl("cancel", record.gopeedTaskId!)
+                }
+              >
+                Cancel
+              </Button>
+            )}
+            {record.gopeedTaskId && !record.gopeedTaskFinished && (
               <Button
                 size="small"
                 danger
                 icon={<DeleteOutlined />}
                 onClick={() =>
-                  handleTaskControl("delete", record.gopeedTaskId!)
+                  handleTaskControl("delete", record.gopeedTaskId!, true)
                 }
               >
-                Delete
+                Delete Files
               </Button>
             )}
             {record.gopeedTaskFinished && !record.gopeedTaskDeleted && (
@@ -401,10 +453,15 @@ const DownloadManager = () => {
                 size="small"
                 type="primary"
                 onClick={() =>
-                  handleFinishAndClean(record.gopeedTaskId!, record.id, isMedia)
+                  handleFinishAndClean(
+                    record.gopeedTaskId!,
+                    record.id,
+                    isMedia,
+                    false,
+                  )
                 }
               >
-                Clean
+                Clean Task
               </Button>
             )}
           </Space>

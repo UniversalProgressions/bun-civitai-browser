@@ -358,7 +358,31 @@ export async function continueTask(
 }
 
 /**
- * 删除任务
+ * 取消任务（仅删除Gopeed任务，不删除文件）
+ */
+export async function cancelTask(
+  client: Client,
+  taskId: string,
+): Promise<Result<true, ApiError>> {
+  try {
+    // 使用force=false仅删除Gopeed任务，不删除文件
+    await client.deleteTask(taskId, false);
+    return ok(true);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return err(error);
+    }
+    return err(
+      new ApiError(
+        500,
+        `Failed to cancel task: ${error instanceof Error ? error.message : String(error)}`,
+      ),
+    );
+  }
+}
+
+/**
+ * 删除任务（可选的force参数）
  */
 export async function deleteTask(
   client: Client,

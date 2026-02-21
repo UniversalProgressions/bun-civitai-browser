@@ -11,6 +11,22 @@
 
 ## 一、关键里程碑时间线
 
+### 2026年2月21日 - DownloadManager按钮功能重构计划制定 ✅
+**主要成就**:
+- 分析DownloadManager组件中Delete和Clean按钮的当前实现问题
+- 制定方案A：重命名当前功能，添加新功能
+- 创建详细的功能对比表格和状态转换流程图
+- 设计以modelversion为最小粒度的删除操作
+
+**技术方案**:
+- **Delete按钮 → Cancel按钮**：仅取消Gopeed下载任务，不删除文件
+- **Clean按钮 → Delete Files按钮**：删除整个modelversion（文件夹+数据库记录）
+- **新增Clean Task按钮**：仅标记任务为已清理（可选功能）
+
+**文档产出**:
+- `downloadManager-execution-flow.md`：组件完整执行流程文档
+- `downloadManager-button-functions.md`：按钮功能重构方案文档
+
 ### 2026年2月20日 - 本地模型浏览功能与Gallery组件修复 ✅
 **主要成就**:
 - 完整实现本地模型浏览功能，包括两个核心端点：
@@ -21,6 +37,20 @@
   - 修复图片渲染错误：图片被错误渲染在`<video>`元素中
 - 实现调试日志优化策略，区分开发和生产环境
 - 文档重构：将技术架构内容整合到`projectbrief.md`
+
+### 2026年2月20日 - DownloadManager渲染错误修复 ✅
+**主要成就**:
+- 修复downloadManager.tsx第325行渲染错误：`Cannot read properties of undefined (reading 'name')`
+- 修改DownloadTask接口使modelVersion为可选字段
+- 增强后端API响应，过滤无效关联记录
+- 添加React错误边界组件（ErrorBoundary.tsx）
+- 创建组件执行流程文档
+
+**修复内容**:
+1. **前端修复**：添加空值检查`record.modelVersion && record.modelVersion.model`
+2. **后端增强**：在`/gopeed/tasks`端点过滤缺少modelVersion或model的记录
+3. **错误处理**：创建ErrorBoundary组件提供优雅的错误恢复
+4. **文档完善**：创建`downloadManager-execution-flow.md`执行流程文档
 
 ### 2026年2月19日 - 前端组件模块化重构第一阶段 ✅
 **主要成就**:

@@ -15,6 +15,7 @@ import {
   getTask,
   pauseTask,
   continueTask,
+  cancelTask,
   deleteTask,
   getTaskStatusFromDb,
   finishAndCleanTask,
@@ -104,10 +105,10 @@ export default new Elysia({ prefix: `/gopeed` })
     "/tasks",
     async () => {
       try {
+        // Get all files with gopeedTaskId (including deleted ones for history)
         const tasks = await prisma.modelVersionFile.findMany({
           where: {
             gopeedTaskId: { not: null },
-            gopeedTaskDeleted: false,
           },
           include: {
             modelVersion: {
@@ -116,12 +117,15 @@ export default new Elysia({ prefix: `/gopeed` })
               },
             },
           },
+          orderBy: {
+            id: "desc",
+          },
         });
 
+        // Get all images with gopeedTaskId (including deleted ones for history)
         const images = await prisma.modelVersionImage.findMany({
           where: {
             gopeedTaskId: { not: null },
-            gopeedTaskDeleted: false,
           },
           include: {
             modelVersion: {
@@ -130,11 +134,33 @@ export default new Elysia({ prefix: `/gopeed` })
               },
             },
           },
+          orderBy: {
+            id: "desc",
+          },
         });
 
+        // Filter out records with missing modelVersion or model to prevent frontend errors
+        const validTasks = tasks.filter(
+          (task) => task.modelVersion && task.modelVersion.model,
+        );
+        const validImages = images.filter(
+          (image) => image.modelVersion && image.modelVersion.model,
+        );
+
+        // Log any filtered records for debugging
+        if (import.meta.env.DEV) {
+          const filteredTasksCount = tasks.length - validTasks.length;
+          const filteredImagesCount = images.length - validImages.length;
+          if (filteredTasksCount > 0 || filteredImagesCount > 0) {
+            console.warn(
+              `Filtered ${filteredTasksCount} files and ${filteredImagesCount} images with missing modelVersion or model data`,
+            );
+          }
+        }
+
         return {
-          files: tasks,
-          images: images,
+          files: validTasks,
+          images: validImages,
         };
       } catch (error) {
         throw error; // Let the error handler handle it
@@ -256,6 +282,33 @@ export default new Elysia({ prefix: `/gopeed` })
         handleResultError(result);
 
         return { success: true, message: "Task continued successfully" };
+      } catch (error) {
+        throw error;
+      }
+    },
+    {
+      params: t.Object({ taskId: t.String() }),
+      response: t.Object({
+        success: t.Boolean(),
+        message: t.String(),
+      }),
+    },
+  )
+  // POST /gopeed/tasks/:taskId/cancel - Cancel a task (only delete Gopeed task, not files)
+  .post(
+    "/tasks/:taskId/cancel",
+    async ({ params }) => {
+      try {
+        const settings = getSettings();
+        const client = new Client({
+          host: settings.gopeed_api_host,
+          token: settings.gopeed_api_token || "",
+        });
+
+        const result = await cancelTask(client, params.taskId);
+        handleResultError(result);
+
+        return { success: true, message: "Task cancelled successfully" };
       } catch (error) {
         throw error;
       }

@@ -460,10 +460,22 @@ export async function updateModelVersionFileTaskId(
   taskId: string,
   prisma: PrismaClient = defaultPrisma,
 ) {
-  await prisma.modelVersionFile.update({
-    where: { id: fileId },
-    data: { gopeedTaskId: taskId },
-  });
+  try {
+    // First try to update the existing record
+    await prisma.modelVersionFile.update({
+      where: { id: fileId },
+      data: { gopeedTaskId: taskId, gopeedTaskFinished: false },
+    });
+  } catch (error) {
+    // If update fails (record doesn't exist), create a new record
+    // We need to find the modelVersionId for this file
+    // This is a fallback - ideally the record should already exist from upsertOneModelVersion
+    console.warn(`File record ${fileId} not found, attempting to create...`);
+
+    // We can't create without modelVersionId, so we'll log an error
+    console.error(`Cannot create file record ${fileId} without modelVersionId`);
+    throw error; // Re-throw the original error
+  }
 }
 
 /**
@@ -476,10 +488,18 @@ export async function updateModelVersionImageTaskId(
   taskId: string,
   prisma: PrismaClient = defaultPrisma,
 ) {
-  await prisma.modelVersionImage.update({
-    where: { id: imageId },
-    data: { gopeedTaskId: taskId },
-  });
+  try {
+    // First try to update the existing record
+    await prisma.modelVersionImage.update({
+      where: { id: imageId },
+      data: { gopeedTaskId: taskId, gopeedTaskFinished: false },
+    });
+  } catch (error) {
+    // If update fails (record doesn't exist), log an error
+    console.warn(`Image record ${imageId} not found`);
+    console.error(`Cannot update image record ${imageId} - record not found`);
+    throw error; // Re-throw the original error
+  }
 }
 
 /**

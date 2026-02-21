@@ -363,6 +363,48 @@ export default new Elysia({ prefix: `/civitai_api` })
 
           const modelVersionEndpointData = versionResult.value;
 
+          // 4. upsert model info to db (moved before download to ensure records exist)
+          // Create a merged model version object with data from both sources
+          // Add IDs to images by extracting from URL
+          const imagesWithIds = modelVersionEndpointData.images.map((image) => {
+            const idResult = extractIdFromImageUrl(image.url);
+            if (idResult.isOk()) {
+              return {
+                ...image,
+                id: idResult.value,
+              };
+            } else {
+              console.error(
+                `Failed to extract ID from image URL: ${image.url}`,
+                idResult.error,
+              );
+              // Fallback to using index or 0, but better to handle gracefully
+              return {
+                ...image,
+                id: 0, // Fallback ID, will cause database error but at least type matches
+              };
+            }
+          });
+
+          const mergedModelVersion = {
+            ...modelVersionData,
+            files: modelVersionEndpointData.files,
+            images: imagesWithIds,
+            stats: modelVersionData.stats, // Use stats from modelVersionData which includes thumbsDownCount
+            // Ensure required fields are present
+            index: modelVersionData.index,
+            availability: modelVersionData.availability,
+            publishedAt: modelVersionData.publishedAt,
+            baseModelType: modelVersionData.baseModelType,
+            trainedWords: modelVersionData.trainedWords || [],
+          };
+
+          // Create database records before starting downloads
+          const records = await upsertOneModelVersion(
+            model,
+            mergedModelVersion,
+          );
+
           // Initialize file errors array before using it
           const fileErrors: Array<{ fileId: number; error: any }> = [];
 
@@ -436,7 +478,7 @@ export default new Elysia({ prefix: `/civitai_api` })
               const taskId = await gopeed.createTask(task);
               modelfileTasksId.push(taskId);
 
-              // Update database with task ID
+              // Update database with task ID (now records exist)
               await updateModelVersionFileTaskId(file.id, taskId);
             } catch (error) {
               console.error(
@@ -504,7 +546,7 @@ export default new Elysia({ prefix: `/civitai_api` })
                 });
                 mediaTaskIds.push(task);
 
-                // Extract image ID from URL and update database with task ID
+                // Extract image ID from URL and update database with task ID (now records exist)
                 const imageIdResult = extractIdFromImageUrl(media.url);
                 if (imageIdResult.isOk()) {
                   const imageId = imageIdResult.value;
@@ -547,46 +589,6 @@ export default new Elysia({ prefix: `/civitai_api` })
                 .join(", "),
             );
           }
-
-          // 4. upsert model info to db
-          // Create a merged model version object with data from both sources
-          // Add IDs to images by extracting from URL
-          const imagesWithIds = modelVersionEndpointData.images.map((image) => {
-            const idResult = extractIdFromImageUrl(image.url);
-            if (idResult.isOk()) {
-              return {
-                ...image,
-                id: idResult.value,
-              };
-            } else {
-              console.error(
-                `Failed to extract ID from image URL: ${image.url}`,
-                idResult.error,
-              );
-              // Fallback to using index or 0, but better to handle gracefully
-              return {
-                ...image,
-                id: 0, // Fallback ID, will cause database error but at least type matches
-              };
-            }
-          });
-
-          const mergedModelVersion = {
-            ...modelVersionData,
-            files: modelVersionEndpointData.files,
-            images: imagesWithIds,
-            stats: modelVersionData.stats, // Use stats from modelVersionData which includes thumbsDownCount
-            // Ensure required fields are present
-            index: modelVersionData.index,
-            availability: modelVersionData.availability,
-            publishedAt: modelVersionData.publishedAt,
-            baseModelType: modelVersionData.baseModelType,
-            trainedWords: modelVersionData.trainedWords || [],
-          };
-          const records = await upsertOneModelVersion(
-            model,
-            mergedModelVersion,
-          );
 
           // 5. return tasks info
           return {

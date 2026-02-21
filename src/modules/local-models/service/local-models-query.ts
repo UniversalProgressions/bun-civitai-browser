@@ -106,39 +106,16 @@ export async function queryLocalModelVersions(
     // 计算偏移量
     const skip = (page - 1) * pageSize;
 
-    // 查询存在本地文件的模型版本
-    // 我们需要查找至少有一个文件或图片标记为已下载完成的模型版本
-    const modelVersions = await prisma.modelVersion.findMany({
-      where: {
-        OR: [
-          {
-            files: {
-              some: {
-                gopeedTaskFinished: true,
-              },
-            },
-          },
-          {
-            images: {
-              some: {
-                gopeedTaskFinished: true,
-              },
-            },
-          },
-        ],
-      },
+    console.log(
+      `[DEBUG] Querying local model versions, page=${page}, pageSize=${pageSize}, skip=${skip}`,
+    );
+
+    // 查询所有模型版本，然后过滤那些有文件或图片记录的
+    const allModelVersions = await prisma.modelVersion.findMany({
       include: {
         model: true,
-        files: {
-          where: {
-            gopeedTaskFinished: true,
-          },
-        },
-        images: {
-          where: {
-            gopeedTaskFinished: true,
-          },
-        },
+        files: true,
+        images: true,
       },
       orderBy: {
         id: "desc",
@@ -147,36 +124,58 @@ export async function queryLocalModelVersions(
       take: pageSize,
     });
 
+    console.log(
+      `[DEBUG] Found ${allModelVersions.length} model versions in query`,
+    );
+
+    // 过滤出有文件或图片记录的模型版本
+    const modelVersions = allModelVersions.filter(
+      (mv) => mv.files.length > 0 || mv.images.length > 0,
+    );
+
+    console.log(
+      `[DEBUG] After filtering: ${modelVersions.length} model versions with files or images`,
+    );
+
     // 获取总数用于分页
+    const totalModelVersions = await prisma.modelVersion.count();
     const totalCount = await prisma.modelVersion.count({
       where: {
         OR: [
           {
             files: {
-              some: {
-                gopeedTaskFinished: true,
-              },
+              some: {},
             },
           },
           {
             images: {
-              some: {
-                gopeedTaskFinished: true,
-              },
+              some: {},
             },
           },
         ],
       },
     });
 
+    console.log(
+      `[DEBUG] Total model versions: ${totalModelVersions}, with files/images: ${totalCount}`,
+    );
+
     // 转换数据并生成URL
     const items: LocalModelWithUrls[] = [];
     const basePath = settingsService.getSettings().basePath;
 
+    console.log(`[DEBUG] Processing ${modelVersions.length} model versions`);
+
     for (const dbModelVersion of modelVersions) {
       try {
+        console.log(`[DEBUG] Processing model version ${dbModelVersion.id}`);
+
         const modelJson = dbModelVersion.model.json as Model;
         const versionJson = dbModelVersion.json as ModelVersion;
+
+        console.log(
+          `[DEBUG] Model JSON type: ${typeof modelJson}, Version JSON type: ${typeof versionJson}`,
+        );
 
         // 确保modelJson包含当前版本
         if (!modelJson.modelVersions.some((mv) => mv.id === versionJson.id)) {
@@ -190,10 +189,18 @@ export async function queryLocalModelVersions(
           basePath,
         );
 
+        console.log(
+          `[DEBUG] Generated URLs for model version ${dbModelVersion.id}: ${urls.images.length} images, ${urls.files.length} files`,
+        );
+
         // 检查文件实际是否存在
         const modelLayout = new ModelLayout(basePath, modelJson);
         const existenceStatus =
           await modelLayout.checkVersionFilesAndImagesExistence(versionJson.id);
+
+        console.log(
+          `[DEBUG] Existence check for model version ${dbModelVersion.id}: ${existenceStatus.files.filter((f) => f.exists).length}/${existenceStatus.files.length} files exist, ${existenceStatus.images.filter((i) => i.exists).length}/${existenceStatus.images.length} images exist`,
+        );
 
         // 更新文件存在状态
         const filesWithExistence = urls.files.map((file) => ({
@@ -212,6 +219,10 @@ export async function queryLocalModelVersions(
           },
           files: filesWithExistence,
         });
+
+        console.log(
+          `[DEBUG] Successfully processed model version ${dbModelVersion.id}`,
+        );
       } catch (error) {
         console.error(
           `Error processing model version ${dbModelVersion.id}:`,
@@ -220,6 +231,8 @@ export async function queryLocalModelVersions(
         // 跳过处理失败的项目
       }
     }
+
+    console.log(`[DEBUG] Total items processed: ${items.length}`);
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -253,39 +266,27 @@ export async function queryLocalModelVersionsByModelId(
     // 计算偏移量
     const skip = (page - 1) * pageSize;
 
-    // 查询特定模型的本地版本
+    // 查询所有有文件或图片记录的模型版本
     const modelVersions = await prisma.modelVersion.findMany({
       where: {
         modelId,
         OR: [
           {
             files: {
-              some: {
-                gopeedTaskFinished: true,
-              },
+              some: {},
             },
           },
           {
             images: {
-              some: {
-                gopeedTaskFinished: true,
-              },
+              some: {},
             },
           },
         ],
       },
       include: {
         model: true,
-        files: {
-          where: {
-            gopeedTaskFinished: true,
-          },
-        },
-        images: {
-          where: {
-            gopeedTaskFinished: true,
-          },
-        },
+        files: true,
+        images: true,
       },
       orderBy: {
         id: "desc",
@@ -301,16 +302,12 @@ export async function queryLocalModelVersionsByModelId(
         OR: [
           {
             files: {
-              some: {
-                gopeedTaskFinished: true,
-              },
+              some: {},
             },
           },
           {
             images: {
-              some: {
-                gopeedTaskFinished: true,
-              },
+              some: {},
             },
           },
         ],

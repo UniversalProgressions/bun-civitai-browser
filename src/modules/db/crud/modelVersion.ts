@@ -534,51 +534,215 @@ export async function updateGopeedTaskStatus(
   const modelType = modelJson.type;
   const modelId = modelVersion.model.id;
 
-  // Create ModelLayout instance for file checking
-  const { ModelLayout } = await import(
+  try {
+    // Try to create ModelLayout instance for file checking
+    const { ModelLayout } = await import(
+      "../../local-models/service/file-layout"
+    );
+    const modelLayout = new ModelLayout(effectiveBasePath, modelJson);
+
+    // Get existence status for all files and images
+    const existenceStatus =
+      await modelLayout.checkVersionFilesAndImagesExistence(modelVersionId);
+
+    // Update files based on existence
+    for (const fileStatus of existenceStatus.files) {
+      const fileExists = fileStatus.exists;
+      // Get the file record to check gopeedTaskId
+      const fileRecord = await prisma.modelVersionFile.findUnique({
+        where: { id: fileStatus.id },
+        select: { gopeedTaskId: true },
+      });
+
+      await prisma.modelVersionFile.update({
+        where: { id: fileStatus.id },
+        data: {
+          gopeedTaskFinished: fileExists,
+          // Mark as deleted if gopeedTaskId is null (orphaned task)
+          gopeedTaskDeleted: fileRecord?.gopeedTaskId === null,
+        },
+      });
+      console.log(
+        `[STATUS] File ${fileStatus.id}: exists=${fileExists}, gopeedTaskFinished=${fileExists}, gopeedTaskDeleted=${fileRecord?.gopeedTaskId === null}`,
+      );
+    }
+
+    // Update images based on existence
+    for (const imageStatus of existenceStatus.images) {
+      const imageExists = imageStatus.exists;
+      // Get the image record to check gopeedTaskId
+      const imageRecord = await prisma.modelVersionImage.findUnique({
+        where: { id: imageStatus.id },
+        select: { gopeedTaskId: true },
+      });
+
+      await prisma.modelVersionImage.update({
+        where: { id: imageStatus.id },
+        data: {
+          gopeedTaskFinished: imageExists,
+          // Mark as deleted if gopeedTaskId is null (orphaned task)
+          gopeedTaskDeleted: imageRecord?.gopeedTaskId === null,
+        },
+      });
+      console.log(
+        `[STATUS] Image ${imageStatus.id}: exists=${imageExists}, gopeedTaskFinished=${imageExists}, gopeedTaskDeleted=${imageRecord?.gopeedTaskId === null}`,
+      );
+    }
+
+    return {
+      updatedFiles: existenceStatus.files.length,
+      updatedImages: existenceStatus.images.length,
+      filesExist: existenceStatus.files.filter((f) => f.exists).length,
+      imagesExist: existenceStatus.images.filter((i) => i.exists).length,
+    };
+  } catch (error) {
+    // If ModelLayout fails (e.g., "model have no version id"), use fallback method
+    console.warn(
+      `[STATUS] ModelLayout failed for version ${modelVersionId}: ${error instanceof Error ? error.message : String(error)}. Using fallback method.`,
+    );
+
+    // Fallback: Use direct file checking based on directory structure
+    const fallbackResult = await updateGopeedTaskStatusFallback(
+      modelVersionId,
+      effectiveBasePath,
+      modelJson,
+      modelVersion,
+      prisma,
+    );
+
+    return fallbackResult;
+  }
+}
+
+/**
+ * Fallback method for updating Gopeed task status when ModelLayout fails
+ * This method directly checks file existence based on directory structure
+ */
+async function updateGopeedTaskStatusFallback(
+  modelVersionId: number,
+  basePath: string,
+  modelJson: any,
+  modelVersion: any,
+  prisma: PrismaClient,
+): Promise<{
+  updatedFiles: number;
+  updatedImages: number;
+  filesExist: number;
+  imagesExist: number;
+}> {
+  const modelType = modelJson.type;
+  const modelId = modelJson.id;
+
+  // Import file-layout utilities for path construction
+  const { getModelVersionPath, getFilesDir, getMediaDir } = await import(
     "../../local-models/service/file-layout"
   );
-  const modelLayout = new ModelLayout(effectiveBasePath, modelJson);
 
-  // Get existence status for all files and images
-  const existenceStatus =
-    await modelLayout.checkVersionFilesAndImagesExistence(modelVersionId);
+  const versionPath = getModelVersionPath(
+    basePath,
+    modelType,
+    modelId,
+    modelVersionId,
+  );
+  const filesDir = getFilesDir(basePath, modelType, modelId, modelVersionId);
+  const mediaDir = getMediaDir(basePath, modelType, modelId, modelVersionId);
+
+  let updatedFiles = 0;
+  let updatedImages = 0;
+  let filesExist = 0;
+  let imagesExist = 0;
 
   // Update files based on existence
-  for (const fileStatus of existenceStatus.files) {
-    const fileExists = fileStatus.exists;
-    await prisma.modelVersionFile.update({
-      where: { id: fileStatus.id },
-      data: {
-        gopeedTaskFinished: fileExists,
-        gopeedTaskDeleted: false, // Always false unless we have logic for deleted files
-      },
-    });
-    console.log(
-      `[STATUS] File ${fileStatus.id}: exists=${fileExists}, gopeedTaskFinished=${fileExists}`,
-    );
+  for (const file of modelVersion.files) {
+    try {
+      // Construct file path directly
+      const filePath = `${filesDir}/${file.name}`;
+      const fileExists = await Bun.file(filePath).exists();
+
+      // Get the file record to check gopeedTaskId
+      const fileRecord = await prisma.modelVersionFile.findUnique({
+        where: { id: file.id },
+        select: { gopeedTaskId: true },
+      });
+
+      await prisma.modelVersionFile.update({
+        where: { id: file.id },
+        data: {
+          gopeedTaskFinished: fileExists,
+          // Mark as deleted if gopeedTaskId is null (orphaned task)
+          gopeedTaskDeleted: fileRecord?.gopeedTaskId === null,
+        },
+      });
+
+      updatedFiles++;
+      if (fileExists) filesExist++;
+
+      console.log(
+        `[STATUS-FALLBACK] File ${file.id}: exists=${fileExists}, gopeedTaskFinished=${fileExists}, gopeedTaskDeleted=${fileRecord?.gopeedTaskId === null}`,
+      );
+    } catch (error) {
+      console.warn(
+        `[STATUS-FALLBACK] Failed to update file ${file.id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   // Update images based on existence
-  for (const imageStatus of existenceStatus.images) {
-    const imageExists = imageStatus.exists;
-    await prisma.modelVersionImage.update({
-      where: { id: imageStatus.id },
-      data: {
-        gopeedTaskFinished: imageExists,
-        gopeedTaskDeleted: false, // Always false unless we have logic for deleted files
-      },
-    });
-    console.log(
-      `[STATUS] Image ${imageStatus.id}: exists=${imageExists}, gopeedTaskFinished=${imageExists}`,
-    );
+  for (const image of modelVersion.images) {
+    try {
+      // Extract image ID from URL
+      const { extractIdFromImageUrl } = await import("#civitai-api/v1/utils");
+      const idResult = extractIdFromImageUrl(image.url);
+
+      if (idResult.isOk()) {
+        const imageId = idResult.value;
+
+        // Get the image record to check gopeedTaskId
+        const imageRecord = await prisma.modelVersionImage.findUnique({
+          where: { id: imageId },
+          select: { gopeedTaskId: true },
+        });
+
+        // Try to find the image file with common extensions
+        const imageExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+        let imageExists = false;
+
+        for (const ext of imageExtensions) {
+          const imagePath = `${mediaDir}/${imageId}${ext}`;
+          if (await Bun.file(imagePath).exists()) {
+            imageExists = true;
+            break;
+          }
+        }
+
+        await prisma.modelVersionImage.update({
+          where: { id: imageId },
+          data: {
+            gopeedTaskFinished: imageExists,
+            // Mark as deleted if gopeedTaskId is null (orphaned task)
+            gopeedTaskDeleted: imageRecord?.gopeedTaskId === null,
+          },
+        });
+
+        updatedImages++;
+        if (imageExists) imagesExist++;
+
+        console.log(
+          `[STATUS-FALLBACK] Image ${imageId}: exists=${imageExists}, gopeedTaskFinished=${imageExists}, gopeedTaskDeleted=${imageRecord?.gopeedTaskId === null}`,
+        );
+      }
+    } catch (error) {
+      console.warn(
+        `[STATUS-FALLBACK] Failed to update image ${image.id || image.url}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   return {
-    updatedFiles: existenceStatus.files.length,
-    updatedImages: existenceStatus.images.length,
-    filesExist: existenceStatus.files.filter((f) => f.exists).length,
-    imagesExist: existenceStatus.images.filter((i) => i.exists).length,
+    updatedFiles,
+    updatedImages,
+    filesExist,
+    imagesExist,
   };
 }
 

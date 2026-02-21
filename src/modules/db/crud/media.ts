@@ -44,6 +44,7 @@ export async function createOrConnectImagesByModelIdEndpointInfo(
             height: image.height,
             hash: image.hash,
             type: image.type,
+            gopeedTaskFinished: false, // Add required field
           },
         })),
       },

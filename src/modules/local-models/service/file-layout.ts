@@ -190,14 +190,51 @@ export class ModelLayout {
     this.modelIdPath = getModelIdPath(basePath, this.model.type, this.model.id);
   }
 
-  findModelVersion(modelVersionId: number): ModelVersion {
+  async findModelVersion(modelVersionId: number): Promise<ModelVersion> {
     const modelVersion = find(
       this.model.modelVersions,
       (mv) => mv.id === modelVersionId,
     );
+
     if (modelVersion === undefined) {
-      throw new Error(`model have no version id: ${modelVersionId}`);
+      // 对于本地存储，model JSON中的modelVersions可能是空数组
+      // 尝试从本地文件系统读取version JSON
+      try {
+        const versionJsonPath = getModelVersionApiInfoJsonPath(
+          this.basePath,
+          this.model.type,
+          this.model.id,
+          modelVersionId,
+        );
+
+        // 检查文件是否存在
+        const fileExists = await Bun.file(versionJsonPath).exists();
+        if (!fileExists) {
+          throw new Error(
+            `model have no version id: ${modelVersionId} and version JSON not found on disk`,
+          );
+        }
+
+        // 读取并解析version JSON
+        const content = await Bun.file(versionJsonPath).json();
+        const { modelVersionSchema } = await import("#civitai-api/v1/models");
+        const { type } = await import("arktype");
+
+        const validation = modelVersionSchema(content);
+        if (validation instanceof type.errors) {
+          throw new Error(`Invalid version JSON: ${validation.summary}`);
+        }
+
+        // 添加到model的versions数组中，避免重复读取
+        this.model.modelVersions.push(validation);
+        return validation;
+      } catch (error) {
+        throw new Error(
+          `model have no version id: ${modelVersionId} and cannot read from disk: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
+
     return modelVersion;
   }
 
@@ -217,8 +254,8 @@ export class ModelLayout {
     );
   }
 
-  getModelVersionLayout(versionId: number) {
-    const modelVersion = this.findModelVersion(versionId);
+  async getModelVersionLayout(versionId: number) {
+    const modelVersion = await this.findModelVersion(versionId);
     return new ModelVersionLayout(
       getModelVersionPath(
         this.basePath,
@@ -233,7 +270,7 @@ export class ModelLayout {
   }
 
   async checkVersionFilesOnDisk(versionId: number): Promise<Array<number>> {
-    const mv = this.getModelVersionLayout(versionId);
+    const mv = await this.getModelVersionLayout(versionId);
     const existedFiles: Array<number> = [];
     for (let index = 0; index < mv.modelVersion.files.length; index++) {
       const file = mv.modelVersion.files[index];
@@ -253,7 +290,7 @@ export class ModelLayout {
     files: Array<{ id: number; exists: boolean }>;
     images: Array<{ id: number; exists: boolean }>;
   }> {
-    const mv = this.getModelVersionLayout(versionId);
+    const mv = await this.getModelVersionLayout(versionId);
 
     // Helper function to safely check file existence
     const checkFileExists = async (

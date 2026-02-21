@@ -19,8 +19,8 @@ export async function deleteModelVersionFiles(
   try {
     const basePath = getBasePath();
     const modelLayout = new ModelLayout(basePath, model);
-    const modelVersionPath =
-      modelLayout.getModelVersionLayout(versionId).modelVersionPath;
+    const versionLayout = await modelLayout.getModelVersionLayout(versionId);
+    const modelVersionPath = versionLayout.modelVersionPath;
 
     // Check if directory exists before attempting to delete
     const dirExists = await Bun.file(modelVersionPath).exists();
@@ -57,8 +57,8 @@ export async function checkModelVersionFilesExist(
   try {
     const basePath = getBasePath();
     const modelLayout = new ModelLayout(basePath, model);
-    const modelVersionPath =
-      modelLayout.getModelVersionLayout(versionId).modelVersionPath;
+    const versionLayout = await modelLayout.getModelVersionLayout(versionId);
+    const modelVersionPath = versionLayout.modelVersionPath;
 
     const exists = await Bun.file(modelVersionPath).exists();
     return ok(exists);
@@ -101,7 +101,7 @@ export async function getModelVersionDeletionDetails(
   try {
     const basePath = getBasePath();
     const modelLayout = new ModelLayout(basePath, model);
-    const versionLayout = modelLayout.getModelVersionLayout(versionId);
+    const versionLayout = await modelLayout.getModelVersionLayout(versionId);
 
     // Find the version data from model
     const versionData = model.modelVersions.find((v) => v.id === versionId);

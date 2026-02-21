@@ -65,7 +65,7 @@ export async function upsertOneModelVersion(
     const modelLayout = new (
       await import("../../local-models/service/file-layout")
     ).ModelLayout(basePath, modelWithVersion);
-    const mvLayout = modelLayout.getModelVersionLayout(modelVersion.id);
+    const mvLayout = await modelLayout.getModelVersionLayout(modelVersion.id);
     const filePath = mvLayout.getFilePath(fileId);
     return await Bun.file(filePath).exists();
   };
@@ -80,7 +80,7 @@ export async function upsertOneModelVersion(
     const modelLayout = new (
       await import("../../local-models/service/file-layout")
     ).ModelLayout(basePath, modelWithVersion);
-    const mvLayout = modelLayout.getModelVersionLayout(modelVersion.id);
+    const mvLayout = await modelLayout.getModelVersionLayout(modelVersion.id);
     const imagePath = mvLayout.getMediaPath(imageId);
     return await Bun.file(imagePath).exists();
   };

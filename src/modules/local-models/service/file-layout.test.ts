@@ -54,9 +54,6 @@ describe("test layout class", () => {
   const basePath = __dirname;
   const milayout = new ModelLayout(basePath, modelId1);
   const mv = modelId1.modelVersions[0];
-  const mvlayout = milayout.getModelVersionLayout(mv.id);
-  const mfile = mv.files[0];
-  const mimg = mv.images[0];
 
   test("test get modelId path", () => {
     expect(milayout.modelIdPath).toBe(
@@ -64,20 +61,25 @@ describe("test layout class", () => {
     );
   });
 
-  test("test get modelVersion path", () => {
+  test("test get modelVersion path", async () => {
+    const mvlayout = await milayout.getModelVersionLayout(mv.id);
     expect(mvlayout.modelVersionPath).toBe(
       join(milayout.modelIdPath, mv.id.toString()),
     );
   });
 
-  test("test get file path", () => {
+  test("test get file path", async () => {
+    const mvlayout = await milayout.getModelVersionLayout(mv.id);
+    const mfile = mv.files[0];
     // New layout: {versionId}/files/{fileName}.xxx (no fileId_ prefix)
     expect(mvlayout.getFilePath(mfile.id)).toBe(
       join(mvlayout.filesDir, filenamify(mfile.name, { replacement: "_" })),
     );
   });
 
-  test("test get image path", () => {
+  test("test get image path", async () => {
+    const mvlayout = await milayout.getModelVersionLayout(mv.id);
+    const mimg = mv.images[0];
     // New layout: {versionId}/media/{imageId}.xxx
     // Extract image ID from URL since ModelImage no longer has id field
     const idResult = extractIdFromImageUrl(mimg.url);
@@ -88,11 +90,13 @@ describe("test layout class", () => {
     );
   });
 
-  test("test get files dir", () => {
+  test("test get files dir", async () => {
+    const mvlayout = await milayout.getModelVersionLayout(mv.id);
     expect(mvlayout.filesDir).toBe(join(mvlayout.modelVersionPath, "files"));
   });
 
-  test("test get media dir", () => {
+  test("test get media dir", async () => {
+    const mvlayout = await milayout.getModelVersionLayout(mv.id);
     expect(mvlayout.mediaDir).toBe(join(mvlayout.modelVersionPath, "media"));
   });
 });

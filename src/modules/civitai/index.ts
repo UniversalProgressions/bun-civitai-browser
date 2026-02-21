@@ -340,7 +340,7 @@ export default new Elysia({ prefix: `/civitai_api` })
           // Resolve model file download tasks
           const modelFileDownloadTasks: Array<CreateTaskWithRequest> = [];
           const milayout = new ModelLayout(settings.basePath, model);
-          const mvlayout = milayout.getModelVersionLayout(modelVersionId);
+          const mvlayout = await milayout.getModelVersionLayout(modelVersionId);
 
           // Find the model version from the model's versions array
           const modelVersionData = model.modelVersions.find(

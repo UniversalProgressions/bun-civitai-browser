@@ -25,7 +25,5 @@ export const settingsReadyAtom = atom(
   (get) => get(settingsValidAtom) && get(settingsInitializedAtom),
 );
 
-// Derived atom: check if we should show setup UI
-export const showSetupRequiredAtom = atom(
-  (get) => !get(settingsValidAtom) && get(settingsInitializedAtom),
-);
+// Atom to control if we should show setup UI (can be manually overridden)
+export const showSetupRequiredAtom = atom<boolean>(false);

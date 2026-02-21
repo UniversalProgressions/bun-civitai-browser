@@ -43,12 +43,14 @@ export function SettingsCheck() {
           console.error("Failed to check settings:", response.error);
           setSettingsValid(false);
           setInitialSetupRequired(true);
+          setShowSetupRequired(true);
         } else {
           const settingsData = response.data;
           const isConfigured = settingsData !== null;
 
           setSettingsValid(isConfigured);
           setInitialSetupRequired(!isConfigured);
+          setShowSetupRequired(!isConfigured);
 
           // If settings are configured, we can proceed
           if (isConfigured) {
@@ -61,6 +63,7 @@ export function SettingsCheck() {
         console.error("Error checking settings:", error);
         setSettingsValid(false);
         setInitialSetupRequired(true);
+        setShowSetupRequired(true);
       } finally {
         setSettingsChecking(false);
         setSettingsInitialized(true);
@@ -73,6 +76,7 @@ export function SettingsCheck() {
     setSettingsChecking,
     setSettingsInitialized,
     setInitialSetupRequired,
+    setShowSetupRequired,
   ]);
 
   // If settings check is in progress, show loading state
@@ -113,12 +117,22 @@ export function SettingsCheck() {
             type="primary"
             icon={<SettingFilled />}
             onClick={() => {
-              // Switch to settings tab
-              const settingsTab = document.querySelector(
-                '[data-node-key="settings"]',
-              ) as HTMLElement;
-              if (settingsTab) {
-                settingsTab.click();
+              // Switch to settings tab - use a safer approach
+              try {
+                const settingsTab = document.querySelector(
+                  '[data-node-key="settings"]',
+                );
+                if (settingsTab) {
+                  // Create a mouse event to simulate click
+                  const clickEvent = new MouseEvent("click", {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true,
+                  });
+                  settingsTab.dispatchEvent(clickEvent);
+                }
+              } catch (error) {
+                console.error("Failed to switch to settings tab:", error);
               }
               setShowSetupRequired(false);
             }}

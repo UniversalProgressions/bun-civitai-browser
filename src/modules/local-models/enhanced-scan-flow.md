@@ -348,36 +348,29 @@ flowchart TD
 2. **文件存在性检查** - 直接检查磁盘文件
 3. **图片ID提取** - 从URL提取图片ID，尝试多种扩展名
 4. **错误恢复** - 单个文件失败不影响其他文件处理
-5. **孤儿任务标记** - 当`gopeedTaskId === null`时，自动设置`gopeedTaskDeleted = true`
 
 #### 修复API：
 - `POST /local-models/fix-gopeed-task-status` - 修复所有模型版本的gopeed任务状态
 - 支持JSON不完整的情况
 - 自动检测并修复状态不一致的记录
-- 自动标记孤儿任务为已删除
 
-#### 孤儿任务处理逻辑：
+#### 文件存在性处理逻辑：
 ```typescript
 // 在updateGopeedTaskStatus和updateGopeedTaskStatusFallback中
-const fileRecord = await prisma.modelVersionFile.findUnique({
-  where: { id: fileStatus.id },
-  select: { gopeedTaskId: true },
-});
-
 await prisma.modelVersionFile.update({
   where: { id: fileStatus.id },
   data: {
+    // 如果文件存在，同时标记为已完成和已删除
     gopeedTaskFinished: fileExists,
-    // 如果gopeedTaskId为null，则标记为已删除（孤儿任务）
-    gopeedTaskDeleted: fileRecord?.gopeedTaskId === null,
+    gopeedTaskDeleted: fileExists,
   },
 });
 ```
 
 #### 处理原则：
 1. **文件存在性优先**：`gopeedTaskFinished`基于文件在磁盘上的存在性
-2. **孤儿任务标记**：`gopeedTaskDeleted`基于`gopeedTaskId === null`
-3. **独立判断**：两个字段的判断逻辑相互独立
+2. **自动标记删除**：`gopeedTaskDeleted`同样基于文件存在性（文件存在则标记为已删除）
+3. **简化逻辑**：不再检查`gopeedTaskId`，直接根据文件存在性设置两个字段
 4. **批量处理**：通过API一次性修复所有记录
 
 ## 错误处理流程

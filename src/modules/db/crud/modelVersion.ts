@@ -548,44 +548,32 @@ export async function updateGopeedTaskStatus(
     // Update files based on existence
     for (const fileStatus of existenceStatus.files) {
       const fileExists = fileStatus.exists;
-      // Get the file record to check gopeedTaskId
-      const fileRecord = await prisma.modelVersionFile.findUnique({
-        where: { id: fileStatus.id },
-        select: { gopeedTaskId: true },
-      });
-
       await prisma.modelVersionFile.update({
         where: { id: fileStatus.id },
         data: {
+          // If file exists, mark both finished and deleted as true
           gopeedTaskFinished: fileExists,
-          // Mark as deleted if gopeedTaskId is null (orphaned task)
-          gopeedTaskDeleted: fileRecord?.gopeedTaskId === null,
+          gopeedTaskDeleted: fileExists,
         },
       });
       console.log(
-        `[STATUS] File ${fileStatus.id}: exists=${fileExists}, gopeedTaskFinished=${fileExists}, gopeedTaskDeleted=${fileRecord?.gopeedTaskId === null}`,
+        `[STATUS] File ${fileStatus.id}: exists=${fileExists}, gopeedTaskFinished=${fileExists}, gopeedTaskDeleted=${fileExists}`,
       );
     }
 
     // Update images based on existence
     for (const imageStatus of existenceStatus.images) {
       const imageExists = imageStatus.exists;
-      // Get the image record to check gopeedTaskId
-      const imageRecord = await prisma.modelVersionImage.findUnique({
-        where: { id: imageStatus.id },
-        select: { gopeedTaskId: true },
-      });
-
       await prisma.modelVersionImage.update({
         where: { id: imageStatus.id },
         data: {
+          // If image exists, mark both finished and deleted as true
           gopeedTaskFinished: imageExists,
-          // Mark as deleted if gopeedTaskId is null (orphaned task)
-          gopeedTaskDeleted: imageRecord?.gopeedTaskId === null,
+          gopeedTaskDeleted: imageExists,
         },
       });
       console.log(
-        `[STATUS] Image ${imageStatus.id}: exists=${imageExists}, gopeedTaskFinished=${imageExists}, gopeedTaskDeleted=${imageRecord?.gopeedTaskId === null}`,
+        `[STATUS] Image ${imageStatus.id}: exists=${imageExists}, gopeedTaskFinished=${imageExists}, gopeedTaskDeleted=${imageExists}`,
       );
     }
 
@@ -659,18 +647,12 @@ async function updateGopeedTaskStatusFallback(
       const filePath = `${filesDir}/${file.name}`;
       const fileExists = await Bun.file(filePath).exists();
 
-      // Get the file record to check gopeedTaskId
-      const fileRecord = await prisma.modelVersionFile.findUnique({
-        where: { id: file.id },
-        select: { gopeedTaskId: true },
-      });
-
       await prisma.modelVersionFile.update({
         where: { id: file.id },
         data: {
+          // If file exists, mark both finished and deleted as true
           gopeedTaskFinished: fileExists,
-          // Mark as deleted if gopeedTaskId is null (orphaned task)
-          gopeedTaskDeleted: fileRecord?.gopeedTaskId === null,
+          gopeedTaskDeleted: fileExists,
         },
       });
 
@@ -678,7 +660,7 @@ async function updateGopeedTaskStatusFallback(
       if (fileExists) filesExist++;
 
       console.log(
-        `[STATUS-FALLBACK] File ${file.id}: exists=${fileExists}, gopeedTaskFinished=${fileExists}, gopeedTaskDeleted=${fileRecord?.gopeedTaskId === null}`,
+        `[STATUS-FALLBACK] File ${file.id}: exists=${fileExists}, gopeedTaskFinished=${fileExists}, gopeedTaskDeleted=${fileExists}`,
       );
     } catch (error) {
       console.warn(
@@ -697,12 +679,6 @@ async function updateGopeedTaskStatusFallback(
       if (idResult.isOk()) {
         const imageId = idResult.value;
 
-        // Get the image record to check gopeedTaskId
-        const imageRecord = await prisma.modelVersionImage.findUnique({
-          where: { id: imageId },
-          select: { gopeedTaskId: true },
-        });
-
         // Try to find the image file with common extensions
         const imageExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
         let imageExists = false;
@@ -718,9 +694,9 @@ async function updateGopeedTaskStatusFallback(
         await prisma.modelVersionImage.update({
           where: { id: imageId },
           data: {
+            // If image exists, mark both finished and deleted as true
             gopeedTaskFinished: imageExists,
-            // Mark as deleted if gopeedTaskId is null (orphaned task)
-            gopeedTaskDeleted: imageRecord?.gopeedTaskId === null,
+            gopeedTaskDeleted: imageExists,
           },
         });
 
@@ -728,7 +704,7 @@ async function updateGopeedTaskStatusFallback(
         if (imageExists) imagesExist++;
 
         console.log(
-          `[STATUS-FALLBACK] Image ${imageId}: exists=${imageExists}, gopeedTaskFinished=${imageExists}, gopeedTaskDeleted=${imageRecord?.gopeedTaskId === null}`,
+          `[STATUS-FALLBACK] Image ${imageId}: exists=${imageExists}, gopeedTaskFinished=${imageExists}, gopeedTaskDeleted=${imageExists}`,
         );
       }
     } catch (error) {

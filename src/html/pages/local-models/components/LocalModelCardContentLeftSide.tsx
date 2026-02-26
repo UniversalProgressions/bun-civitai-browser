@@ -1,4 +1,7 @@
-import type { ModelVersion } from "../../../../civitai-api/v1/models/models";
+import type {
+  ModelVersion,
+  ModelImageWithId,
+} from "../../../../civitai-api/v1/models/models";
 import { extractFilenameFromUrl } from "../../../../civitai-api/v1/utils";
 import MediaGallery from "../../../components/gallery";
 
@@ -6,50 +9,74 @@ interface LocalModelCardContentLeftSideProps {
   modelVersion: ModelVersion;
   modelId: number;
   modelType: string;
+  precomputedImageUrls?: string[]; // 预计算的媒体URL
 }
 
 export function LocalModelCardContentLeftSide({
   modelVersion,
   modelId,
   modelType,
+  precomputedImageUrls,
 }: LocalModelCardContentLeftSideProps) {
   const images = modelVersion.images || [];
 
-  // 过滤掉无法提取文件名的图片，避免空字符串src错误
-  const galleryItems = images
-    .map((i) => {
-      const filenameResult = extractFilenameFromUrl(i.url);
-      if (filenameResult.isErr()) {
-        // 仅在开发环境中显示警告
-        if (import.meta.env.DEV) {
-          console.warn(
-            `Failed to extract filename from URL: ${i.url}`,
-            filenameResult.error,
-          );
+  // 优先使用预计算的媒体URL
+  let galleryItems: ModelImageWithId[] = [];
+
+  if (precomputedImageUrls && precomputedImageUrls.length > 0) {
+    // 使用预计算的URL
+    galleryItems = images
+      .map((image, index) => {
+        const precomputedUrl = precomputedImageUrls[index];
+        return {
+          id: image.id || index,
+          url: precomputedUrl || image.url, // 如果预计算URL不存在，回退到原始URL
+          nsfwLevel: image.nsfwLevel,
+          width: image.width,
+          height: image.height,
+          hash: image.hash,
+          type: image.type,
+        };
+      })
+      .filter((item) => item.url && item.url.trim() !== ""); // 过滤掉空URL
+  } else {
+    // 如果没有预计算URL，使用原始逻辑（向后兼容）
+    // 注意：extractFilenameFromUrl 已经静态导入了
+
+    galleryItems = images
+      .map((image, index) => {
+        const filenameResult = extractFilenameFromUrl(image.url);
+        if (filenameResult.isErr()) {
+          // 仅在开发环境中显示警告
+          if (import.meta.env.DEV) {
+            console.warn(
+              `Failed to extract filename from URL: ${image.url}`,
+              filenameResult.error,
+            );
+          }
+          return null;
         }
-        return null;
-      }
 
-      const filename = filenameResult.value;
-      // 生成完整的URL，避免gallery.tsx中new URL()解析相对路径时出错
-      const relativeUrl = `/local-models/media?modelId=${modelId}&versionId=${modelVersion.id}&modelType=${modelType}&filename=${encodeURIComponent(filename)}`;
-      const url =
-        typeof window !== "undefined"
-          ? `${window.location.origin}${relativeUrl}`
-          : relativeUrl;
-      const id = parseInt(filename.split(".")[0], 10) || 0;
+        const filename = filenameResult.value;
+        // 生成完整的URL，避免gallery.tsx中new URL()解析相对路径时出错
+        const relativeUrl = `/local-models/media?modelId=${modelId}&versionId=${modelVersion.id}&modelType=${modelType}&filename=${encodeURIComponent(filename)}`;
+        const url =
+          typeof window !== "undefined"
+            ? `${window.location.origin}${relativeUrl}`
+            : relativeUrl;
 
-      return {
-        id,
-        url,
-        nsfwLevel: i.nsfwLevel,
-        width: i.width,
-        height: i.height,
-        hash: i.hash,
-        type: i.type,
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null);
+        return {
+          id: image.id || index,
+          url,
+          nsfwLevel: image.nsfwLevel,
+          width: image.width,
+          height: image.height,
+          hash: image.hash,
+          type: image.type,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  }
 
   return (
     <div>

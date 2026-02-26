@@ -6,8 +6,6 @@ import {
 } from "../../civitai-api/v1/models/models";
 import { existedModelVersionsSchema } from "../../civitai-api/v1/models/model-id";
 import { modelId2Model } from "../../civitai-api/v1/utils";
-import type { ModelsRequestOptions } from "#civitai-api/v1/models";
-import { modelsRequestOptionsSchema } from "#civitai-api/v1/models";
 import { client } from "../civitai";
 import {
   checkModelOnDisk,
@@ -25,6 +23,7 @@ import {
   deleteBatchModelVersionsCompletely,
 } from "./service/delete-service";
 import { queryLocalModelVersions } from "./service/local-models-query";
+import { localModelsRequestOptionsSchema } from "./service/local-models-request";
 
 export default new Elysia({ prefix: "/local-models" })
   // GET /local-models/models/:id/with-disk-status - Get model with disk existence check
@@ -134,12 +133,20 @@ export default new Elysia({ prefix: "/local-models" })
     "/models/on-disk",
     async ({ body }) => {
       try {
-        // 解析分页参数
-        const page = body.page || 1;
-        const pageSize = body.limit || 20;
+        // 转换请求参数为查询选项
+        const options = {
+          page: body.page || 1,
+          pageSize: body.limit || 20,
+          query: body.query,
+          tags: body.tag,
+          username: body.username,
+          types: body.types,
+          nsfw: body.nsfw,
+          baseModels: body.baseModels,
+        };
 
         // 使用新的查询服务获取本地模型数据
-        const result = await queryLocalModelVersions(page, pageSize);
+        const result = await queryLocalModelVersions(options);
 
         if (result.isErr()) {
           throw new Error(
@@ -147,7 +154,19 @@ export default new Elysia({ prefix: "/local-models" })
           );
         }
 
-        return result.value;
+        // 转换响应格式以匹配前端期望
+        const paginatedData = result.value;
+        return {
+          models: paginatedData.items.map((item) => ({
+            model: item.model,
+            modelVersions: {
+              version: item.version,
+              mediaUrls: item.mediaUrls,
+              files: item.files,
+            },
+          })),
+          metadata: paginatedData.metadata,
+        };
       } catch (error) {
         console.error("[API] Error in /models/on-disk:", error);
         throw new Error(
@@ -156,21 +175,23 @@ export default new Elysia({ prefix: "/local-models" })
       }
     },
     {
-      body: modelsRequestOptionsSchema,
+      body: localModelsRequestOptionsSchema,
       response: type({
-        items: type({
+        models: type({
           model: modelSchema,
-          version: modelVersionSchema,
-          mediaUrls: type({
-            thumbnail: "string?",
-            images: "string[]",
+          modelVersions: type({
+            version: modelVersionSchema,
+            mediaUrls: type({
+              thumbnail: "string?",
+              images: "string[]",
+            }),
+            files: type({
+              id: "number",
+              name: "string",
+              url: "string",
+              exists: "boolean",
+            }).array(),
           }),
-          files: type({
-            id: "number",
-            name: "string",
-            url: "string",
-            exists: "boolean",
-          }).array(),
         }).array(),
         metadata: type({
           totalItems: "number",

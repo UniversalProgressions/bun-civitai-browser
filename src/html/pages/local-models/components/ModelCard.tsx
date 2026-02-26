@@ -5,15 +5,17 @@ import type {
   Model,
   ModelVersion,
 } from "../../../../civitai-api/v1/models/models";
+import type { LocalModelData } from "../atoms";
 import { MediaPreview, getPreviewFile } from "./MediaPreview";
 import { ModelCardContent } from "./ModelCardContent";
 import { LocalModelCardContentLeftSide } from "./LocalModelCardContentLeftSide";
 
 interface ModelCardProps {
-  item: Model;
+  item: LocalModelData;
 }
 
 export function ModelCard({ item }: ModelCardProps) {
+  const model = item.model;
   const [modelData, setModelData] = useState<Model | null>(null);
   const [_isError, _setIsError] = useState(false);
   const [_errorDescription, _setErrorDescription] = useState("");
@@ -28,8 +30,9 @@ export function ModelCard({ item }: ModelCardProps) {
     return (
       <LocalModelCardContentLeftSide
         modelVersion={modelVersion}
-        modelId={item.id}
-        modelType={item.type}
+        modelId={model.id}
+        modelType={model.type}
+        precomputedImageUrls={item.modelVersions.mediaUrls.images}
       />
     );
   };
@@ -62,26 +65,32 @@ export function ModelCard({ item }: ModelCardProps) {
   }
 
   // 获取预览文件和对应的版本
-  const previewInfo = getPreviewFile(item);
+  const previewInfo = getPreviewFile(model);
+
+  // 使用后端预计算的媒体URL（如果可用）
+  const mediaUrls = item.modelVersions.mediaUrls;
+  const thumbnailUrl = mediaUrls?.thumbnail;
+  const firstImageUrl = mediaUrls?.images?.[0];
 
   return (
     <>
       <Card
-        onClick={() => openModelCard(item)}
+        onClick={() => openModelCard(model)}
         hoverable
         cover={
-          previewInfo.fileName ? (
+          thumbnailUrl || firstImageUrl ? (
             <MediaPreview
-              fileName={previewInfo.fileName}
-              model={item}
+              fileName={previewInfo.fileName || ""}
+              model={model}
               version={
                 previewInfo.versionId
                   ? {
                       id: previewInfo.versionId,
-                      images: item.modelVersions[0].images,
+                      images: item.modelVersions.version.images,
                     }
                   : undefined
               }
+              srcUrl={thumbnailUrl || firstImageUrl}
             />
           ) : (
             <img
@@ -91,7 +100,7 @@ export function ModelCard({ item }: ModelCardProps) {
           )
         }
       >
-        <Card.Meta description={item.name} />
+        <Card.Meta description={model.name} />
       </Card>
       <Modal
         width={1000}

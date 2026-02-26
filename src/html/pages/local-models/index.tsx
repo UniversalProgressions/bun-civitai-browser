@@ -4,6 +4,7 @@ import { useCallback, useEffect } from "react";
 import type { ModelsRequestOptions } from "../../../civitai-api/v1/models/models";
 import {
   isGalleryLoadingAtom,
+  localModelsDataAtom,
   localSearchOptionsAtom,
   modelsAtom,
   totalAtom,
@@ -14,6 +15,7 @@ import { edenTreaty } from "../../utils";
 function LocalModelsGallery() {
   const [isGalleryLoading, setIsGalleryLoading] = useAtom(isGalleryLoadingAtom);
   const [models, setModels] = useAtom(modelsAtom);
+  const [localModelsData, setLocalModelsData] = useAtom(localModelsDataAtom);
   const [searchOpt, _setSearchOpt] = useAtom(localSearchOptionsAtom);
   const [_totalCount, setTotalCount] = useAtom(totalAtom);
 
@@ -27,20 +29,22 @@ function LocalModelsGallery() {
         if (error) {
           throw error;
         } else {
-          // 新的数据结构包含 model 和 version 字段
-          // 我们需要将数据转换为前端期望的格式
-          setModels(data.items.map((item) => item.model));
+          // 存储完整的数据结构
+          setLocalModelsData(data.models);
+          // 同时更新旧的数据结构以保持向后兼容
+          setModels(data.models.map((item) => item.model));
           setTotalCount(data.metadata.totalItems ?? 0);
         }
       } catch (error) {
         console.error("Failed to fetch local models:", error);
+        setLocalModelsData([]);
         setModels([]);
         setTotalCount(0);
       } finally {
         setIsGalleryLoading(false);
       }
     },
-    [setIsGalleryLoading, setModels, setTotalCount],
+    [setIsGalleryLoading, setLocalModelsData, setModels, setTotalCount],
   );
 
   useEffect(() => {
@@ -52,7 +56,7 @@ function LocalModelsGallery() {
       {isGalleryLoading ? (
         <div>Loading...</div>
       ) : (
-        <GalleryContent models={models} />
+        <GalleryContent models={localModelsData} />
       )}
       <Space orientation="vertical" align="center" className="w-full">
         <Affix offsetBottom={5}>

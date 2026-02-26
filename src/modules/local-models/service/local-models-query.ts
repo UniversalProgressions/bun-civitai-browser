@@ -29,6 +29,17 @@ export interface PaginatedLocalModels {
   };
 }
 
+export interface QueryLocalModelsOptions {
+  page?: number;
+  pageSize?: number;
+  query?: string;
+  tags?: string[];
+  username?: string;
+  types?: string[];
+  nsfw?: boolean;
+  baseModels?: string[];
+}
+
 /**
  * 生成媒体文件的访问URL
  */
@@ -96,24 +107,117 @@ export function generateUrlsForModelVersion(
 }
 
 /**
- * 查询本地存在的模型版本
+ * 查询本地存在的模型版本（支持过滤）
  */
 export async function queryLocalModelVersions(
-  page: number = 1,
-  pageSize: number = 20,
+  options: QueryLocalModelsOptions = {},
 ): Promise<Result<PaginatedLocalModels, Error>> {
   try {
-    // 计算偏移量
+    const page = options.page || 1;
+    const pageSize = options.pageSize || 20;
     const skip = (page - 1) * pageSize;
 
     console.log(
-      `[DEBUG] Querying local model versions, page=${page}, pageSize=${pageSize}, skip=${skip}`,
+      `[DEBUG] Querying local model versions with filters:`,
+      JSON.stringify(options, null, 2),
     );
 
-    // 查询所有模型版本，然后过滤那些有文件或图片记录的
-    const allModelVersions = await prisma.modelVersion.findMany({
+    // 构建过滤条件
+    const where: any = {};
+
+    // 基础条件：有文件或图片记录
+    where.OR = [{ files: { some: {} } }, { images: { some: {} } }];
+
+    // 处理query参数（模糊搜索模型名称）
+    if (options.query && options.query.trim()) {
+      where.model = {
+        name: {
+          contains: options.query.trim(),
+        },
+      };
+    }
+
+    // 处理tags参数（通过Tag表关联）
+    if (options.tags && options.tags.length > 0) {
+      where.model = {
+        ...where.model,
+        tags: {
+          some: {
+            name: {
+              in: options.tags,
+            },
+          },
+        },
+      };
+    }
+
+    // 处理username参数（通过Creator表关联）
+    if (options.username && options.username.trim()) {
+      where.model = {
+        ...where.model,
+        creator: {
+          username: {
+            contains: options.username.trim(),
+          },
+        },
+      };
+    }
+
+    // 处理types参数（通过ModelType表关联）
+    if (options.types && options.types.length > 0) {
+      where.model = {
+        ...where.model,
+        type: {
+          name: {
+            in: options.types,
+          },
+        },
+      };
+    }
+
+    // 处理nsfw参数
+    // 根据要求：如果指定nsfw: true，显示NSFW和SFW内容；如果忽略此参数，仅显示非NSFW内容
+    if (options.nsfw !== undefined) {
+      if (!options.nsfw) {
+        // nsfw: false 表示隐藏NSFW内容
+        where.model = {
+          ...where.model,
+          nsfw: false,
+        };
+      }
+      // nsfw: true 不做过滤，显示所有内容
+    } else {
+      // 忽略nsfw参数时，默认只显示非NSFW内容
+      where.model = {
+        ...where.model,
+        nsfw: false,
+      };
+    }
+
+    // 处理baseModels参数（通过BaseModel表关联）
+    if (options.baseModels && options.baseModels.length > 0) {
+      where.baseModel = {
+        name: {
+          in: options.baseModels,
+        },
+      };
+    }
+
+    console.log(`[DEBUG] Prisma where clause:`, JSON.stringify(where, null, 2));
+
+    // 查询模型版本
+    const modelVersions = await prisma.modelVersion.findMany({
+      where,
       include: {
-        model: true,
+        model: {
+          include: {
+            creator: true,
+            type: true,
+            tags: true,
+          },
+        },
+        baseModel: true,
+        baseModelType: true,
         files: true,
         images: true,
       },
@@ -125,40 +229,13 @@ export async function queryLocalModelVersions(
     });
 
     console.log(
-      `[DEBUG] Found ${allModelVersions.length} model versions in query`,
-    );
-
-    // 过滤出有文件或图片记录的模型版本
-    const modelVersions = allModelVersions.filter(
-      (mv) => mv.files.length > 0 || mv.images.length > 0,
-    );
-
-    console.log(
-      `[DEBUG] After filtering: ${modelVersions.length} model versions with files or images`,
+      `[DEBUG] Found ${modelVersions.length} model versions after filtering`,
     );
 
     // 获取总数用于分页
-    const totalModelVersions = await prisma.modelVersion.count();
-    const totalCount = await prisma.modelVersion.count({
-      where: {
-        OR: [
-          {
-            files: {
-              some: {},
-            },
-          },
-          {
-            images: {
-              some: {},
-            },
-          },
-        ],
-      },
-    });
+    const totalCount = await prisma.modelVersion.count({ where });
 
-    console.log(
-      `[DEBUG] Total model versions: ${totalModelVersions}, with files/images: ${totalCount}`,
-    );
+    console.log(`[DEBUG] Total count with filters: ${totalCount}`);
 
     // 转换数据并生成URL
     const items: LocalModelWithUrls[] = [];
@@ -172,10 +249,6 @@ export async function queryLocalModelVersions(
 
         const modelJson = dbModelVersion.model.json as Model;
         const versionJson = dbModelVersion.json as ModelVersion;
-
-        console.log(
-          `[DEBUG] Model JSON type: ${typeof modelJson}, Version JSON type: ${typeof versionJson}`,
-        );
 
         // 确保modelJson包含当前版本
         if (!modelJson.modelVersions.some((mv) => mv.id === versionJson.id)) {

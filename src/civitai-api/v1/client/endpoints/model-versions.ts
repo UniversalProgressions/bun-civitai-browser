@@ -128,14 +128,4 @@ export class ModelVersionsEndpointImpl implements ModelVersionsEndpoint {
       return err(networkError);
     }
   }
-
-  /**
-   * Add token to model file download URL
-   * This is the same logic as in the deprecated download module
-   */
-  private makeModelFileDownloadUrl(url: string, token: string): string {
-    const urlObj = new URL(url);
-    urlObj.searchParams.set("token", token);
-    return urlObj.toString();
-  }
 }

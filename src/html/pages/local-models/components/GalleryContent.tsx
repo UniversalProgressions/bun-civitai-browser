@@ -1,9 +1,9 @@
 import { Masonry } from "antd";
-import type { Model } from "../../../../civitai-api/v1/models/models";
+import type { LocalModelData } from "../atoms";
 import { ModelCard } from "./ModelCard";
 
 interface GalleryContentProps {
-  models: Array<Model>;
+  models: Array<LocalModelData>;
 }
 
 export function GalleryContent({ models }: GalleryContentProps) {
